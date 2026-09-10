@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /mis-pedidos
+Disallow: /pedido
+
+Sitemap: /sitemap.xml

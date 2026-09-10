@@ -1,0 +1,30 @@
+export const business = {
+  name: "Vargas Tacos",
+  legalName: "Tacos Vargas",
+  slogan: "Un rico sabor para un excelente día",
+  phone: "3141606339",
+  whatsapp: "5213141606339",
+  hours: {
+    label: "7:30 a.m. a 1:30 p.m.",
+    days: "Lunes a sábado",
+    opens: "07:30",
+    closes: "13:30",
+    weekdays: [1, 2, 3, 4, 5, 6] as number[],
+  },
+  location: {
+    city: "Colima",
+    region: "Colima",
+    country: "México",
+    addressConfirmed: false,
+    street: "",
+    label: "3PQC+632, Manzanillo, Colima, México",
+    lat: 19.2433,
+    lng: -103.725,
+  },
+  payment: "Pago presencial al recoger o al entregar el pedido.",
+  socials: {
+    facebook: "https://www.facebook.com/",
+    instagram: "https://www.instagram.com/",
+    tiktok: "https://www.tiktok.com/",
+  },
+} as const;
