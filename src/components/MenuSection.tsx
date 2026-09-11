@@ -1,10 +1,9 @@
 import { type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import useEmblaCarousel from "embla-carousel-react";
-import { ChevronLeft, ChevronRight, Eye, ShoppingBag } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import type { Product } from "@/data/seedProducts";
 import { productPath } from "@/data/seedProducts";
-import { useCart } from "@/context/CartContext";
 import { formatMxn, isProductAvailable } from "@/lib/format";
 import { Reveal } from "@/components/Reveal";
 
@@ -68,9 +67,9 @@ function ProductCarousel({
 
   return (
     <>
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between md:gap-4">
         {heading}
-        <div className="mb-1 flex gap-2">
+        <div className="flex justify-end gap-2 md:mb-1">
           <button
             type="button"
             aria-label={prevLabel}
@@ -89,7 +88,7 @@ function ProductCarousel({
           </button>
         </div>
       </div>
-      <div className="mt-10">
+      <div className="mt-5 md:mt-8">
         <div className="-mx-2 overflow-hidden px-3 py-6 sm:-mx-3 sm:px-5 sm:py-8" ref={emblaRef}>
           <div className="flex gap-5">
             {products.map((product) => (
@@ -105,8 +104,6 @@ function ProductCarousel({
 }
 
 export function MenuSection({ tacos, drinks }: { tacos: Product[]; drinks: Product[] }) {
-  const { totalItems } = useCart();
-
   return (
     <section id="menu" className="px-4 py-24 md:px-6">
       <div className="mx-auto max-w-6xl">
