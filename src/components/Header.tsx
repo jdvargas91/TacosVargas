@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, NavLink, useLocation } from "react-router-dom";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Menu, ShoppingBag, X } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useAuth } from "@/context/AuthContext";
@@ -21,8 +23,12 @@ export function Header() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const reduce = useReducedMotion();
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
   const home = location.pathname === "/";
   const solid = !home || scrolled || open;
+  const hideBrand = home && !scrolled && !open;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -35,9 +41,109 @@ export function Header() {
     setOpen(false);
   }, [location.pathname, location.hash]);
 
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1280px)");
+    const onChange = () => {
+      if (media.matches) setOpen(false);
+    };
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.classList.add("nav-open");
+    document.addEventListener("keydown", onKey);
+    closeRef.current?.focus();
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.documentElement.classList.remove("nav-open");
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
   const navClass = solid
     ? "text-sm font-medium text-clay transition hover:text-ink"
     : "text-sm font-medium text-tortilla/90 transition hover:text-tortilla";
+
+  const drawer = (
+    <AnimatePresence>
+      {open ? (
+        <motion.div
+          className="fixed inset-0 z-[60] xl:hidden"
+          initial={reduce ? { opacity: 1 } : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={reduce ? { opacity: 1 } : { opacity: 0 }}
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-carbon/40 backdrop-blur-sm"
+            aria-label="Cerrar menú"
+            onClick={() => setOpen(false)}
+          />
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
+            id="menu-movil"
+            initial={reduce ? false : { x: "100%" }}
+            animate={{ x: 0 }}
+            exit={reduce ? undefined : { x: "100%" }}
+            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute inset-y-0 right-0 flex h-dvh w-[85%] flex-col bg-paper shadow-[-18px_0_40px_rgb(30_23_16_/_0.22)]"
+          >
+            <div className="flex items-center justify-between gap-3 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+              <a
+                id={titleId}
+                href={home ? "#inicio" : "/#inicio"}
+                onClick={() => setOpen(false)}
+                className="shrink-0"
+              >
+                <BrandLogo />
+              </a>
+              <button
+                ref={closeRef}
+                type="button"
+                className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink"
+                aria-label="Cerrar menú"
+                onClick={() => setOpen(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6" aria-label="Principal">
+              {links.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setOpen(false)}
+                  className="py-3 text-lg text-ink"
+                >
+                  {link.label}
+                </a>
+              ))}
+              {user ? (
+                <>
+                  <NavLink to="/mis-pedidos" onClick={() => setOpen(false)} className="py-3 text-lg">
+                    Mis pedidos
+                  </NavLink>
+                  <button type="button" className="py-3 text-left text-lg" onClick={() => void signOut()}>
+                    Salir
+                  </button>
+                </>
+              ) : null}
+            </nav>
+          </motion.div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  );
 
   return (
     <>
@@ -52,7 +158,16 @@ export function Header() {
         }`}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 md:px-6">
-          <a href={home ? "#inicio" : "/#inicio"} className="shrink-0">
+          <a
+            href={home ? "#inicio" : "/#inicio"}
+            className={`shrink-0 transition-opacity duration-300 ${
+              hideBrand ? "pointer-events-none opacity-0" : "opacity-100"
+            }`}
+            aria-hidden={hideBrand}
+            aria-label={hideBrand ? undefined : "Vargas Tacos"}
+            tabIndex={hideBrand ? -1 : undefined}
+            inert={hideBrand || undefined}
+          >
             <BrandLogo />
           </a>
 
@@ -94,40 +209,16 @@ export function Header() {
                 solid ? "border border-ink/15 text-ink" : "border border-tortilla/40 text-tortilla"
               }`}
               aria-label={open ? "Cerrar menú" : "Abrir menú"}
+              aria-expanded={open}
+              aria-controls="menu-movil"
               onClick={() => setOpen((value) => !value)}
             >
               {open ? <X size={18} /> : <Menu size={18} />}
             </button>
           </div>
         </div>
-
-        {open ? (
-          <div className="border-t border-ink/10 bg-paper px-4 py-4 xl:hidden">
-            <div className="flex flex-col gap-3">
-              {links.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setOpen(false)}
-                  className="py-2 text-ink"
-                >
-                  {link.label}
-                </a>
-              ))}
-              {user ? (
-                <>
-                  <NavLink to="/mis-pedidos" onClick={() => setOpen(false)} className="py-2">
-                    Mis pedidos
-                  </NavLink>
-                  <button type="button" className="py-2 text-left" onClick={() => void signOut()}>
-                    Salir
-                  </button>
-                </>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
       </header>
+      {createPortal(drawer, document.body)}
     </>
   );
 }

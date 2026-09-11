@@ -21,9 +21,9 @@ Fugaz One en H1 y títulos de sección. Nombres de producto y precios en Nunito 
 
 Ken Burns en el hero. Paralaje real en la banda de galería (capa de foto más alta que el recorte, `will-change`, overlay en degradado; mosaico estático). Zoom 1.06 en foto de tarjeta al hover. Botón principal: elevación y escala. `prefers-reduced-motion` apaga el movimiento.
 
-Header transparente sobre el hero; al hacer scroll (o fuera de `/`) toma `paper`. Logo recortado al wordmark, `object-contain` y `mix-blend-screen`.
+Header transparente sobre el hero; al hacer scroll (o fuera de `/`) toma `paper`. En el top de `/` el logo del header se oculta para no duplicar el wordmark del hero; reaparece al hacer scroll o al abrir el menú. En teléfono el menú es un panel de 85% de ancho y alto completo; el 15% visible de la página queda con blur. Logo recortado al wordmark, `object-contain`.
 
-Hero: “Un rico sabor” en una línea; “para un excelente día” como apoyo. Un CTA chile y Ver menú en ghost. Galería: “El primer bocado” (solo tacos). Tacos y bebidas en carrusel con flechas.
+Hero: wordmark dentro de la foto; H1 solo para lectores de pantalla. Un CTA chile y Ver menú en ghost. Cocina: estaciones en bandas editoriales alternadas sobre carbon, no tarjetas de producto. Galería: “El primer bocado” (solo tacos). Tacos y bebidas en carrusel con flechas. Botón fijo para volver arriba con scroll easing.
 
 ## Superficies
 

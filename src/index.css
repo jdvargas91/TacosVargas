@@ -121,6 +121,33 @@ body {
   box-shadow: none;
 }
 
+.btn-fab {
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+}
+
+html.nav-open .btn-fab {
+  visibility: hidden;
+}
+
+.hero-media {
+  object-fit: contain;
+}
+
+@media (min-width: 768px) {
+  .hero-media {
+    object-fit: cover;
+    object-position: 40% 50%;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-media {
+    object-position: center;
+  }
+}
+
 .btn-ghost {
   display: inline-flex;
   align-items: center;
@@ -188,6 +215,28 @@ body {
 
 .card-shadow {
   box-shadow: 0 12px 28px rgb(30 23 16 / 0.08);
+}
+
+.kitchen-heat {
+  background:
+    radial-gradient(1100px 520px at 8% 10%, rgb(181 68 44 / 0.34), transparent 58%),
+    radial-gradient(820px 460px at 94% 86%, rgb(240 115 79 / 0.2), transparent 52%),
+    #1e1710;
+}
+
+.kitchen-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  box-shadow: 0 22px 48px rgb(0 0 0 / 0.38);
+}
+
+.kitchen-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to top, rgb(30 23 16 / 0.38), transparent 46%);
 }
 
 .about-diamond {

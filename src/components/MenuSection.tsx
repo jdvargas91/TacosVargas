@@ -116,10 +116,6 @@ export function MenuSection({ tacos, drinks }: { tacos: Product[]; drinks: Produ
               <div>
                 <h2 className="font-display text-4xl text-ink md:text-5xl">Tacos que se piden de memoria</h2>
                 <span className="mark" aria-hidden />
-                <p className="mt-5 max-w-[65ch] text-clay">
-                  Precios del menú de mostrador, en pesos mexicanos. Entra a cada producto para ver ingredientes, peso y
-                  armar el pedido.
-                </p>
               </div>
             }
           />

@@ -8,6 +8,7 @@ import { Gallery } from "@/components/Gallery";
 import { ReviewsSection } from "@/components/ReviewsSection";
 import { PaymentNote } from "@/components/PaymentNote";
 import { Footer } from "@/components/Footer";
+import { BackToTop } from "@/components/BackToTop";
 import { Seo } from "@/components/Seo";
 import { useProducts } from "@/context/ProductsContext";
 import { business } from "@/data/business";
@@ -41,6 +42,7 @@ export function Home() {
         </Suspense>
       </main>
       <Footer />
+      <BackToTop />
     </>
   );
 }

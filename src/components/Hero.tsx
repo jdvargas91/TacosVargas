@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Clock, ShoppingBag, UtensilsCrossed } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
@@ -5,28 +6,34 @@ import { business } from "@/data/business";
 
 export function Hero() {
   const reduce = useReducedMotion();
+  const [wide, setWide] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 768px)");
+    const sync = () => setWide(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
+
+  const kenBurns = !reduce && wide;
 
   return (
-    <section id="inicio" className="relative isolate min-h-svh overflow-hidden">
+    <section id="inicio" className="relative isolate flex min-h-svh flex-col overflow-hidden bg-carbon">
       <motion.img
-        src="/hero.jpg"
+        src="/hero.png"
         alt="Tacos recién hechos sobre plancha, vapor y limón"
         fetchPriority="high"
-        className="absolute inset-0 h-full w-full object-cover"
+        className="hero-media w-full max-md:mt-16 max-md:h-auto md:absolute md:inset-0 md:h-full"
         initial={{ scale: 1 }}
-        animate={reduce ? undefined : { scale: 1.06 }}
+        animate={kenBurns ? { scale: 1.06 } : undefined}
         transition={{ duration: 20, ease: "linear", repeat: Infinity, repeatType: "reverse" }}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-carbon/90 via-carbon/40 to-carbon/20" />
+      <div className="absolute inset-0 hidden bg-gradient-to-t from-carbon/90 via-carbon/40 to-carbon/20 md:block" />
 
-      <div className="relative mx-auto flex min-h-svh max-w-6xl flex-col justify-end px-4 pb-20 pt-28 md:px-6 md:pb-28">
-        <h1 className="font-display max-w-[18ch] text-[2.15rem] leading-[1.05] text-tortilla sm:text-5xl md:text-[4.35rem]">
-          Un rico sabor
-        </h1>
-        <p className="mt-4 max-w-xl text-xl text-tortilla/90 md:text-2xl">
-          para un excelente día
-        </p>
-        <div className="mt-10 flex flex-wrap items-center gap-3">
+      <div className="relative mx-auto flex w-full max-w-6xl flex-col px-4 pb-16 pt-5 md:min-h-svh md:justify-end md:px-6 md:pb-28 md:pt-28">
+        <h1 className="sr-only">{business.name}</h1>
+        <div className="flex flex-wrap items-center gap-3">
           <Link to="/pedido" className="btn-accent">
             <ShoppingBag size={18} aria-hidden />
             Armar pedido
