@@ -131,13 +131,22 @@ html.nav-open .btn-fab {
   visibility: hidden;
 }
 
+#root {
+  transition: filter 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html.nav-open #root {
+  filter: blur(8px);
+  pointer-events: none;
+}
+
 .hero-media {
-  object-fit: contain;
+  object-fit: cover;
+  object-position: center top;
 }
 
 @media (min-width: 768px) {
   .hero-media {
-    object-fit: cover;
     object-position: 40% 50%;
   }
 }
@@ -347,6 +356,14 @@ a:active {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  #root {
+    transition: none;
+  }
+
+  html.nav-open #root {
+    filter: blur(4px);
   }
 
   *,

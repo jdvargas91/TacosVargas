@@ -23,7 +23,7 @@ Ken Burns en el hero. Paralaje real en la banda de galería (capa de foto más a
 
 Header transparente sobre el hero; al hacer scroll (o fuera de `/`) toma `paper`. En el top de `/` el logo del header se oculta para no duplicar el wordmark del hero; reaparece al hacer scroll o al abrir el menú. En teléfono el menú es un panel de 85% de ancho y alto completo; el 15% visible de la página queda con blur. Logo recortado al wordmark, `object-contain`.
 
-Hero: wordmark dentro de la foto; H1 solo para lectores de pantalla. Un CTA chile y Ver menú en ghost. Cocina: estaciones en bandas editoriales alternadas sobre carbon, no tarjetas de producto. Galería: “El primer bocado” (solo tacos). Tacos y bebidas en carrusel con flechas. Botón fijo para volver arriba con scroll easing.
+Hero: wordmark dentro de la foto. En teléfono se usa `hero_cel.webp` a pantalla completa; en escritorio `hero.webp`. H1 solo para lectores de pantalla. Un CTA chile y Ver menú en ghost. Cocina: estaciones en bandas editoriales alternadas sobre carbon, no tarjetas de producto. Galería: “El primer bocado” (solo tacos). Tacos y bebidas en carrusel con flechas siempre bajo el título, a la derecha. Botón fijo para volver arriba con scroll easing.
 
 ## Superficies
 

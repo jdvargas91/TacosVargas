@@ -67,29 +67,27 @@ function ProductCarousel({
 
   return (
     <>
-      <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between md:gap-4">
-        {heading}
-        <div className="flex justify-end gap-2 md:mb-1">
-          <button
-            type="button"
-            aria-label={prevLabel}
-            onClick={() => embla?.scrollPrev()}
-            className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink hover:bg-terracotta"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <button
-            type="button"
-            aria-label={nextLabel}
-            onClick={() => embla?.scrollNext()}
-            className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink hover:bg-terracotta"
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
+      {heading}
+      <div className="mt-4 flex justify-end gap-2 md:mt-5">
+        <button
+          type="button"
+          aria-label={prevLabel}
+          onClick={() => embla?.scrollPrev()}
+          className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink hover:bg-terracotta"
+        >
+          <ChevronLeft size={18} />
+        </button>
+        <button
+          type="button"
+          aria-label={nextLabel}
+          onClick={() => embla?.scrollNext()}
+          className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink hover:bg-terracotta"
+        >
+          <ChevronRight size={18} />
+        </button>
       </div>
-      <div className="mt-5 md:mt-8">
-        <div className="-mx-2 overflow-hidden px-3 py-6 sm:-mx-3 sm:px-5 sm:py-8" ref={emblaRef}>
+      <div className="mt-3 md:mt-4">
+        <div className="-mx-2 overflow-hidden px-3 pb-6 pt-1 sm:-mx-3 sm:px-5 sm:pb-8 sm:pt-2" ref={emblaRef}>
           <div className="flex gap-5">
             {products.map((product) => (
               <div key={product.id} className="min-w-0 flex-[0_0_86%] sm:flex-[0_0_46%] lg:flex-[0_0_32%]">

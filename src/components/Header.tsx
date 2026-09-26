@@ -56,13 +56,16 @@ export function Header() {
       if (event.key === "Escape") setOpen(false);
     };
     const previousOverflow = document.body.style.overflow;
+    const root = document.getElementById("root");
     document.body.style.overflow = "hidden";
     document.documentElement.classList.add("nav-open");
+    root?.setAttribute("aria-hidden", "true");
     document.addEventListener("keydown", onKey);
     closeRef.current?.focus();
     return () => {
       document.body.style.overflow = previousOverflow;
       document.documentElement.classList.remove("nav-open");
+      root?.removeAttribute("aria-hidden");
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
@@ -83,7 +86,7 @@ export function Header() {
         >
           <button
             type="button"
-            className="absolute inset-0 bg-carbon/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-carbon/40"
             aria-label="Cerrar menú"
             onClick={() => setOpen(false)}
           />
@@ -161,7 +164,9 @@ export function Header() {
           <a
             href={home ? "#inicio" : "/#inicio"}
             className={`shrink-0 transition-opacity duration-300 ${
-              hideBrand ? "pointer-events-none opacity-0" : "opacity-100"
+              hideBrand
+                ? "pointer-events-none opacity-0 max-md:w-0 max-md:min-w-0 max-md:overflow-hidden"
+                : "opacity-100"
             }`}
             aria-hidden={hideBrand}
             aria-label={hideBrand ? undefined : "Vargas Tacos"}

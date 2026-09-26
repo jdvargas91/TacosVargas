@@ -34,7 +34,7 @@ export function Seo({
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
       <meta property="og:type" content="website" />
-      <meta property="og:image" content="/og.jpg" />
+      <meta property="og:image" content="/hero.webp" />
       <meta name="twitter:card" content="summary_large_image" />
       {noindex ? <meta name="robots" content="noindex,nofollow" /> : null}
       <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
