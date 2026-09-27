@@ -2,8 +2,9 @@ import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Menu, ShoppingBag, X } from "lucide-react";
+import { LogIn, Menu, ShoppingBag, X } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { GoogleGateModal } from "@/components/GoogleGateModal";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 
@@ -18,9 +19,10 @@ const links = [
 ];
 
 export function Header() {
-  const { user, isStaff, signOut } = useAuth();
+  const { user, isStaff, signOut, signInGoogle, loading } = useAuth();
   const { totalItems } = useCart();
   const [open, setOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const reduce = useReducedMotion();
@@ -29,6 +31,10 @@ export function Header() {
   const home = location.pathname === "/";
   const solid = !home || scrolled || open;
   const hideBrand = home && !scrolled && !open;
+
+  const authLinkClass = solid
+    ? "rounded-full px-3 py-2 text-sm text-clay hover:text-ink"
+    : "rounded-full px-3 py-2 text-sm text-tortilla/90 hover:text-tortilla";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -73,6 +79,8 @@ export function Header() {
   const navClass = solid
     ? "text-sm font-medium text-clay transition hover:text-ink"
     : "text-sm font-medium text-tortilla/90 transition hover:text-tortilla";
+
+  const redirectAfterLogin = `${window.location.origin}${location.pathname === "/" ? "/mis-pedidos" : location.pathname}`;
 
   const drawer = (
     <AnimatePresence>
@@ -133,19 +141,31 @@ export function Header() {
               ))}
               {user ? (
                 <>
-                  <NavLink to="/mis-pedidos" onClick={() => setOpen(false)} className="py-3 text-lg">
-                    Mis pedidos
-                  </NavLink>
-                  {isStaff ? (
+                  {!isStaff ? (
+                    <NavLink to="/mis-pedidos" onClick={() => setOpen(false)} className="py-3 text-lg">
+                      Mis pedidos
+                    </NavLink>
+                  ) : (
                     <NavLink to="/sistema" onClick={() => setOpen(false)} className="py-3 text-lg">
                       Sistema
                     </NavLink>
-                  ) : null}
+                  )}
                   <button type="button" className="py-3 text-left text-lg" onClick={() => void signOut()}>
                     Salir
                   </button>
                 </>
-              ) : null}
+              ) : (
+                <button
+                  type="button"
+                  className="py-3 text-left text-lg text-ink"
+                  onClick={() => {
+                    setOpen(false);
+                    setLoginOpen(true);
+                  }}
+                >
+                  Iniciar sesión
+                </button>
+              )}
             </nav>
           </motion.div>
         </motion.div>
@@ -190,24 +210,31 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-2">
-            {user ? (
+            {!loading && user ? (
               <div className="hidden items-center gap-2 sm:flex">
-                <NavLink to="/mis-pedidos" className={`rounded-full px-3 py-2 text-sm ${solid ? "text-clay hover:text-ink" : "text-tortilla/90 hover:text-tortilla"}`}>
-                  Mis pedidos
-                </NavLink>
-                {isStaff ? (
-                  <NavLink to="/sistema" className={`rounded-full px-3 py-2 text-sm ${solid ? "text-clay hover:text-ink" : "text-tortilla/90 hover:text-tortilla"}`}>
+                {!isStaff ? (
+                  <NavLink to="/mis-pedidos" className={authLinkClass}>
+                    Mis pedidos
+                  </NavLink>
+                ) : (
+                  <NavLink to="/sistema" className={authLinkClass}>
                     Sistema
                   </NavLink>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => void signOut()}
-                  className={`rounded-full px-3 py-2 text-sm ${solid ? "text-clay hover:text-ink" : "text-tortilla/90 hover:text-tortilla"}`}
-                >
+                )}
+                <button type="button" onClick={() => void signOut()} className={authLinkClass}>
                   Salir
                 </button>
               </div>
+            ) : null}
+            {!loading && !user ? (
+              <button
+                type="button"
+                onClick={() => setLoginOpen(true)}
+                className={`hidden items-center gap-2 sm:inline-flex ${authLinkClass}`}
+              >
+                <LogIn size={16} aria-hidden />
+                Iniciar sesión
+              </button>
             ) : null}
             <Link
               to="/pedido"
@@ -234,6 +261,15 @@ export function Header() {
         </div>
       </header>
       {createPortal(drawer, document.body)}
+      <GoogleGateModal
+        open={loginOpen}
+        title="Tu cuenta Vargas"
+        body="Entra con Google para pedir, guardar tu historial y ver el estado de tus órdenes. El sitio público se sigue viendo sin cuenta."
+        onClose={() => setLoginOpen(false)}
+        onConfirm={() => {
+          void signInGoogle(redirectAfterLogin);
+        }}
+      />
     </>
   );
 }

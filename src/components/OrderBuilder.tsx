@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bike, Info, Send, Store, Trash2, UtensilsCrossed } from "lucide-react";
+import { Bike, Info, LogIn, Send, Store, Trash2, UtensilsCrossed } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useProducts } from "@/context/ProductsContext";
@@ -20,7 +20,7 @@ export function OrderBuilder() {
   const { products, refresh } = useProducts();
   const { business } = useSiteContent();
   const { cart, setQty, clear, totalItems } = useCart();
-  const { user, configured, signInGoogle } = useAuth();
+  const { user, configured, signInGoogle, loading: authLoading } = useAuth();
   const emptyAddress: AddressPayload = {
     mode: "pickup",
     street: "",
@@ -48,11 +48,27 @@ export function OrderBuilder() {
 
   const totalCents = lines.reduce((sum, line) => sum + line.product.priceCents * line.qty, 0);
   const outsideHours = !isWithinServiceHours(new Date(), business.hours);
+  const canConfirm = Boolean(user);
+
+  useEffect(() => {
+    if (!user || name) return;
+    const fullName =
+      typeof user.user_metadata.full_name === "string"
+        ? user.user_metadata.full_name
+        : typeof user.user_metadata.name === "string"
+          ? user.user_metadata.name
+          : "";
+    if (fullName) setName(fullName);
+  }, [name, user]);
 
   async function submitOrder() {
     setError(null);
     if (totalItems < 1) {
       setError("Agrega tacos o bebidas desde el menú.");
+      return;
+    }
+    if (!user) {
+      setGate(true);
       return;
     }
     if (fulfillment === "delivery") {
@@ -65,12 +81,8 @@ export function OrderBuilder() {
       setError("Escribe un teléfono de contacto.");
       return;
     }
-    if (!user) {
-      setGate(true);
-      return;
-    }
     if (!supabase) {
-      setError("Falta configurar Supabase para registrar el pedido en admin. El menú sí funciona.");
+      setError("Falta configurar Supabase para registrar el pedido. El menú sí funciona.");
       return;
     }
 
@@ -131,8 +143,8 @@ export function OrderBuilder() {
           <div>
             <h1 className="font-display text-4xl text-ink md:text-5xl">Tu Pedido</h1>
             <p className="mt-3 max-w-prose text-clay">
-              Revisa lo que armaste en el menú, elige recoger o mensajería y confirma. El pago es presencial, en pesos
-              mexicanos.
+              Arma tu pedido, inicia sesión con Google y confirma. Así guardamos tu orden y puedes seguirla en Mis
+              pedidos. El pago es presencial, en pesos mexicanos.
             </p>
           </div>
           {lines.length > 0 ? (
@@ -355,14 +367,55 @@ export function OrderBuilder() {
               {success ? (
                 <pre className="mt-3 whitespace-pre-wrap rounded-xl bg-paper p-3 text-sm text-clay">{success}</pre>
               ) : null}
-              <button
-                type="submit"
-                disabled={submitting}
-                className="btn-accent mt-6 w-full disabled:opacity-60"
-              >
-                <Send size={18} aria-hidden />
-                {submitting ? "Enviando…" : "Confirmar pedido"}
-              </button>
+
+              {!authLoading && user ? (
+                <div className="mt-5 rounded-xl border border-ink/10 bg-paper px-4 py-3 text-sm text-clay">
+                  Sesión: <span className="font-medium text-ink">{user.email}</span>
+                  {" · "}
+                  <Link to="/mis-pedidos" className="text-ember hover:underline">
+                    Ver mis pedidos
+                  </Link>
+                </div>
+              ) : null}
+
+              {!authLoading && !user ? (
+                <div className="mt-5 rounded-xl border border-terracotta/25 bg-terracotta/10 px-4 py-4 text-sm text-clay">
+                  <p className="font-medium text-ink">Inicia sesión para confirmar</p>
+                  <p className="mt-1">
+                    Con Google creas tu cuenta, registramos el pedido a tu nombre y puedes verlo después como en una
+                    tienda en línea.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setGate(true)}
+                    className="btn-accent mt-4 w-full"
+                  >
+                    <LogIn size={18} aria-hidden />
+                    Iniciar sesión con Google
+                  </button>
+                </div>
+              ) : null}
+
+              {canConfirm ? (
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="btn-accent mt-6 w-full disabled:opacity-60"
+                >
+                  <Send size={18} aria-hidden />
+                  {submitting ? "Enviando…" : "Confirmar pedido"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="btn-accent mt-6 w-full cursor-not-allowed opacity-45"
+                  title="Inicia sesión con Google para confirmar"
+                >
+                  <Send size={18} aria-hidden />
+                  Confirmar pedido
+                </button>
+              )}
               <Link to="/#menu" className="mt-3 inline-flex h-11 w-full items-center justify-center text-sm text-clay">
                 Seguir viendo el menú
               </Link>
@@ -378,8 +431,8 @@ export function OrderBuilder() {
 
       <GoogleGateModal
         open={gate}
-        title="Entra con Google"
-        body="El sitio se visita sin cuenta. Google solo se pide para confirmar y dar seguimiento a tu orden."
+        title="Inicia sesión para pedir"
+        body="Necesitas una cuenta con Google para confirmar el pedido y verlo después en Mis pedidos. El menú se puede ver sin cuenta."
         onClose={() => setGate(false)}
         onConfirm={() => {
           void signInGoogle(`${window.location.origin}/pedido`);

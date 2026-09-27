@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { fallbackDetails, seedProducts, type Product } from "@/data/seedProducts";
+import { repairMojibake } from "@/lib/text";
 
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key =
@@ -74,16 +75,19 @@ export type OrderRow = {
 export function mapProduct(row: ProductRow): Product {
   const seed = seedProducts.find((item) => item.id === row.id);
   const details = seed ?? fallbackDetails(row);
+  const name = repairMojibake(row.name);
+  const description = repairMojibake(row.description);
+  const longFromDb = repairMojibake(row.long_description || "");
   return {
     id: row.id,
     kind: row.kind,
-    name: row.name,
-    description: row.description,
-    longDescription: row.long_description || details.longDescription,
-    ingredients: row.ingredients?.length ? row.ingredients : details.ingredients,
+    name: /[ÃÂ]/.test(row.name) && seed ? seed.name : name,
+    description: /[ÃÂ]/.test(row.description) && seed ? seed.description : description,
+    longDescription: longFromDb || details.longDescription,
+    ingredients: row.ingredients?.length ? row.ingredients.map(repairMojibake) : details.ingredients,
     weightGrams: row.weight_grams ?? details.weightGrams,
-    serving: row.serving || details.serving,
-    allergens: row.allergens?.length ? row.allergens : details.allergens,
+    serving: repairMojibake(row.serving || "") || details.serving,
+    allergens: row.allergens?.length ? row.allergens.map(repairMojibake) : details.allergens,
     priceCents: row.price_cents,
     imageUrl: row.image_url || "/products/fallback.jpg",
     stock: row.stock,

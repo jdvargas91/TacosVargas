@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
+import { Bike, ClipboardCheck, Store } from "lucide-react";
 import { useProducts } from "@/context/ProductsContext";
 import { useSiteContent } from "@/context/SiteContentContext";
 import { formatMxn, isProductAvailable, shortFolio } from "@/lib/format";
 import { supabase, type AddressPayload, type Fulfillment } from "@/lib/supabase";
 import { QtyStepper } from "@/components/QtyStepper";
+import { cn } from "@/lib/cn";
 
 export function MostradorPanel() {
   const { products, refresh } = useProducts();
@@ -98,7 +100,7 @@ export function MostradorPanel() {
         {products.map((product) => {
           const available = isProductAvailable(product.soldOut, product.stock);
           return (
-            <div key={product.id} className="flex items-center justify-between gap-3 rounded-xl border border-ink/10 bg-smoke px-4 py-3">
+            <div key={product.id} className="flex items-center justify-between gap-3 rounded-[10px] border border-ink/10 bg-smoke px-4 py-3">
               <div>
                 <p className="font-medium text-ink">{product.name}</p>
                 <p className="text-sm text-clay">
@@ -118,22 +120,22 @@ export function MostradorPanel() {
         })}
       </div>
 
-      <div className="card-shadow h-fit rounded-2xl bg-smoke p-5">
+      <div className="card-shadow h-fit rounded-[10px] border border-ink/8 bg-smoke p-5 md:p-6">
         <h2 className="font-display text-2xl text-ink">Pedido de mostrador</h2>
         <label className="mt-4 block text-sm text-clay">
-          Nombre
+          <span className="font-medium text-ink/80">Nombre</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-2 h-11 w-full rounded-xl border border-ink/15 bg-white px-3 text-ink"
+            className="mt-2 h-11 w-full rounded-[10px] border border-ink/15 bg-white px-3 text-ink"
           />
         </label>
         <label className="mt-3 block text-sm text-clay">
-          Teléfono
+          <span className="font-medium text-ink/80">Teléfono</span>
           <input
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="mt-2 h-11 w-full rounded-xl border border-ink/15 bg-white px-3 text-ink"
+            className="mt-2 h-11 w-full rounded-[10px] border border-ink/15 bg-white px-3 text-ink"
             required
           />
         </label>
@@ -141,15 +143,27 @@ export function MostradorPanel() {
           <button
             type="button"
             onClick={() => setFulfillment("pickup")}
-            className={`h-11 flex-1 rounded-full px-3 ${fulfillment === "pickup" ? "bg-terracotta text-ink" : "border border-ink/15"}`}
+            className={cn(
+              "inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-[10px] px-3 text-sm font-semibold transition",
+              fulfillment === "pickup"
+                ? "bg-terracotta text-white shadow-sm"
+                : "border border-ink/15 bg-white text-ink hover:border-ink/25",
+            )}
           >
+            <Store size={16} aria-hidden />
             Recoger
           </button>
           <button
             type="button"
             onClick={() => setFulfillment("delivery")}
-            className={`h-11 flex-1 rounded-full px-3 ${fulfillment === "delivery" ? "bg-terracotta text-ink" : "border border-ink/15"}`}
+            className={cn(
+              "inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-[10px] px-3 text-sm font-semibold transition",
+              fulfillment === "delivery"
+                ? "bg-terracotta text-white shadow-sm"
+                : "border border-ink/15 bg-white text-ink hover:border-ink/25",
+            )}
           >
+            <Bike size={16} aria-hidden />
             Mensajería
           </button>
         </div>
@@ -159,34 +173,35 @@ export function MostradorPanel() {
               placeholder="Calle"
               value={street}
               onChange={(e) => setStreet(e.target.value)}
-              className="h-11 rounded-xl border border-ink/15 bg-white px-3 text-ink"
+              className="h-11 rounded-[10px] border border-ink/15 bg-white px-3 text-ink"
             />
             <input
               placeholder="Colonia"
               value={colonia}
               onChange={(e) => setColonia(e.target.value)}
-              className="h-11 rounded-xl border border-ink/15 bg-white px-3 text-ink"
+              className="h-11 rounded-[10px] border border-ink/15 bg-white px-3 text-ink"
             />
             <input
               placeholder="Ciudad"
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              className="h-11 rounded-xl border border-ink/15 bg-white px-3 text-ink"
+              className="h-11 rounded-[10px] border border-ink/15 bg-white px-3 text-ink"
             />
           </div>
         ) : null}
         <label className="mt-3 block text-sm text-clay">
-          Notas
+          <span className="font-medium text-ink/80">Notas</span>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="mt-2 min-h-20 w-full rounded-xl border border-ink/15 bg-white px-3 py-2 text-ink"
+            className="mt-2 min-h-20 w-full rounded-[10px] border border-ink/15 bg-white px-3 py-2 text-ink"
           />
         </label>
-        <p className="mt-4 text-lg text-ink">Total {formatMxn(totalCents)}</p>
+        <p className="mt-4 text-lg font-semibold text-ink">Total {formatMxn(totalCents)}</p>
         {error ? <p className="mt-2 text-sm text-terracotta">{error}</p> : null}
         {message ? <p className="mt-2 text-sm text-clay">{message}</p> : null}
         <button type="button" disabled={submitting} onClick={() => void submit()} className="btn-accent mt-4 h-12 w-full">
+          <ClipboardCheck size={16} aria-hidden />
           {submitting ? "Registrando…" : "Registrar pedido"}
         </button>
       </div>

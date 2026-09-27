@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { Ban, UserPlus } from "lucide-react";
+import { Select } from "@/components/ui/Select";
 import { supabase } from "@/lib/supabase";
 import type { UserRole } from "@/context/AuthContext";
 
@@ -16,6 +18,17 @@ type Member = {
   display_name: string | null;
   role: UserRole;
 };
+
+const inviteRoleOptions = [
+  { value: "vendedor", label: "Vendedor" },
+  { value: "admin", label: "Administrador" },
+];
+
+const memberRoleOptions = [
+  { value: "vendedor", label: "Vendedor" },
+  { value: "admin", label: "Administrador" },
+  { value: "cliente", label: "Cliente (quitar acceso)" },
+];
 
 export function EquipoPanel() {
   const [invites, setInvites] = useState<Invite[]>([]);
@@ -83,11 +96,11 @@ export function EquipoPanel() {
   }
 
   return (
-    <div className="mt-8 space-y-10">
+    <div className="mt-2 space-y-10">
       {error ? <p className="text-terracotta">{error}</p> : null}
       {message ? <p className="text-clay">{message}</p> : null}
 
-      <section className="card-shadow rounded-2xl bg-smoke p-5">
+      <section className="card-shadow rounded-[10px] border border-ink/8 bg-smoke p-5 md:p-6">
         <h2 className="font-display text-2xl text-ink">Invitar al equipo</h2>
         <p className="mt-2 text-sm text-clay">
           El miembro entra con Google usando este correo. Al iniciar sesión recibe el rol asignado.
@@ -98,17 +111,17 @@ export function EquipoPanel() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="correo@gmail.com"
-            className="h-11 min-w-64 flex-1 rounded-xl border border-ink/15 bg-white px-3 text-ink"
+            className="h-11 min-w-64 flex-1 rounded-[10px] border border-ink/15 bg-white px-3 text-ink"
           />
-          <select
+          <Select
+            className="w-44"
             value={role}
-            onChange={(e) => setRole(e.target.value as "vendedor" | "admin")}
-            className="h-11 rounded-xl border border-ink/15 bg-white px-3 text-ink"
-          >
-            <option value="vendedor">Vendedor</option>
-            <option value="admin">Administrador</option>
-          </select>
+            onValueChange={(v) => setRole(v as "vendedor" | "admin")}
+            options={inviteRoleOptions}
+            aria-label="Rol de la invitación"
+          />
           <button type="button" onClick={() => void invite()} className="btn-accent h-11 px-5">
+            <UserPlus size={16} aria-hidden />
             Invitar
           </button>
         </div>
@@ -118,20 +131,21 @@ export function EquipoPanel() {
         <h2 className="font-display text-2xl text-ink">Miembros</h2>
         <ul className="mt-4 space-y-3">
           {members.map((member) => (
-            <li key={member.user_id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ink/10 bg-smoke px-4 py-3">
+            <li
+              key={member.user_id}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-ink/10 bg-smoke px-4 py-3"
+            >
               <div>
                 <p className="font-medium text-ink">{member.display_name ?? member.email ?? member.user_id}</p>
                 <p className="text-sm text-clay">{member.email}</p>
               </div>
-              <select
+              <Select
+                className="w-56"
                 value={member.role}
-                onChange={(e) => void changeRole(member.user_id, e.target.value as UserRole)}
-                className="h-11 rounded-xl border border-ink/15 bg-white px-3 text-ink"
-              >
-                <option value="vendedor">Vendedor</option>
-                <option value="admin">Administrador</option>
-                <option value="cliente">Cliente (quitar acceso)</option>
-              </select>
+                onValueChange={(v) => void changeRole(member.user_id, v as UserRole)}
+                options={memberRoleOptions}
+                aria-label={`Rol de ${member.display_name ?? member.email ?? "miembro"}`}
+              />
             </li>
           ))}
           {members.length === 0 ? <p className="text-clay">Aún no hay miembros de equipo.</p> : null}
@@ -142,7 +156,10 @@ export function EquipoPanel() {
         <h2 className="font-display text-2xl text-ink">Invitaciones</h2>
         <ul className="mt-4 space-y-3">
           {invites.map((inviteRow) => (
-            <li key={inviteRow.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ink/10 bg-smoke px-4 py-3">
+            <li
+              key={inviteRow.id}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-ink/10 bg-smoke px-4 py-3"
+            >
               <div>
                 <p className="font-medium text-ink">{inviteRow.email}</p>
                 <p className="text-sm text-clay">
@@ -153,8 +170,9 @@ export function EquipoPanel() {
                 <button
                   type="button"
                   onClick={() => void revoke(inviteRow.id)}
-                  className="h-11 rounded-full border border-ink/15 px-4 text-terracotta"
+                  className="inline-flex h-11 items-center gap-2 rounded-[10px] border border-terracotta/35 px-4 text-sm font-medium text-terracotta"
                 >
+                  <Ban size={16} aria-hidden />
                   Revocar
                 </button>
               ) : null}

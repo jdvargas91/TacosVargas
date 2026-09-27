@@ -72,8 +72,8 @@ export function MisPedidos() {
       <Footer />
       <GoogleGateModal
         open={!loading && !user}
-        title="Entra con Google"
-        body="Mis pedidos es solo para quienes ya pidieron. El resto del sitio sigue abierto."
+        title="Tu cuenta Vargas"
+        body="Entra con Google para ver el historial y el estado de tus pedidos. No hace falta pasar por el login del equipo."
         onClose={() => {
           window.location.href = "/";
         }}

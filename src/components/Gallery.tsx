@@ -28,9 +28,6 @@ export function Gallery() {
             {gallery.headline}
           </h2>
           <span className="mark" aria-hidden />
-          <p className="mt-5 max-w-[65ch] text-lg text-tortilla/90">
-            El menú impreso es la verdad del local. Las fotos se actualizan desde el panel.
-          </p>
         </div>
       </div>
 

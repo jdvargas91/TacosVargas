@@ -3,6 +3,7 @@ import { business as fallbackBusiness } from "@/data/business";
 import { about as fallbackAbout } from "@/data/about";
 import { kitchenCrew as fallbackKitchen } from "@/data/kitchen";
 import { supabase } from "@/lib/supabase";
+import { repairDeep } from "@/lib/text";
 
 export type BusinessContent = {
   name: string;
@@ -106,7 +107,7 @@ const defaultGallery: GalleryContent = {
   shots: [
     {
       src: "/gallery/plancha.jpg",
-      alt: "Tacos en la plancha, fotografía de referencia",
+      alt: "Tacos en la plancha",
       className: "md:col-start-1 md:row-start-1 md:row-span-2",
     },
     {
@@ -131,7 +132,7 @@ const defaultGallery: GalleryContent = {
     },
     {
       src: "/about.jpg",
-      alt: "Tacos al vapor, fotografía de referencia",
+      alt: "Tacos al vapor",
       className: "md:col-start-2 md:col-span-2 md:row-start-3",
     },
   ],
@@ -140,7 +141,7 @@ const defaultGallery: GalleryContent = {
 const SiteContentContext = createContext<SiteContentValue | null>(null);
 
 function asBusiness(value: unknown): BusinessContent {
-  const v = value as Partial<BusinessContent> | null;
+  const v = repairDeep(value) as Partial<BusinessContent> | null;
   if (!v || typeof v !== "object") return { ...fallbackBusiness, hours: { ...fallbackBusiness.hours, weekdays: [...fallbackBusiness.hours.weekdays] }, location: { ...fallbackBusiness.location }, socials: { ...fallbackBusiness.socials } };
   return {
     name: v.name ?? fallbackBusiness.name,
@@ -200,10 +201,11 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
 
     if (sectionsRes.data) {
       for (const section of sectionsRes.data) {
-        if (section.id === "hero") setHero({ ...defaultHero, ...(section.content as object) });
-        if (section.id === "about") setAbout({ ...defaultAbout, ...(section.content as object) });
-        if (section.id === "kitchen") setKitchen({ ...defaultKitchen, ...(section.content as object) });
-        if (section.id === "gallery") setGallery({ ...defaultGallery, ...(section.content as object) });
+        const content = repairDeep(section.content) as object;
+        if (section.id === "hero") setHero({ ...defaultHero, ...content });
+        if (section.id === "about") setAbout({ ...defaultAbout, ...content });
+        if (section.id === "kitchen") setKitchen({ ...defaultKitchen, ...content });
+        if (section.id === "gallery") setGallery({ ...defaultGallery, ...content });
       }
     }
 

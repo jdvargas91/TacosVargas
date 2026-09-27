@@ -21,7 +21,7 @@ export function About() {
           <figure className="about-diamond mx-auto">
             <div className="about-diamond__back" aria-hidden />
             <div className="about-diamond__front">
-              <img src={about.image} alt="Tacos en fila, fotografía de referencia de Vargas" />
+              <img src={about.image} alt="Tacos en fila en Vargas Tacos" />
             </div>
           </figure>
         </Reveal>

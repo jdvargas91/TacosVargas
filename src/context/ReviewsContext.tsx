@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { seedReviews, type Review } from "@/data/reviews";
 import { supabase } from "@/lib/supabase";
+import { repairMojibake } from "@/lib/text";
 
 type ReviewsContextValue = {
   reviews: Review[];
@@ -26,9 +27,9 @@ type ReviewRow = {
 function mapReview(row: ReviewRow): Review {
   return {
     id: row.id,
-    author: row.author,
+    author: repairMojibake(row.author),
     rating: row.rating,
-    text: row.text,
+    text: repairMojibake(row.text),
     publishedAt: row.published_at,
     visible: row.visible,
   };

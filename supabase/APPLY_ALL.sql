@@ -1,4 +1,5 @@
-﻿-- Tacos Vargas schema: staff, products, orders, storage, place_order RPC
+-- ===== supabase\migrations\20260909000000_init.sql =====
+-- Tacos Vargas schema: staff, products, orders, storage, place_order RPC
 
 create schema if not exists private;
 
@@ -132,23 +133,23 @@ declare
 begin
   uid := auth.uid();
   if uid is null then
-    raise exception 'Debes iniciar sesiÃ³n para pedir';
+    raise exception 'Debes iniciar sesión para pedir';
   end if;
 
   if p_phone is null or length(trim(p_phone)) < 8 then
-    raise exception 'El telÃ©fono es obligatorio';
+    raise exception 'El teléfono es obligatorio';
   end if;
 
   fulfillment := coalesce(nullif(trim(p_fulfillment), ''), 'pickup');
   if fulfillment not in ('pickup', 'delivery') then
-    raise exception 'Elige recoger o mensajerÃ­a';
+    raise exception 'Elige recoger o mensajería';
   end if;
 
   if fulfillment = 'delivery' then
     if p_delivery_address is null
        or coalesce(p_delivery_address->>'street', '') = ''
        or coalesce(p_delivery_address->>'city', '') = '' then
-      raise exception 'La direcciÃ³n es obligatoria para mensajerÃ­a';
+      raise exception 'La dirección es obligatoria para mensajería';
     end if;
     address := p_delivery_address || jsonb_build_object('mode', 'delivery');
   else
@@ -287,8 +288,8 @@ insert into public.products (
   (
     'a1a1a1a1-0001-4000-8000-000000000001',
     'taco',
-    'CamarÃ³n capeado',
-    'Especialidad de la casa. CamarÃ³n capeado crujiente sobre tortilla caliente, con salsa y limÃ³n.',
+    'Camarón capeado',
+    'Especialidad de la casa. Camarón capeado crujiente sobre tortilla caliente, con salsa y limón.',
     2600,
     '/products/camaron.jpg',
     50,
@@ -300,7 +301,7 @@ insert into public.products (
     'a1a1a1a1-0001-4000-8000-000000000002',
     'taco',
     'Pescado empanizado',
-    'Filete empanizado, crujiente por fuera, con salsa y un toque de limÃ³n.',
+    'Filete empanizado, crujiente por fuera, con salsa y un toque de limón.',
     2600,
     '/products/pescado.jpg',
     50,
@@ -336,7 +337,7 @@ insert into public.products (
     'a1a1a1a1-0001-4000-8000-000000000005',
     'taco',
     'Barbacoa',
-    'Barbacoa suave, para desayunar con salsa y un limÃ³n aplastado.',
+    'Barbacoa suave, para desayunar con salsa y un limón aplastado.',
     2200,
     '/products/barbacoa.jpg',
     50,
@@ -347,8 +348,8 @@ insert into public.products (
   (
     'a1a1a1a1-0001-4000-8000-000000000006',
     'taco',
-    'ChicharrÃ³n prensado',
-    'ChicharrÃ³n prensado, de los que se piden sin pensarlo dos veces.',
+    'Chicharrón prensado',
+    'Chicharrón prensado, de los que se piden sin pensarlo dos veces.',
     2200,
     '/products/chicharron.jpg',
     50,
@@ -372,7 +373,7 @@ insert into public.products (
     'a1a1a1a1-0001-4000-8000-000000000008',
     'taco',
     'Huevo a la mexicana',
-    'Huevo con jitomate, cebolla y chile. El taco de maÃ±ana por excelencia.',
+    'Huevo con jitomate, cebolla y chile. El taco de mañana por excelencia.',
     2200,
     '/products/huevo.jpg',
     50,
@@ -384,7 +385,7 @@ insert into public.products (
     'a1a1a1a1-0001-4000-8000-000000000010',
     'drink',
     'Agua fresca chica',
-    'Jamaica, limÃ³n o piÃ±a. Escribe el sabor en las notas del pedido.',
+    'Jamaica, limón o piña. Escribe el sabor en las notas del pedido.',
     2200,
     '/products/agua-chica.jpg',
     50,
@@ -396,7 +397,7 @@ insert into public.products (
     'a1a1a1a1-0001-4000-8000-000000000011',
     'drink',
     'Agua fresca grande',
-    'La misma jarra de jamaica, limÃ³n o piÃ±a, en tamaÃ±o grande.',
+    'La misma jarra de jamaica, limón o piña, en tamaño grande.',
     3800,
     '/products/agua-grande.jpg',
     50,
@@ -429,7 +430,10 @@ insert into public.products (
     13
   )
 on conflict (id) do nothing;
--- Recoger vs mensajerÃ­a
+
+
+-- ===== supabase\migrations\20260910000000_fulfillment.sql =====
+-- Recoger vs mensajería
 
 alter table public.orders
   add column if not exists fulfillment text not null default 'pickup';
@@ -476,23 +480,23 @@ declare
 begin
   uid := auth.uid();
   if uid is null then
-    raise exception 'Debes iniciar sesiÃ³n para pedir';
+    raise exception 'Debes iniciar sesión para pedir';
   end if;
 
   if p_phone is null or length(trim(p_phone)) < 8 then
-    raise exception 'El telÃ©fono es obligatorio';
+    raise exception 'El teléfono es obligatorio';
   end if;
 
   fulfillment := coalesce(nullif(trim(p_fulfillment), ''), 'pickup');
   if fulfillment not in ('pickup', 'delivery') then
-    raise exception 'Elige recoger o mensajerÃ­a';
+    raise exception 'Elige recoger o mensajería';
   end if;
 
   if fulfillment = 'delivery' then
     if p_delivery_address is null
        or coalesce(p_delivery_address->>'street', '') = ''
        or coalesce(p_delivery_address->>'city', '') = '' then
-      raise exception 'La direcciÃ³n es obligatoria para mensajerÃ­a';
+      raise exception 'La dirección es obligatoria para mensajería';
     end if;
     address := p_delivery_address || jsonb_build_object('mode', 'delivery');
   else
@@ -592,6 +596,9 @@ $$;
 
 revoke all on function public.place_order(text, text, jsonb, jsonb, text, text) from public;
 grant execute on function public.place_order(text, text, jsonb, jsonb, text, text) to authenticated;
+
+
+-- ===== supabase\migrations\20260926000000_roles_profiles.sql =====
 -- Phase 1: profiles, roles, team invites, counter orders
 
 create table if not exists public.profiles (
@@ -623,7 +630,7 @@ create unique index if not exists team_invites_pending_email_idx
   on public.team_invites (lower(email))
   where status = 'pending';
 
--- Migrate existing staff â†’ admin profiles
+-- Migrate existing staff → admin profiles
 insert into public.profiles (user_id, role, email, display_name)
 select
   s.user_id,
@@ -936,23 +943,23 @@ declare
 begin
   uid := auth.uid();
   if uid is null then
-    raise exception 'Debes iniciar sesiÃ³n para pedir';
+    raise exception 'Debes iniciar sesión para pedir';
   end if;
 
   if p_phone is null or length(trim(p_phone)) < 8 then
-    raise exception 'El telÃ©fono es obligatorio';
+    raise exception 'El teléfono es obligatorio';
   end if;
 
   fulfillment := coalesce(nullif(trim(p_fulfillment), ''), 'pickup');
   if fulfillment not in ('pickup', 'delivery') then
-    raise exception 'Elige recoger o mensajerÃ­a';
+    raise exception 'Elige recoger o mensajería';
   end if;
 
   if fulfillment = 'delivery' then
     if p_delivery_address is null
        or coalesce(p_delivery_address->>'street', '') = ''
        or coalesce(p_delivery_address->>'city', '') = '' then
-      raise exception 'La direcciÃ³n es obligatoria para mensajerÃ­a';
+      raise exception 'La dirección es obligatoria para mensajería';
     end if;
     address := p_delivery_address || jsonb_build_object('mode', 'delivery');
   else
@@ -1067,19 +1074,19 @@ begin
   end if;
 
   if p_phone is null or length(trim(p_phone)) < 8 then
-    raise exception 'El telÃ©fono es obligatorio';
+    raise exception 'El teléfono es obligatorio';
   end if;
 
   fulfillment := coalesce(nullif(trim(p_fulfillment), ''), 'pickup');
   if fulfillment not in ('pickup', 'delivery') then
-    raise exception 'Elige recoger o mensajerÃ­a';
+    raise exception 'Elige recoger o mensajería';
   end if;
 
   if fulfillment = 'delivery' then
     if p_delivery_address is null
        or coalesce(p_delivery_address->>'street', '') = ''
        or coalesce(p_delivery_address->>'city', '') = '' then
-      raise exception 'La direcciÃ³n es obligatoria para mensajerÃ­a';
+      raise exception 'La dirección es obligatoria para mensajería';
     end if;
     address := p_delivery_address || jsonb_build_object('mode', 'delivery');
   else
@@ -1188,6 +1195,9 @@ grant execute on function public.place_counter_order(text, text, jsonb, jsonb, t
 -- Drop staff table (roles live in profiles)
 drop policy if exists "staff_read_self" on public.staff;
 drop table if exists public.staff;
+
+
+-- ===== supabase\migrations\20260926000001_site_cms.sql =====
 -- Phase 2: CMS site settings, sections, site-media bucket
 
 create table if not exists public.site_settings (
@@ -1275,12 +1285,12 @@ insert into public.site_settings (key, value) values
   ('business', '{
     "name": "Vargas Tacos",
     "legalName": "Tacos Vargas",
-    "slogan": "Un rico sabor para un excelente dÃ­a",
+    "slogan": "Un rico sabor para un excelente día",
     "phone": "3141606339",
     "whatsapp": "5213141606339",
     "hours": {
       "label": "7:30 a.m. a 1:30 p.m.",
-      "days": "Lunes a sÃ¡bado",
+      "days": "Lunes a sábado",
       "opens": "07:30",
       "closes": "13:30",
       "weekdays": [1, 2, 3, 4, 5, 6]
@@ -1288,10 +1298,10 @@ insert into public.site_settings (key, value) values
     "location": {
       "city": "Colima",
       "region": "Colima",
-      "country": "MÃ©xico",
+      "country": "México",
       "addressConfirmed": false,
       "street": "",
-      "label": "3PQC+632, Manzanillo, Colima, MÃ©xico",
+      "label": "3PQC+632, Manzanillo, Colima, México",
       "lat": 19.2433,
       "lng": -103.725
     },
@@ -1309,44 +1319,47 @@ insert into public.site_sections (id, kind, content, sort_order) values
     "headline": "Vargas Tacos",
     "imageDesktop": "/hero.webp",
     "imageMobile": "/hero_cel.webp",
-    "imageAlt": "Tacos reciÃ©n hechos sobre plancha, vapor y limÃ³n"
+    "imageAlt": "Tacos recién hechos sobre plancha, vapor y limón"
   }'::jsonb, 1),
   ('about', 'about', '{
-    "headline": "CÃ³mo naciÃ³ Vargas Tacos",
+    "headline": "Cómo nació Vargas Tacos",
     "paragraphs": [
-      "Vargas nace en las maÃ±anas de Colima: una plancha, tortillas que echan humo y el ritmo de un mostrador de barrio, no de restaurante con mesas. Abrimos temprano, cerramos a la 1:30 p.m. y nos quedamos en lo que sabemos hacer.",
-      "La especialidad de la casa es el camarÃ³n capeado. Junto a Ã©l, arrachera, adobada, barbacoa y aguas frescas que se piden por el nombre. El menÃº impreso es la verdad del local.",
+      "Vargas nace en las mañanas de Colima: una plancha, tortillas que echan humo y el ritmo de un mostrador de barrio, no de restaurante con mesas. Abrimos temprano, cerramos a la 1:30 p.m. y nos quedamos en lo que sabemos hacer.",
+      "La especialidad de la casa es el camarón capeado. Junto a él, arrachera, adobada, barbacoa y aguas frescas que se piden por el nombre. El menú impreso es la verdad del local.",
       "No somos un comedor de reserva. Eres vecino, de paso o con antojo. Encargas, pasas o te lo llevamos, y pagas en persona."
     ],
     "values": [
-      {"title": "Sabor de plancha", "body": "CamarÃ³n capeado, pescado, arrachera y los clÃ¡sicos de cerdo. Cada taco se arma al momento."},
-      {"title": "Horario de maÃ±ana", "body": "De 7:30 a.m. a 1:30 p.m., lunes a sÃ¡bado. El antojo es de desayuno y comida, no de madrugada."},
-      {"title": "Trato de barrio", "body": "Pedidos por WhatsApp, pago presencial y seguimiento claro. Sin filas digitales ni cobros en lÃ­nea."}
+      {"title": "Sabor de plancha", "body": "Camarón capeado, pescado, arrachera y los clásicos de cerdo. Cada taco se arma al momento."},
+      {"title": "Horario de mañana", "body": "De 7:30 a.m. a 1:30 p.m., lunes a sábado. El antojo es de desayuno y comida, no de madrugada."},
+      {"title": "Trato de barrio", "body": "Pedidos por WhatsApp, pago presencial y seguimiento claro. Sin filas digitales ni cobros en línea."}
     ],
     "image": "/about.jpg"
   }'::jsonb, 2),
   ('kitchen', 'kitchen', '{
     "headline": "Manos en la plancha",
-    "lede": "Tres elaboradoras, tres estaciones. El mismo vapor de las 7:30 y el taco que sale todavÃ­a caliente.",
+    "lede": "Tres elaboradoras, tres estaciones. El mismo vapor de las 7:30 y el taco que sale todavía caliente.",
     "people": [
-      {"name": "Marisol Cuevas", "role": "Elaboradora de mariscos", "station": "CamarÃ³n capeado y pescado empanizado. La especialidad de la casa sale de su estaciÃ³n.", "image": "/products/camaron.jpg", "imageAlt": "Taco de camarÃ³n capeado, estaciÃ³n de mariscos"},
+      {"name": "Marisol Cuevas", "role": "Elaboradora de mariscos", "station": "Camarón capeado y pescado empanizado. La especialidad de la casa sale de su estación.", "image": "/products/camaron.jpg", "imageAlt": "Taco de camarón capeado, estación de mariscos"},
       {"name": "Itzel Navarro", "role": "Elaboradora de carnes", "station": "Arrachera, barbacoa, adobada y carnitas. El taco que se pide con hambre de verdad.", "image": "/gallery/plancha.jpg", "imageAlt": "Plancha con tacos de carne"},
-      {"name": "Paola Mendoza", "role": "Elaboradora de la maÃ±ana", "station": "Huevo a la mexicana y chicharrÃ³n prensado. El primer taco del dÃ­a.", "image": "/products/huevo.jpg", "imageAlt": "Taco de huevo a la mexicana, estaciÃ³n de maÃ±ana"}
+      {"name": "Paola Mendoza", "role": "Elaboradora de la mañana", "station": "Huevo a la mexicana y chicharrón prensado. El primer taco del día.", "image": "/products/huevo.jpg", "imageAlt": "Taco de huevo a la mexicana, estación de mañana"}
     ]
   }'::jsonb, 3),
   ('gallery', 'gallery', '{
     "headline": "El primer bocado",
     "bandImage": "/about.jpg",
     "shots": [
-      {"src": "/gallery/plancha.jpg", "alt": "Tacos en la plancha, fotografÃ­a de referencia", "className": "md:col-start-1 md:row-start-1 md:row-span-2"},
-      {"src": "/products/camaron.jpg", "alt": "Taco de camarÃ³n capeado", "className": "md:col-start-2 md:col-span-2 md:row-start-1"},
+      {"src": "/gallery/plancha.jpg", "alt": "Tacos en la plancha, fotografía de referencia", "className": "md:col-start-1 md:row-start-1 md:row-span-2"},
+      {"src": "/products/camaron.jpg", "alt": "Taco de camarón capeado", "className": "md:col-start-2 md:col-span-2 md:row-start-1"},
       {"src": "/products/barbacoa.jpg", "alt": "Taco de barbacoa", "className": "md:col-start-2 md:row-start-2"},
       {"src": "/products/bistec.jpg", "alt": "Taco de bistec de arrachera", "className": "md:col-start-3 md:row-start-2"},
       {"src": "/products/adobada.jpg", "alt": "Taco de adobada de cerdo", "className": "md:col-start-1 md:row-start-3"},
-      {"src": "/about.jpg", "alt": "Tacos al vapor, fotografÃ­a de referencia", "className": "md:col-start-2 md:col-span-2 md:row-start-3"}
+      {"src": "/about.jpg", "alt": "Tacos al vapor, fotografía de referencia", "className": "md:col-start-2 md:col-span-2 md:row-start-3"}
     ]
   }'::jsonb, 4)
 on conflict (id) do nothing;
+
+
+-- ===== supabase\migrations\20260926000002_catalog_stock_reviews.sql =====
 -- Phase 3: product details, stock adjustments, reviews
 
 alter table public.products
@@ -1396,7 +1409,7 @@ declare
   new_stock integer;
 begin
   if auth.uid() is null or not private.is_admin() then
-    raise exception 'Solo el administrador puede ajustar el almacÃ©n';
+    raise exception 'Solo el administrador puede ajustar el almacén';
   end if;
 
   select * into prod from public.products where id = p_product_id for update;
@@ -1426,7 +1439,7 @@ $$;
 revoke all on function public.adjust_product_stock(uuid, integer, text, boolean) from public;
 grant execute on function public.adjust_product_stock(uuid, integer, text, boolean) to authenticated;
 
--- Hide archived products from public (staff/admin still see via admin flag â€” public read filters archived)
+-- Hide archived products from public (staff/admin still see via admin flag — public read filters archived)
 drop policy if exists "products_public_read" on public.products;
 create policy "products_public_read"
   on public.products for select to anon, authenticated
@@ -1468,7 +1481,7 @@ insert into public.reviews (id, author, rating, text, published_at, visible) val
     'b1b1b1b1-0001-4000-8000-000000000001',
     'Mariana G.',
     5,
-    'El camarÃ³n capeado se pide solo. LleguÃ© a las 8 y todavÃ­a habÃ­a cola, pero vale la espera.',
+    'El camarón capeado se pide solo. Llegué a las 8 y todavía había cola, pero vale la espera.',
     '2026-08-12',
     true
   ),
@@ -1476,7 +1489,7 @@ insert into public.reviews (id, author, rating, text, published_at, visible) val
     'b1b1b1b1-0001-4000-8000-000000000002',
     'Luis R.',
     5,
-    'Barbacoa de desayuno y agua de jamaica. Horario de maÃ±ana, justo lo que buscaba.',
+    'Barbacoa de desayuno y agua de jamaica. Horario de mañana, justo lo que buscaba.',
     '2026-07-28',
     true
   ),
@@ -1484,7 +1497,7 @@ insert into public.reviews (id, author, rating, text, published_at, visible) val
     'b1b1b1b1-0001-4000-8000-000000000003',
     'Carla P.',
     4,
-    'Buen bistec y el trato es de barrio. Falta que confirmen la direcciÃ³n exacta en el mapa, pero el taco estÃ¡.',
+    'Buen bistec y el trato es de barrio. Falta que confirmen la dirección exacta en el mapa, pero el taco está.',
     '2026-06-03',
     true
   )
@@ -1495,3 +1508,64 @@ update public.products set
   long_description = coalesce(nullif(long_description, ''), description),
   serving = coalesce(serving, case when kind = 'taco' then '1 taco' else '1 pieza' end)
 where long_description = '' or serving is null;
+
+
+-- ===== supabase\migrations\20260927000000_fix_cms_encoding.sql =====
+-- Fix mojibake in site CMS seeds (UTF-8 misread as Latin-1 when APPLY_ALL was generated)
+
+update public.site_sections
+set
+  content = '{
+    "headline": "Cómo nació Vargas Tacos",
+    "paragraphs": [
+      "Vargas nace en las mañanas de Colima: una plancha, tortillas que echan humo y el ritmo de un mostrador de barrio, no de restaurante con mesas. Abrimos temprano, cerramos a la 1:30 p.m. y nos quedamos en lo que sabemos hacer.",
+      "La especialidad de la casa es el camarón capeado. Junto a él, arrachera, adobada, barbacoa y aguas frescas que se piden por el nombre. El menú impreso es la verdad del local.",
+      "No somos un comedor de reserva. Eres vecino, de paso o con antojo. Encargas, pasas o te lo llevamos, y pagas en persona."
+    ],
+    "values": [
+      {"title": "Sabor de plancha", "body": "Camarón capeado, pescado, arrachera y los clásicos de cerdo. Cada taco se arma al momento."},
+      {"title": "Horario de mañana", "body": "De 7:30 a.m. a 1:30 p.m., lunes a sábado. El antojo es de desayuno y comida, no de madrugada."},
+      {"title": "Trato de barrio", "body": "Pedidos por WhatsApp, pago presencial y seguimiento claro. Sin filas digitales ni cobros en línea."}
+    ],
+    "image": "/about.jpg"
+  }'::jsonb,
+  updated_at = now()
+where id = 'about';
+
+update public.site_sections
+set
+  content = '{
+    "headline": "Manos en la plancha",
+    "lede": "Tres elaboradoras, tres estaciones. El mismo vapor de las 7:30 y el taco que sale todavía caliente.",
+    "people": [
+      {"name": "Marisol Cuevas", "role": "Elaboradora de mariscos", "station": "Camarón capeado y pescado empanizado. La especialidad de la casa sale de su estación.", "image": "/products/camaron.jpg", "imageAlt": "Taco de camarón capeado, estación de mariscos"},
+      {"name": "Itzel Navarro", "role": "Elaboradora de carnes", "station": "Arrachera, barbacoa, adobada y carnitas. El taco que se pide con hambre de verdad.", "image": "/gallery/plancha.jpg", "imageAlt": "Plancha con tacos de carne"},
+      {"name": "Paola Mendoza", "role": "Elaboradora de la mañana", "station": "Huevo a la mexicana y chicharrón prensado. El primer taco del día.", "image": "/products/huevo.jpg", "imageAlt": "Taco de huevo a la mexicana, estación de mañana"}
+    ]
+  }'::jsonb,
+  updated_at = now()
+where id = 'kitchen';
+
+update public.site_sections
+set
+  content = jsonb_set(
+    content,
+    '{imageAlt}',
+    '"Tacos recién hechos sobre plancha, vapor y limón"'::jsonb
+  ),
+  updated_at = now()
+where id = 'hero';
+
+update public.site_settings
+set
+  value = jsonb_set(
+    jsonb_set(
+      value,
+      '{slogan}',
+      '"Un rico sabor para un excelente día"'::jsonb
+    ),
+    '{payment}',
+    '"Pago presencial al recoger o al entregar el pedido."'::jsonb
+  ),
+  updated_at = now()
+where key = 'business';
