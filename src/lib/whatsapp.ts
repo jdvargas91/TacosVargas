@@ -1,4 +1,3 @@
-import { business } from "@/data/business";
 import { formatMxn } from "@/lib/format";
 
 export type WhatsAppOrderItem = {
@@ -45,7 +44,7 @@ export function buildOrderMessage(order: WhatsAppOrder) {
   return lines.join("\n");
 }
 
-export function whatsappUrl(text: string, phone = business.whatsapp) {
+export function whatsappUrl(text: string, phone: string) {
   return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 }
 

@@ -23,9 +23,16 @@ export function ProductsProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase
       .from("products")
       .select("*")
+      .eq("archived", false)
       .order("sort_order", { ascending: true });
     if (error || !data) {
-      setProducts(seedProducts);
+      // archived column may not exist yet — fallback without filter
+      const fallback = await supabase.from("products").select("*").order("sort_order", { ascending: true });
+      if (fallback.error || !fallback.data) {
+        setProducts(seedProducts);
+      } else {
+        setProducts((fallback.data as ProductRow[]).filter((row) => !row.archived).map(mapProduct));
+      }
     } else {
       setProducts((data as ProductRow[]).map(mapProduct));
     }

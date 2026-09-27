@@ -9,12 +9,13 @@ import { useCart } from "@/context/CartContext";
 import { useProducts } from "@/context/ProductsContext";
 import { CompanionPicks } from "@/components/CompanionPicks";
 import { companionProducts, productPath, relatedProducts } from "@/data/seedProducts";
-import { business } from "@/data/business";
+import { useSiteContent } from "@/context/SiteContentContext";
 import { formatMxn, isProductAvailable } from "@/lib/format";
 
 export function ProductDetail() {
   const { id } = useParams();
   const { products, loading } = useProducts();
+  const { business } = useSiteContent();
   const { cart, addQty } = useCart();
   const product = products.find((item) => item.id === id);
   const [pick, setPick] = useState(1);

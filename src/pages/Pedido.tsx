@@ -2,9 +2,11 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { OrderBuilder } from "@/components/OrderBuilder";
 import { Seo } from "@/components/Seo";
-import { business } from "@/data/business";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 export function Pedido() {
+  const { business } = useSiteContent();
+
   return (
     <>
       <Seo

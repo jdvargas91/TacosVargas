@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Clock, ShoppingBag, UtensilsCrossed } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
-import { business } from "@/data/business";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 export function Hero() {
+  const { business, hero } = useSiteContent();
   const reduce = useReducedMotion();
   const [wide, setWide] = useState(false);
 
@@ -21,10 +22,10 @@ export function Hero() {
   return (
     <section id="inicio" className="relative isolate min-h-svh overflow-hidden bg-carbon">
       <picture>
-        <source media="(max-width: 767px)" srcSet="/hero_cel.webp" type="image/webp" />
+        <source media="(max-width: 767px)" srcSet={hero.imageMobile} type="image/webp" />
         <motion.img
-          src="/hero.webp"
-          alt="Tacos recién hechos sobre plancha, vapor y limón"
+          src={hero.imageDesktop}
+          alt={hero.imageAlt}
           fetchPriority="high"
           className="hero-media absolute inset-0 h-full w-full"
           initial={{ scale: 1 }}
@@ -48,7 +49,7 @@ export function Hero() {
         </div>
         <p className="mt-8 inline-flex items-center gap-2 text-sm text-tortilla/80">
           <Clock size={16} aria-hidden />
-          {business.hours.days} · {business.hours.label} · Colima
+          {business.hours.days} · {business.hours.label} · {business.location.city}
         </p>
       </div>
     </section>

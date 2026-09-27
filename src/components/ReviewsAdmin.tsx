@@ -17,6 +17,7 @@ export function ReviewsAdmin() {
   const { reviews, upsert, remove } = useReviews();
   const [draft, setDraft] = useState<Review>(emptyReview());
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   function startEdit(review: Review) {
     setEditingId(review.id);
@@ -28,29 +29,34 @@ export function ReviewsAdmin() {
     setDraft(emptyReview());
   }
 
-  function submit() {
+  async function submit() {
     if (!draft.author.trim() || !draft.text.trim()) return;
-    upsert({
-      ...draft,
-      author: draft.author.trim(),
-      text: draft.text.trim(),
-      rating: Math.min(5, Math.max(1, Number(draft.rating) || 5)),
-    });
-    reset();
+    setError(null);
+    try {
+      await upsert({
+        ...draft,
+        author: draft.author.trim(),
+        text: draft.text.trim(),
+        rating: Math.min(5, Math.max(1, Number(draft.rating) || 5)),
+      });
+      reset();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo guardar");
+    }
   }
 
   return (
     <div className="mt-8">
       <p className="max-w-prose text-clay">
-        Reseñas de ejemplo. Se guardan en este navegador hasta que el catálogo de comentarios viva en la base de
-        datos. Lo que marques como visible aparece en inicio.
+        Reseñas visibles en la página pública. Se guardan en Supabase para todos los dispositivos.
       </p>
+      {error ? <p className="mt-3 text-terracotta">{error}</p> : null}
 
       <form
         className="card-shadow mt-6 grid gap-3 rounded-2xl bg-smoke p-5"
         onSubmit={(event) => {
           event.preventDefault();
-          submit();
+          void submit();
         }}
       >
         <h2 className="font-display text-2xl text-ink">{editingId ? "Editar reseña" : "Nueva reseña"}</h2>
@@ -132,14 +138,14 @@ export function ReviewsAdmin() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => upsert({ ...review, visible: !review.visible })}
+                  onClick={() => void upsert({ ...review, visible: !review.visible })}
                   className="h-11 rounded-full border border-ink/15 px-4 text-ink"
                 >
                   {review.visible ? "Ocultar" : "Mostrar"}
                 </button>
                 <button
                   type="button"
-                  onClick={() => remove(review.id)}
+                  onClick={() => void remove(review.id)}
                   className="h-11 rounded-full border border-ink/15 px-4 text-terracotta"
                 >
                   Borrar

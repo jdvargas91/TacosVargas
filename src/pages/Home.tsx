@@ -11,7 +11,7 @@ import { Footer } from "@/components/Footer";
 import { BackToTop } from "@/components/BackToTop";
 import { Seo } from "@/components/Seo";
 import { useProducts } from "@/context/ProductsContext";
-import { business } from "@/data/business";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 const LocationMap = lazy(() =>
   import("@/components/LocationMap").then((module) => ({ default: module.LocationMap })),
@@ -19,14 +19,15 @@ const LocationMap = lazy(() =>
 
 export function Home() {
   const { products } = useProducts();
+  const { business } = useSiteContent();
   const tacos = products.filter((product) => product.kind === "taco");
   const drinks = products.filter((product) => product.kind === "drink");
 
   return (
     <>
       <Seo
-        title={`${business.name} · tacos y aguas en Colima`}
-        description="Tacos Vargas: camarón capeado, arrachera, barbacoa y aguas frescas. Pedidos por WhatsApp, pago presencial. Lunes a sábado de 7:30 a.m. a 1:30 p.m."
+        title={`${business.name} · tacos y aguas en ${business.location.city}`}
+        description={`${business.name}: camarón capeado, arrachera, barbacoa y aguas frescas. Pedidos por WhatsApp, pago presencial. ${business.hours.days} de ${business.hours.label}.`}
       />
       <Header />
       <main id="contenido">

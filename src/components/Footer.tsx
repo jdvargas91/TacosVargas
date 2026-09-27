@@ -1,6 +1,6 @@
 import { Facebook, Instagram } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
-import { business } from "@/data/business";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 function TikTokIcon() {
   return (
@@ -10,13 +10,14 @@ function TikTokIcon() {
   );
 }
 
-const socials = [
-  { href: business.socials.facebook, label: "Facebook", icon: Facebook },
-  { href: business.socials.instagram, label: "Instagram", icon: Instagram },
-  { href: business.socials.tiktok, label: "TikTok", icon: TikTokIcon },
-];
-
 export function Footer() {
+  const { business } = useSiteContent();
+  const socials = [
+    { href: business.socials.facebook, label: "Facebook", icon: Facebook },
+    { href: business.socials.instagram, label: "Instagram", icon: Instagram },
+    { href: business.socials.tiktok, label: "TikTok", icon: TikTokIcon },
+  ];
+
   return (
     <footer className="border-t border-ink/10 bg-smoke px-4 py-12 md:px-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 md:flex-row md:items-start md:justify-between">

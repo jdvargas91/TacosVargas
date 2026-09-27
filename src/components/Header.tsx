@@ -18,7 +18,7 @@ const links = [
 ];
 
 export function Header() {
-  const { user, signOut } = useAuth();
+  const { user, isStaff, signOut } = useAuth();
   const { totalItems } = useCart();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -136,6 +136,11 @@ export function Header() {
                   <NavLink to="/mis-pedidos" onClick={() => setOpen(false)} className="py-3 text-lg">
                     Mis pedidos
                   </NavLink>
+                  {isStaff ? (
+                    <NavLink to="/sistema" onClick={() => setOpen(false)} className="py-3 text-lg">
+                      Sistema
+                    </NavLink>
+                  ) : null}
                   <button type="button" className="py-3 text-left text-lg" onClick={() => void signOut()}>
                     Salir
                   </button>
@@ -190,6 +195,11 @@ export function Header() {
                 <NavLink to="/mis-pedidos" className={`rounded-full px-3 py-2 text-sm ${solid ? "text-clay hover:text-ink" : "text-tortilla/90 hover:text-tortilla"}`}>
                   Mis pedidos
                 </NavLink>
+                {isStaff ? (
+                  <NavLink to="/sistema" className={`rounded-full px-3 py-2 text-sm ${solid ? "text-clay hover:text-ink" : "text-tortilla/90 hover:text-tortilla"}`}>
+                    Sistema
+                  </NavLink>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => void signOut()}

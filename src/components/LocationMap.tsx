@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { business } from "@/data/business";
 import { Reveal } from "@/components/Reveal";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 const pin = L.divIcon({
   className: "",
@@ -12,6 +12,7 @@ const pin = L.divIcon({
 });
 
 export function LocationMap() {
+  const { business } = useSiteContent();
   const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -29,7 +30,7 @@ export function LocationMap() {
     return () => {
       map.remove();
     };
-  }, []);
+  }, [business.location.lat, business.location.lng, business.location.label]);
 
   return (
     <section id="ubicacion" className="px-4 py-24 md:px-6">

@@ -2,12 +2,13 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { fallbackDetails, seedProducts, type Product } from "@/data/seedProducts";
 
 const url = import.meta.env.VITE_SUPABASE_URL;
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const key =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabaseConfigured = Boolean(url && key);
 
 export const supabase: SupabaseClient | null = supabaseConfigured
-  ? createClient(url, key, {
+  ? createClient(url!, key!, {
       auth: {
         flowType: "pkce",
         detectSessionInUrl: true,
@@ -21,12 +22,18 @@ export type ProductRow = {
   kind: "taco" | "drink";
   name: string;
   description: string;
+  long_description?: string | null;
+  ingredients?: string[] | null;
+  allergens?: string[] | null;
+  weight_grams?: number | null;
+  serving?: string | null;
   price_cents: number;
   image_url: string | null;
   stock: number;
   sold_out: boolean;
   is_featured: boolean;
   sort_order: number;
+  archived?: boolean | null;
 };
 
 export type Fulfillment = "pickup" | "delivery";
@@ -49,7 +56,7 @@ export type OrderItemPayload = {
 
 export type OrderRow = {
   id: string;
-  user_id: string;
+  user_id: string | null;
   customer_name: string | null;
   phone: string;
   fulfillment?: Fulfillment;
@@ -59,6 +66,8 @@ export type OrderRow = {
   total_cents: number;
   payment_method: "presencial";
   status: "recibido" | "en_preparacion" | "en_camino" | "entregado" | "cancelado";
+  source?: "web" | "mostrador";
+  created_by?: string | null;
   created_at: string;
 };
 
@@ -70,11 +79,11 @@ export function mapProduct(row: ProductRow): Product {
     kind: row.kind,
     name: row.name,
     description: row.description,
-    longDescription: details.longDescription,
-    ingredients: details.ingredients,
-    weightGrams: details.weightGrams,
-    serving: details.serving,
-    allergens: details.allergens,
+    longDescription: row.long_description || details.longDescription,
+    ingredients: row.ingredients?.length ? row.ingredients : details.ingredients,
+    weightGrams: row.weight_grams ?? details.weightGrams,
+    serving: row.serving || details.serving,
+    allergens: row.allergens?.length ? row.allergens : details.allergens,
     priceCents: row.price_cents,
     imageUrl: row.image_url || "/products/fallback.jpg",
     stock: row.stock,

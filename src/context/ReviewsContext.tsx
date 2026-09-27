@@ -1,68 +1,128 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { seedReviews, type Review } from "@/data/reviews";
-
-const STORAGE_KEY = "tv-reviews-v1";
+import { supabase } from "@/lib/supabase";
 
 type ReviewsContextValue = {
   reviews: Review[];
   visibleReviews: Review[];
+  loading: boolean;
+  refresh: () => Promise<void>;
   save: (reviews: Review[]) => void;
-  upsert: (review: Review) => void;
-  remove: (id: string) => void;
+  upsert: (review: Review) => Promise<void>;
+  remove: (id: string) => Promise<void>;
 };
 
 const ReviewsContext = createContext<ReviewsContextValue | null>(null);
 
-function readReviews(): Review[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return seedReviews;
-    const parsed = JSON.parse(raw) as Review[];
-    if (!Array.isArray(parsed) || parsed.length === 0) return seedReviews;
-    return parsed;
-  } catch {
-    return seedReviews;
-  }
+type ReviewRow = {
+  id: string;
+  author: string;
+  rating: number;
+  text: string;
+  published_at: string;
+  visible: boolean;
+};
+
+function mapReview(row: ReviewRow): Review {
+  return {
+    id: row.id,
+    author: row.author,
+    rating: row.rating,
+    text: row.text,
+    publishedAt: row.published_at,
+    visible: row.visible,
+  };
 }
 
 export function ReviewsProvider({ children }: { children: ReactNode }) {
   const [reviews, setReviews] = useState<Review[]>(seedReviews);
+  const [loading, setLoading] = useState(Boolean(supabase));
+
+  const refresh = useCallback(async () => {
+    if (!supabase) {
+      setReviews(seedReviews);
+      setLoading(false);
+      return;
+    }
+    const { data, error } = await supabase
+      .from("reviews")
+      .select("*")
+      .order("published_at", { ascending: false });
+    if (error || !data) {
+      setReviews(seedReviews);
+    } else {
+      setReviews((data as ReviewRow[]).map(mapReview));
+    }
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    setReviews(readReviews());
-  }, []);
+    void refresh();
+  }, [refresh]);
+
+  const upsert = useCallback(
+    async (review: Review) => {
+      if (!supabase) {
+        setReviews((current) => {
+          const exists = current.some((item) => item.id === review.id);
+          return exists ? current.map((item) => (item.id === review.id ? review : item)) : [review, ...current];
+        });
+        return;
+      }
+      const payload = {
+        id: review.id.match(/^[0-9a-f-]{36}$/i) ? review.id : undefined,
+        author: review.author,
+        rating: review.rating,
+        text: review.text,
+        published_at: review.publishedAt,
+        visible: review.visible,
+        updated_at: new Date().toISOString(),
+      };
+      if (payload.id) {
+        const { error } = await supabase.from("reviews").upsert(payload);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("reviews").insert({
+          author: review.author,
+          rating: review.rating,
+          text: review.text,
+          published_at: review.publishedAt,
+          visible: review.visible,
+        });
+        if (error) throw error;
+      }
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const remove = useCallback(
+    async (id: string) => {
+      if (!supabase) {
+        setReviews((current) => current.filter((item) => item.id !== id));
+        return;
+      }
+      await supabase.from("reviews").delete().eq("id", id);
+      await refresh();
+    },
+    [refresh],
+  );
 
   const save = useCallback((next: Review[]) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     setReviews(next);
-  }, []);
-
-  const upsert = useCallback((review: Review) => {
-    setReviews((current) => {
-      const exists = current.some((item) => item.id === review.id);
-      const next = exists ? current.map((item) => (item.id === review.id ? review : item)) : [review, ...current];
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      return next;
-    });
-  }, []);
-
-  const remove = useCallback((id: string) => {
-    setReviews((current) => {
-      const next = current.filter((item) => item.id !== id);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      return next;
-    });
   }, []);
 
   const value = useMemo(
     () => ({
       reviews,
       visibleReviews: reviews.filter((review) => review.visible),
+      loading,
+      refresh,
       save,
       upsert,
       remove,
     }),
-    [remove, reviews, save, upsert],
+    [loading, refresh, remove, reviews, save, upsert],
   );
 
   return <ReviewsContext.Provider value={value}>{children}</ReviewsContext.Provider>;

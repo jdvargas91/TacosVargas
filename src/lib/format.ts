@@ -7,13 +7,21 @@ export function formatMxn(cents: number) {
   return amount.includes("MXN") ? amount : `${amount} MXN`;
 }
 
-export function isWithinServiceHours(now = new Date()) {
+function parseHm(value: string) {
+  const [h, m] = value.split(":").map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+export function isWithinServiceHours(
+  now = new Date(),
+  hours?: { opens: string; closes: string; weekdays: number[] },
+) {
   const day = now.getDay();
   const minutes = now.getHours() * 60 + now.getMinutes();
-  const open = 7 * 60 + 30;
-  const close = 13 * 60 + 30;
-  const weekday = day >= 1 && day <= 6;
-  return weekday && minutes >= open && minutes < close;
+  const open = hours ? parseHm(hours.opens) : 7 * 60 + 30;
+  const close = hours ? parseHm(hours.closes) : 13 * 60 + 30;
+  const weekdays = hours?.weekdays ?? [1, 2, 3, 4, 5, 6];
+  return weekdays.includes(day) && minutes >= open && minutes < close;
 }
 
 export function shortFolio(id: string) {

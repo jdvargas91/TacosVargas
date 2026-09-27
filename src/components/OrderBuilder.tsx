@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Bike, Info, Send, Store, Trash2, UtensilsCrossed } from "lucide-react";
-import { business } from "@/data/business";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useProducts } from "@/context/ProductsContext";
+import { useSiteContent } from "@/context/SiteContentContext";
 import { formatMxn, isProductAvailable, isWithinServiceHours, shortFolio } from "@/lib/format";
 import {
   formatAddress,
@@ -16,18 +16,18 @@ import { buildOrderMessage, whatsappUrl } from "@/lib/whatsapp";
 import { GoogleGateModal } from "@/components/GoogleGateModal";
 import { QtyStepper } from "@/components/QtyStepper";
 
-const emptyAddress: AddressPayload = {
-  mode: "pickup",
-  street: "",
-  colonia: "",
-  references: "",
-  city: business.location.city,
-};
-
 export function OrderBuilder() {
   const { products, refresh } = useProducts();
+  const { business } = useSiteContent();
   const { cart, setQty, clear, totalItems } = useCart();
   const { user, configured, signInGoogle } = useAuth();
+  const emptyAddress: AddressPayload = {
+    mode: "pickup",
+    street: "",
+    colonia: "",
+    references: "",
+    city: business.location.city,
+  };
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
@@ -47,7 +47,7 @@ export function OrderBuilder() {
   );
 
   const totalCents = lines.reduce((sum, line) => sum + line.product.priceCents * line.qty, 0);
-  const outsideHours = !isWithinServiceHours();
+  const outsideHours = !isWithinServiceHours(new Date(), business.hours);
 
   async function submitOrder() {
     setError(null);
@@ -111,7 +111,7 @@ export function OrderBuilder() {
         totalCents,
         notes,
       });
-      window.open(whatsappUrl(message), "_blank", "noopener,noreferrer");
+      window.open(whatsappUrl(message, business.whatsapp), "_blank", "noopener,noreferrer");
       setSuccess(
         `Pedido ${folio} registrado. Si WhatsApp no abrió, copia este mensaje y envíalo al ${business.phone}.\n\n${message}`,
       );
@@ -368,7 +368,7 @@ export function OrderBuilder() {
               </Link>
               {!configured ? (
                 <p className="mt-3 text-sm text-clay">
-                  Para registrar pedidos en admin, agrega VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.
+                  Para registrar pedidos, agrega VITE_SUPABASE_URL y VITE_SUPABASE_PUBLISHABLE_KEY.
                 </p>
               ) : null}
             </form>

@@ -1,20 +1,20 @@
-import { kitchenCrew } from "@/data/kitchen";
 import { Reveal } from "@/components/Reveal";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 export function KitchenCrew() {
+  const { kitchen } = useSiteContent();
+
   return (
     <section id="cocina" className="kitchen-heat text-tortilla">
       <div className="mx-auto max-w-6xl px-4 py-24 md:px-6 md:py-28">
         <Reveal>
-          <h2 className="font-display max-w-xl text-4xl leading-[1.05] md:text-5xl">
-            {kitchenCrew.headline}
-          </h2>
+          <h2 className="font-display max-w-xl text-4xl leading-[1.05] md:text-5xl">{kitchen.headline}</h2>
           <span className="mark" aria-hidden />
-          <p className="mt-5 max-w-[65ch] text-lg text-tortilla/90">{kitchenCrew.lede}</p>
+          <p className="mt-5 max-w-[65ch] text-lg text-tortilla/90">{kitchen.lede}</p>
         </Reveal>
 
         <ul className="mt-16 flex flex-col gap-20 md:mt-24 md:gap-28">
-          {kitchenCrew.people.map((person, index) => {
+          {kitchen.people.map((person, index) => {
             const reverse = index % 2 === 1;
             const featured = index === 0;
 
@@ -47,9 +47,7 @@ export function KitchenCrew() {
                         {person.name}
                       </h3>
                       <p className="mt-3 text-base font-semibold text-gold">{person.role}</p>
-                      <p className="mt-4 max-w-[42ch] text-base text-tortilla/90 md:text-lg">
-                        {person.station}
-                      </p>
+                      <p className="mt-4 max-w-[42ch] text-base text-tortilla/90 md:text-lg">{person.station}</p>
                     </div>
                   </article>
                 </Reveal>

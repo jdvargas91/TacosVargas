@@ -6,7 +6,7 @@ import { GoogleGateModal } from "@/components/GoogleGateModal";
 import { useAuth } from "@/context/AuthContext";
 import { formatMxn, shortFolio } from "@/lib/format";
 import { formatFulfillment, supabase, type OrderRow } from "@/lib/supabase";
-import { business } from "@/data/business";
+import { useSiteContent } from "@/context/SiteContentContext";
 
 const labels: Record<OrderRow["status"], string> = {
   recibido: "Recibido",
@@ -18,6 +18,7 @@ const labels: Record<OrderRow["status"], string> = {
 
 export function MisPedidos() {
   const { user, loading, signInGoogle } = useAuth();
+  const { business } = useSiteContent();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [error, setError] = useState<string | null>(null);
 
