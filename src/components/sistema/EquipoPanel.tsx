@@ -75,7 +75,7 @@ export function EquipoPanel() {
       return;
     }
     setEmail("");
-    setMessage(`Invitación enviada a ${trimmed}. Debe entrar con Google en /login.`);
+    setMessage(`Invitación enviada a ${trimmed}. Debe entrar con Google (botón del sitio o /login) usando ese correo.`);
     void refresh();
   }
 

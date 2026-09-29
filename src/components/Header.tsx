@@ -80,7 +80,7 @@ export function Header() {
     ? "text-sm font-medium text-clay transition hover:text-ink"
     : "text-sm font-medium text-tortilla/90 transition hover:text-tortilla";
 
-  const redirectAfterLogin = `${window.location.origin}${location.pathname === "/" ? "/mis-pedidos" : location.pathname}`;
+  const redirectAfterLogin = `${window.location.origin}/cuenta`;
 
   const drawer = (
     <AnimatePresence>

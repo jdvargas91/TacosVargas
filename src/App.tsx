@@ -11,6 +11,7 @@ import { ProductDetail } from "@/pages/ProductDetail";
 import { MisPedidos } from "@/pages/MisPedidos";
 import { Sistema } from "@/pages/Sistema";
 import { Login } from "@/pages/Login";
+import { Cuenta } from "@/pages/Cuenta";
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
                   <Route path="/pedido" element={<Pedido />} />
                   <Route path="/pedir" element={<Navigate to="/pedido" replace />} />
                   <Route path="/mis-pedidos" element={<MisPedidos />} />
+                  <Route path="/cuenta" element={<Cuenta />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/sistema" element={<Sistema />} />
                   <Route path="/admin" element={<Navigate to="/sistema" replace />} />

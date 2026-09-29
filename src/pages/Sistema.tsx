@@ -36,7 +36,7 @@ const tabMeta: Record<Tab, { label: string; icon: typeof ClipboardList }> = {
 
 export function Sistema() {
   return (
-    <RequireRole roles={["admin", "vendedor"]} fallback="/login">
+    <RequireRole roles={["admin", "vendedor"]} fallback="/mis-pedidos">
       <SistemaShell />
     </RequireRole>
   );
@@ -170,7 +170,7 @@ function SistemaShell() {
           </div>
         ) : null}
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <header className="flex items-center gap-3 border-b border-ink/10 bg-paper px-4 py-3 md:hidden">
             <button
               type="button"
@@ -186,20 +186,26 @@ function SistemaShell() {
             </div>
           </header>
 
-          <main id="contenido" className="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">
-            <div className="mb-6 hidden md:block">
+          <main id="contenido" className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-6 md:px-8 md:py-8">
+            <div className="mb-6 hidden shrink-0 md:block">
               <h1 className="font-display text-3xl text-ink md:text-4xl">{tabMeta[tab].label}</h1>
               <p className="mt-1 text-sm text-clay">
                 {business.name} · panel {role === "admin" ? "de administración" : "de ventas"}
               </p>
             </div>
 
-            {tab === "pedidos" ? <PedidosPanel /> : null}
-            {tab === "mostrador" ? <MostradorPanel /> : null}
-            {tab === "equipo" && isAdmin ? <EquipoPanel /> : null}
-            {tab === "catalogo" && isAdmin ? <CatalogoPanel /> : null}
-            {tab === "sitio" && isAdmin ? <SitioPanel /> : null}
-            {tab === "resenas" && isAdmin ? <ResenasPanel /> : null}
+            <div
+              className={
+                tab === "mostrador" ? "min-h-0 flex-1 overflow-hidden" : "min-h-0 flex-1 overflow-y-auto"
+              }
+            >
+              {tab === "pedidos" ? <PedidosPanel /> : null}
+              {tab === "mostrador" ? <MostradorPanel /> : null}
+              {tab === "equipo" && isAdmin ? <EquipoPanel /> : null}
+              {tab === "catalogo" && isAdmin ? <CatalogoPanel /> : null}
+              {tab === "sitio" && isAdmin ? <SitioPanel /> : null}
+              {tab === "resenas" && isAdmin ? <ResenasPanel /> : null}
+            </div>
           </main>
         </div>
       </div>

@@ -70,7 +70,7 @@ export function RequireRole({
   }
 
   if (!user) {
-    return <Navigate to="/login" replace state={{ from: fallback }} />;
+    return <Navigate to="/login" replace />;
   }
 
   if (!roles.includes(role)) {

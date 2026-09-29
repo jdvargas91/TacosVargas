@@ -1042,7 +1042,7 @@ begin
 end;
 $$;
 
--- Counter order RPC (staff only)
+-- Counter order RPC (staff only) — venta directa entregada
 create or replace function private.place_counter_order(
   p_customer_name text,
   p_phone text,
@@ -1065,36 +1065,14 @@ declare
   total integer := 0;
   new_stock integer;
   new_id uuid;
-  fulfillment text;
-  address jsonb;
 begin
   uid := auth.uid();
   if uid is null or not private.is_staff() then
-    raise exception 'Solo el equipo puede registrar pedidos de mostrador';
-  end if;
-
-  if p_phone is null or length(trim(p_phone)) < 8 then
-    raise exception 'El teléfono es obligatorio';
-  end if;
-
-  fulfillment := coalesce(nullif(trim(p_fulfillment), ''), 'pickup');
-  if fulfillment not in ('pickup', 'delivery') then
-    raise exception 'Elige recoger o mensajería';
-  end if;
-
-  if fulfillment = 'delivery' then
-    if p_delivery_address is null
-       or coalesce(p_delivery_address->>'street', '') = ''
-       or coalesce(p_delivery_address->>'city', '') = '' then
-      raise exception 'La dirección es obligatoria para mensajería';
-    end if;
-    address := p_delivery_address || jsonb_build_object('mode', 'delivery');
-  else
-    address := jsonb_build_object('mode', 'pickup');
+    raise exception 'Solo el equipo puede registrar ventas de mostrador';
   end if;
 
   if p_items is null or jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) = 0 then
-    raise exception 'El pedido no tiene productos';
+    raise exception 'La venta no tiene productos';
   end if;
 
   for line in select * from jsonb_array_elements(p_items)
@@ -1107,10 +1085,11 @@ begin
     select * into prod
     from public.products
     where id = (line->>'id')::uuid
+      and coalesce(archived, false) = false
     for update;
 
     if not found then
-      raise exception 'Un producto del pedido ya no existe';
+      raise exception 'Un producto de la venta ya no existe';
     end if;
 
     if prod.sold_out or prod.stock < qty then
@@ -1138,7 +1117,7 @@ begin
   end loop;
 
   if total <= 0 or jsonb_array_length(built_items) = 0 then
-    raise exception 'El pedido no tiene productos';
+    raise exception 'La venta no tiene productos';
   end if;
 
   insert into public.orders (
@@ -1147,15 +1126,15 @@ begin
   )
   values (
     null,
-    coalesce(nullif(trim(p_customer_name), ''), 'Mostrador'),
-    trim(p_phone),
-    address,
-    fulfillment,
+    'Mostrador',
+    '—',
+    jsonb_build_object('mode', 'pickup'),
+    'pickup',
     built_items,
-    nullif(trim(p_notes), ''),
+    null,
     total,
     'presencial',
-    'recibido',
+    'entregado',
     'mostrador',
     uid
   )
@@ -1164,10 +1143,33 @@ begin
   return jsonb_build_object(
     'id', new_id,
     'total_cents', total,
-    'items', built_items
+    'items', built_items,
+    'status', 'entregado',
+    'source', 'mostrador'
   );
 end;
 $$;
+
+create or replace function public.place_counter_sale(p_items jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, private
+as $$
+begin
+  return private.place_counter_order(
+    'Mostrador',
+    '—',
+    jsonb_build_object('mode', 'pickup'),
+    p_items,
+    null,
+    'pickup'
+  );
+end;
+$$;
+
+revoke all on function public.place_counter_sale(jsonb) from public;
+grant execute on function public.place_counter_sale(jsonb) to authenticated;
 
 create or replace function public.place_counter_order(
   p_customer_name text,

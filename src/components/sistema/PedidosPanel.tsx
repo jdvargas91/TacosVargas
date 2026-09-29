@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MessageCircle, Package } from "lucide-react";
+import { MessageCircle, Package, Store } from "lucide-react";
 import { Select } from "@/components/ui/Select";
 import { formatMxn, shortFolio } from "@/lib/format";
 import { formatFulfillment, supabase, type OrderRow } from "@/lib/supabase";
@@ -30,9 +30,17 @@ const statusTone: Record<OrderRow["status"], string> = {
   cancelado: "bg-ink/8 text-clay border-ink/15",
 };
 
+type SourceFilter = "todos" | "web" | "mostrador";
+
 const filterOptions = [
-  { value: "todos", label: "Todos" },
+  { value: "todos", label: "Todos los estados" },
   ...statusOptions.map((status) => ({ value: status, label: statusLabel[status] })),
+];
+
+const sourceFilterOptions = [
+  { value: "todos", label: "Web y mostrador" },
+  { value: "web", label: "Solo web" },
+  { value: "mostrador", label: "Solo mostrador" },
 ];
 
 const statusSelectOptions = statusOptions.map((status) => ({
@@ -43,6 +51,7 @@ const statusSelectOptions = statusOptions.map((status) => ({
 export function PedidosPanel() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [filter, setFilter] = useState<"todos" | OrderRow["status"]>("todos");
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("todos");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -57,13 +66,19 @@ export function PedidosPanel() {
       });
   }, []);
 
-  const visible = filter === "todos" ? orders : orders.filter((order) => order.status === filter);
+  const visible = orders.filter((order) => {
+    const byStatus = filter === "todos" || order.status === filter;
+    const bySource = sourceFilter === "todos" || (order.source ?? "web") === sourceFilter;
+    return byStatus && bySource;
+  });
 
   async function updateStatus(id: string, status: OrderRow["status"]) {
     if (!supabase) return;
+    const order = orders.find((item) => item.id === id);
+    if (order?.source === "mostrador") return;
     const { error: updateError } = await supabase.from("orders").update({ status }).eq("id", id);
     if (updateError) setError(updateError.message);
-    else setOrders((current) => current.map((order) => (order.id === id ? { ...order, status } : order)));
+    else setOrders((current) => current.map((item) => (item.id === id ? { ...item, status } : item)));
   }
 
   return (
@@ -71,8 +86,17 @@ export function PedidosPanel() {
       {error ? <p className="text-terracotta">{error}</p> : null}
 
       <div className="flex flex-wrap items-end gap-3">
+        <label className="block min-w-[12rem] text-sm text-clay">
+          <span className="mb-2 block font-medium text-ink/80">Origen</span>
+          <Select
+            value={sourceFilter}
+            onValueChange={(v) => setSourceFilter(v as SourceFilter)}
+            options={sourceFilterOptions}
+            aria-label="Filtrar por origen"
+          />
+        </label>
         <label className="block min-w-[14rem] text-sm text-clay">
-          <span className="mb-2 block font-medium text-ink/80">Filtrar por estado</span>
+          <span className="mb-2 block font-medium text-ink/80">Estado</span>
           <Select
             value={filter}
             onValueChange={(v) => setFilter(v as typeof filter)}
@@ -93,72 +117,100 @@ export function PedidosPanel() {
           </div>
         ) : null}
 
-        {visible.map((order) => (
-          <article
-            key={order.id}
-            className="card-shadow overflow-hidden rounded-[10px] border border-ink/8 bg-smoke"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-4 border-b border-ink/8 bg-paper/50 px-5 py-4">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-display text-2xl tracking-wide text-ink">{shortFolio(order.id)}</p>
-                  <span
-                    className={cn(
-                      "inline-flex items-center rounded-[8px] border px-2.5 py-0.5 text-xs font-semibold",
-                      statusTone[order.status],
-                    )}
-                  >
-                    {statusLabel[order.status]}
-                  </span>
+        {visible.map((order) => {
+          const isCounter = order.source === "mostrador";
+          return (
+            <article
+              key={order.id}
+              className={cn(
+                "card-shadow overflow-hidden rounded-[10px] border bg-smoke",
+                isCounter ? "border-ember/20" : "border-ink/8",
+              )}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-ink/8 bg-paper/50 px-5 py-4">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-display text-2xl tracking-wide text-ink">{shortFolio(order.id)}</p>
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-[8px] border px-2.5 py-0.5 text-xs font-semibold",
+                        isCounter
+                          ? "border-ember/30 bg-ember/10 text-ember"
+                          : "border-ink/15 bg-white text-clay",
+                      )}
+                    >
+                      {isCounter ? <Store size={12} aria-hidden /> : null}
+                      {isCounter ? "Mostrador" : "Web"}
+                    </span>
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-[8px] border px-2.5 py-0.5 text-xs font-semibold",
+                        statusTone[order.status],
+                      )}
+                    >
+                      {statusLabel[order.status]}
+                    </span>
+                  </div>
+                  {isCounter ? (
+                    <p className="mt-1.5 text-sm text-clay">Venta presencial · sin datos de cliente</p>
+                  ) : (
+                    <p className="mt-1.5 text-sm text-clay">
+                      <span className="font-medium text-ink">{order.customer_name}</span>
+                      <span className="mx-1.5 text-ink/25">·</span>
+                      {order.phone}
+                    </p>
+                  )}
                 </div>
-                <p className="mt-1.5 text-sm text-clay">
-                  <span className="font-medium text-ink">{order.customer_name}</span>
-                  <span className="mx-1.5 text-ink/25">·</span>
-                  {order.phone}
-                  <span className="mx-1.5 text-ink/25">·</span>
-                  {order.source === "mostrador" ? "Mostrador" : "Web"}
-                </p>
+                <div className="w-full min-w-[12rem] sm:w-52">
+                  <p className="mb-1.5 text-xs font-medium text-clay">
+                    {isCounter ? "Estado (fijo)" : "Cambiar estado"}
+                  </p>
+                  <Select
+                    value={isCounter ? "entregado" : order.status}
+                    onValueChange={(v) => void updateStatus(order.id, v as OrderRow["status"])}
+                    options={statusSelectOptions}
+                    disabled={isCounter}
+                    aria-label={`Estado del pedido ${shortFolio(order.id)}`}
+                  />
+                </div>
               </div>
-              <div className="w-full min-w-[12rem] sm:w-52">
-                <p className="mb-1.5 text-xs font-medium text-clay">Cambiar estado</p>
-                <Select
-                  value={order.status}
-                  onValueChange={(v) => void updateStatus(order.id, v as OrderRow["status"])}
-                  options={statusSelectOptions}
-                  aria-label={`Estado del pedido ${shortFolio(order.id)}`}
-                />
-              </div>
-            </div>
 
-            <div className="grid gap-4 px-5 py-4 md:grid-cols-[1fr_auto]">
-              <div>
-                <p className="text-sm font-medium text-ember">
-                  {formatFulfillment(order.delivery_address, order.fulfillment)}
-                </p>
-                <ul className="mt-3 space-y-1.5 text-sm text-ink">
-                  {order.items.map((item) => (
-                    <li key={`${order.id}-${item.id}`} className="flex gap-2">
-                      <span className="w-8 shrink-0 font-semibold text-clay">{item.qty}×</span>
-                      <span>{item.name}</span>
-                    </li>
-                  ))}
-                </ul>
+              <div className="grid gap-4 px-5 py-4 md:grid-cols-[1fr_auto]">
+                <div>
+                  {!isCounter ? (
+                    <p className="text-sm font-medium text-ember">
+                      {formatFulfillment(order.delivery_address, order.fulfillment)}
+                    </p>
+                  ) : (
+                    <p className="text-sm font-medium text-ember">Entrega inmediata en local</p>
+                  )}
+                  <ul className="mt-3 space-y-1.5 text-sm text-ink">
+                    {order.items.map((item) => (
+                      <li key={`${order.id}-${item.id}`} className="flex gap-2">
+                        <span className="w-8 shrink-0 font-semibold text-clay">{item.qty}×</span>
+                        <span>{item.name}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="flex flex-col items-start justify-between gap-3 md:items-end">
+                  <p className="text-xl font-bold text-ink">{formatMxn(order.total_cents)}</p>
+                  {!isCounter ? (
+                    <a
+                      className="btn-secondary inline-flex h-11 items-center gap-2 px-4 text-sm"
+                      href={whatsappCustomerUrl(order.phone)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <MessageCircle size={16} aria-hidden />
+                      Abrir en WhatsApp
+                    </a>
+                  ) : null}
+                </div>
               </div>
-              <div className="flex flex-col items-start justify-between gap-3 md:items-end">
-                <p className="text-xl font-bold text-ink">{formatMxn(order.total_cents)}</p>
-                <a
-                  className="btn-secondary inline-flex h-11 items-center gap-2 px-4 text-sm"
-                  href={whatsappCustomerUrl(order.phone)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <MessageCircle size={16} aria-hidden />
-                  Abrir en WhatsApp
-                </a>
-              </div>
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
     </div>
   );

@@ -29,7 +29,7 @@ function GoogleIcon() {
 }
 
 export function Login() {
-  const { user, loading, isStaff, signInGoogle, configured, signOut } = useAuth();
+  const { user, loading, isStaff, signInGoogle, configured } = useAuth();
   const { business } = useSiteContent();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +38,7 @@ export function Login() {
     setError(null);
     setBusy(true);
     try {
-      await signInGoogle(`${window.location.origin}/sistema`);
+      await signInGoogle(`${window.location.origin}/cuenta`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "No se pudo iniciar sesión con Google.";
       if (/provider is not enabled/i.test(message)) {
@@ -54,6 +54,10 @@ export function Login() {
 
   if (!loading && user && isStaff) {
     return <Navigate to="/sistema" replace />;
+  }
+
+  if (!loading && user && !isStaff) {
+    return <Navigate to="/mis-pedidos" replace />;
   }
 
   return (
@@ -83,57 +87,33 @@ export function Login() {
               <p className="mt-5 text-xs font-semibold uppercase tracking-[0.18em] text-clay">Panel operativo</p>
               <h1 className="font-display mt-2 text-3xl text-ink md:text-4xl">Acceso del equipo</h1>
               <p className="mt-3 max-w-sm text-sm leading-relaxed text-clay">
-                Inicia sesión con tu cuenta de Google. El administrador define quién puede entrar al sistema.
+                Inicia sesión con tu cuenta de Google. Si eres cliente, te llevamos a tus pedidos. Si eres del equipo,
+                entras al sistema.
               </p>
             </div>
 
-            {!loading && user && !isStaff ? (
-              <div className="mt-8 space-y-4">
-                <div className="rounded-2xl border border-ink/10 bg-smoke px-4 py-3 text-left text-sm text-clay">
-                  Entraste como <span className="font-medium text-ink">{user.email}</span>, pero aún no eres
-                  admin ni vendedor.
-                </div>
-                <p className="text-left text-sm text-clay">
-                  Copia tu UUID desde Supabase → Authentication → Users y ejecuta el SQL de promoción a admin. Luego
-                  vuelve a entrar.
+            <div className="mt-8 space-y-4">
+              {!configured ? (
+                <p className="rounded-2xl border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm text-terracotta">
+                  Falta configurar Supabase en el archivo .env.
                 </p>
-                <div className="flex flex-col gap-2">
-                  <Link to="/mis-pedidos" className="btn-accent h-12 w-full justify-center">
-                    Ir a mis pedidos
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => void signOut()}
-                    className="h-12 w-full rounded-full border border-ink/15 text-ink"
-                  >
-                    Salir y usar otra cuenta
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-8 space-y-4">
-                {!configured ? (
-                  <p className="rounded-2xl border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm text-terracotta">
-                    Falta configurar Supabase en el archivo .env.
-                  </p>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={loading || busy}
-                    onClick={() => void handleGoogle()}
-                    className="flex h-12 w-full items-center justify-center gap-3 rounded-full border border-ink/15 bg-white text-sm font-semibold text-ink shadow-[0_8px_20px_rgb(30_23_16_/_0.06)] transition hover:border-ink/25 hover:bg-smoke disabled:opacity-60"
-                  >
-                    <GoogleIcon />
-                    {busy ? "Redirigiendo…" : "Continuar con Google"}
-                  </button>
-                )}
-                {error ? (
-                  <p className="rounded-2xl border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-left text-sm text-terracotta">
-                    {error}
-                  </p>
-                ) : null}
-              </div>
-            )}
+              ) : (
+                <button
+                  type="button"
+                  disabled={loading || busy}
+                  onClick={() => void handleGoogle()}
+                  className="flex h-12 w-full items-center justify-center gap-3 rounded-[10px] border border-ink/15 bg-white text-sm font-semibold text-ink shadow-[0_8px_20px_rgb(30_23_16_/_0.06)] transition hover:border-ink/25 hover:bg-smoke disabled:opacity-60"
+                >
+                  <GoogleIcon />
+                  {busy ? "Redirigiendo…" : "Continuar con Google"}
+                </button>
+              )}
+              {error ? (
+                <p className="rounded-2xl border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-left text-sm text-terracotta">
+                  {error}
+                </p>
+              ) : null}
+            </div>
           </div>
 
           <p className="mt-6 text-center text-sm text-clay">

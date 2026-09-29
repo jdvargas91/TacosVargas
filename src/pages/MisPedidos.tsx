@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Seo } from "@/components/Seo";
@@ -17,7 +18,7 @@ const labels: Record<OrderRow["status"], string> = {
 };
 
 export function MisPedidos() {
-  const { user, loading, signInGoogle } = useAuth();
+  const { user, loading, isStaff, signInGoogle } = useAuth();
   const { business } = useSiteContent();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +35,10 @@ export function MisPedidos() {
         else setOrders((data as OrderRow[]) ?? []);
       });
   }, [user]);
+
+  if (!loading && isStaff) {
+    return <Navigate to="/sistema" replace />;
+  }
 
   return (
     <>
@@ -78,7 +83,7 @@ export function MisPedidos() {
           window.location.href = "/";
         }}
         onConfirm={() => {
-          void signInGoogle(`${window.location.origin}/mis-pedidos`);
+          void signInGoogle(`${window.location.origin}/cuenta`);
         }}
       />
     </>
