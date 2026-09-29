@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { Link, Navigate, useParams } from "react-router-dom";
 import {
+  ChartColumn,
   ClipboardList,
   ExternalLink,
   LayoutGrid,
@@ -22,17 +24,45 @@ import { EquipoPanel } from "@/components/sistema/EquipoPanel";
 import { CatalogoPanel } from "@/components/sistema/CatalogoPanel";
 import { SitioPanel } from "@/components/sistema/SitioPanel";
 import { ResenasPanel } from "@/components/sistema/ResenasPanel";
+import { EstadisticasPanel } from "@/components/sistema/EstadisticasPanel";
 
-type Tab = "pedidos" | "mostrador" | "equipo" | "catalogo" | "sitio" | "resenas";
+type Tab = "pedidos" | "mostrador" | "estadisticas" | "equipo" | "catalogo" | "sitio" | "resenas";
 
 const tabMeta: Record<Tab, { label: string; icon: typeof ClipboardList }> = {
   pedidos: { label: "Pedidos", icon: ClipboardList },
   mostrador: { label: "Mostrador", icon: Store },
+  estadisticas: { label: "Estadísticas", icon: ChartColumn },
   catalogo: { label: "Menú", icon: Package },
   sitio: { label: "Página web", icon: LayoutGrid },
   resenas: { label: "Opiniones", icon: MessageSquareQuote },
   equipo: { label: "Equipo", icon: Users },
 };
+
+const tabSection: Record<Tab, string | null> = {
+  pedidos: null,
+  mostrador: "mostrador",
+  estadisticas: "estadisticas",
+  catalogo: "menu",
+  sitio: "sitio",
+  resenas: "opiniones",
+  equipo: "equipo",
+};
+
+const sectionTab: Record<string, Tab> = {
+  mostrador: "mostrador",
+  estadisticas: "estadisticas",
+  menu: "catalogo",
+  sitio: "sitio",
+  opiniones: "resenas",
+  equipo: "equipo",
+};
+
+const adminTabs = new Set<Tab>(["estadisticas", "catalogo", "sitio", "resenas", "equipo"]);
+
+function tabPath(id: Tab) {
+  const section = tabSection[id];
+  return section ? `/sistema/${section}` : "/sistema";
+}
 
 export function Sistema() {
   return (
@@ -45,24 +75,21 @@ export function Sistema() {
 function SistemaShell() {
   const { isAdmin, role, signOut, displayName } = useAuth();
   const { business } = useSiteContent();
+  const { seccion } = useParams();
   const [navOpen, setNavOpen] = useState(false);
+  const requested = seccion ? sectionTab[seccion] : "pedidos";
+  const unknown = Boolean(seccion) && !requested;
+  const forbidden = Boolean(requested && adminTabs.has(requested) && !isAdmin);
 
   const tabs = useMemo(() => {
     const base: Tab[] = ["pedidos", "mostrador"];
-    if (isAdmin) base.push("catalogo", "sitio", "resenas", "equipo");
+    if (isAdmin) base.push("estadisticas", "catalogo", "sitio", "resenas", "equipo");
     return base;
   }, [isAdmin]);
 
-  const [tab, setTab] = useState<Tab>("pedidos");
+  if (unknown || forbidden) return <Navigate to="/sistema" replace />;
 
-  useEffect(() => {
-    if (!tabs.includes(tab)) setTab("pedidos");
-  }, [tab, tabs]);
-
-  function selectTab(next: Tab) {
-    setTab(next);
-    setNavOpen(false);
-  }
+  const tab = requested ?? "pedidos";
 
   const SidebarNav = (
     <nav className="flex flex-1 flex-col gap-1 px-3 py-4" aria-label="Panel">
@@ -71,17 +98,18 @@ function SistemaShell() {
         const Icon = meta.icon;
         const active = tab === id;
         return (
-          <button
+          <Link
             key={id}
-            type="button"
-            onClick={() => selectTab(id)}
+            to={tabPath(id)}
+            onClick={() => setNavOpen(false)}
+            aria-current={active ? "page" : undefined}
             className={`flex h-11 items-center gap-3 rounded-[10px] px-3 text-left text-sm font-medium transition ${
               active ? "bg-terracotta text-white shadow-sm" : "text-clay hover:bg-ink/5 hover:text-ink"
             }`}
           >
             <Icon size={18} aria-hidden />
             {meta.label}
-          </button>
+          </Link>
         );
       })}
     </nav>
@@ -196,11 +224,14 @@ function SistemaShell() {
 
             <div
               className={
-                tab === "mostrador" ? "min-h-0 flex-1 overflow-hidden" : "min-h-0 flex-1 overflow-y-auto"
+                tab === "mostrador"
+                  ? "min-h-0 min-w-0 flex-1 overflow-hidden"
+                  : "min-h-0 min-w-0 flex-1 overflow-y-auto"
               }
             >
               {tab === "pedidos" ? <PedidosPanel /> : null}
               {tab === "mostrador" ? <MostradorPanel /> : null}
+              {tab === "estadisticas" && isAdmin ? <EstadisticasPanel /> : null}
               {tab === "equipo" && isAdmin ? <EquipoPanel /> : null}
               {tab === "catalogo" && isAdmin ? <CatalogoPanel /> : null}
               {tab === "sitio" && isAdmin ? <SitioPanel /> : null}

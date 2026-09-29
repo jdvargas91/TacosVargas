@@ -31,6 +31,7 @@ export default function App() {
                   <Route path="/cuenta" element={<Cuenta />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/sistema" element={<Sistema />} />
+                  <Route path="/sistema/:seccion" element={<Sistema />} />
                   <Route path="/admin" element={<Navigate to="/sistema" replace />} />
                 </Routes>
               </BrowserRouter>

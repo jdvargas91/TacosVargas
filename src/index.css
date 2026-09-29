@@ -394,7 +394,17 @@ a:active {
   opacity: 1;
 }
 
+.stat-bar {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  transition: transform 200ms ease;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .stat-bar {
+    transition: none;
+  }
+
   html {
     scroll-behavior: auto;
   }
