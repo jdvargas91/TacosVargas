@@ -53,17 +53,38 @@ export function SitioPanel() {
     setError(null);
     setMessage(null);
     try {
+      const heroToSave = {
+        ...heroDraft,
+        imageAlt: heroDraft.imageAlt?.trim() || `${biz.name} · platillo del día`,
+      };
+      const galleryToSave = {
+        ...galleryDraft,
+        shots: galleryDraft.shots.map((shot, index) => ({
+          ...shot,
+          alt: shot.alt?.trim() || `Foto ${index + 1} · ${biz.name}`,
+        })),
+      };
       await saveBusiness(biz);
-      await saveSection("hero", heroDraft);
+      await saveSection("hero", heroToSave);
       await saveSection("about", aboutDraft);
       await saveSection("kitchen", kitchenDraft);
-      await saveSection("gallery", galleryDraft);
+      await saveSection("gallery", galleryToSave);
       setMessage("Contenido del sitio guardado.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo guardar");
     } finally {
       setSaving(false);
     }
+  }
+
+  function cancelAll() {
+    setBiz(business);
+    setHeroDraft(hero);
+    setAboutDraft(about);
+    setKitchenDraft(kitchen);
+    setGalleryDraft(gallery);
+    setError(null);
+    setMessage(null);
   }
 
   async function upload(file: File, onUrl: (url: string) => void) {
@@ -120,7 +141,6 @@ export function SitioPanel() {
           <Field label="Ciudad" value={biz.location.city} onChange={(v) => setBiz({ ...biz, location: { ...biz.location, city: v } })} />
           <Field label="Facebook" value={biz.socials.facebook} onChange={(v) => setBiz({ ...biz, socials: { ...biz.socials, facebook: v } })} />
           <Field label="Instagram" value={biz.socials.instagram} onChange={(v) => setBiz({ ...biz, socials: { ...biz.socials, instagram: v } })} />
-          <Field label="TikTok" value={biz.socials.tiktok} onChange={(v) => setBiz({ ...biz, socials: { ...biz.socials, tiktok: v } })} />
           <label className="text-sm text-clay md:col-span-2">
             <span className="font-medium text-ink/80">Texto de pago</span>
             <textarea
@@ -134,7 +154,6 @@ export function SitioPanel() {
 
       <section className="card-shadow space-y-4 rounded-[10px] border border-ink/8 bg-smoke p-5 md:p-6">
         <h2 className="font-display text-2xl text-ink">Hero</h2>
-        <Field label="Alt de imagen" value={heroDraft.imageAlt} onChange={(v) => setHeroDraft({ ...heroDraft, imageAlt: v })} />
         <div className="grid gap-5 md:grid-cols-2">
           <MediaUpload
             label="Hero desktop"
@@ -261,7 +280,6 @@ export function SitioPanel() {
                 }
               />
               <div className="grid gap-3">
-                <Field label="Texto alternativo" value={shot.alt} onChange={(v) => updateShot(index, { alt: v })} />
                 <label className="text-sm text-clay">
                   <span className="font-medium text-ink/80">Posición en el mosaico</span>
                   <Select
@@ -295,10 +313,15 @@ export function SitioPanel() {
         </div>
       </section>
 
-      <button type="button" disabled={saving} onClick={() => void saveAll()} className="btn-accent h-12 px-6">
-        <Save size={16} aria-hidden />
-        {saving ? "Guardando…" : "Guardar sitio"}
-      </button>
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        <button type="button" disabled={saving} onClick={cancelAll} className="btn-secondary h-12 px-6">
+          Cancelar
+        </button>
+        <button type="button" disabled={saving} onClick={() => void saveAll()} className="btn-accent h-12 px-6">
+          <Save size={16} aria-hidden />
+          {saving ? "Guardando…" : "Guardar sitio"}
+        </button>
+      </div>
     </div>
   );
 }

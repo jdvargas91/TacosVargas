@@ -134,6 +134,22 @@ function periodLabel(grain: Grain, anchor: string) {
   return `${start.d} ${MONTHS[start.m - 1]} ${start.y} – ${end.d} ${MONTHS[end.m - 1]} ${end.y}`;
 }
 
+function rankingGrainLabel(grain: Grain) {
+  if (grain === "day") return "día";
+  if (grain === "week") return "semana";
+  return "mes";
+}
+
+function soldQtyByKind(products: ProductStat[]) {
+  let tacos = 0;
+  let drinks = 0;
+  for (const product of products) {
+    if (product.kind === "drink") drinks += product.qty;
+    else tacos += product.qty;
+  }
+  return { tacos, drinks };
+}
+
 function comparisonCopy(grain: Grain, sales: number, previous: number) {
   const previousName =
     grain === "day" ? "el día anterior" : grain === "week" ? "la semana anterior" : "el mes anterior";
@@ -149,11 +165,6 @@ function openCopy(count: number, cents: number) {
   if (count <= 0) return "No hay pedidos en curso.";
   const noun = count === 1 ? "pedido en curso" : "pedidos en curso";
   return `${count} ${noun} · ${formatMxn(cents)}`;
-}
-
-function ticket(cents: number, orders: number) {
-  if (orders <= 0) return "—";
-  return formatMxn(Math.round(cents / orders));
 }
 
 function formatMxnShort(cents: number) {
@@ -333,6 +344,64 @@ function SalesBars({ grain, series }: { grain: Grain; series: SeriesPoint[] }) {
   );
 }
 
+type BarRow = { label: string; sales_cents: number; orders: number };
+
+function OriginBars({ rows }: { rows: BarRow[] }) {
+  const reduce = usePrefersReducedMotion();
+  const [grown, setGrown] = useState(reduce);
+  const max = Math.max(0, ...rows.map((row) => row.orders));
+
+  useEffect(() => {
+    if (reduce) {
+      setGrown(true);
+      return;
+    }
+    setGrown(false);
+    const id = requestAnimationFrame(() => setGrown(true));
+    return () => cancelAnimationFrame(id);
+  }, [reduce, rows]);
+
+  return (
+    <div className="mt-3 overflow-x-auto rounded-[10px] border border-ink/10 bg-smoke p-4">
+      <div
+        className="flex min-w-max items-end justify-center gap-8 sm:gap-12"
+        role="list"
+        aria-label="Fuente de solicitud de pedido"
+      >
+        {rows.map((row) => {
+          const scale = max === 0 ? 0 : row.orders / max;
+          return (
+            <div
+              key={row.label}
+              role="listitem"
+              aria-label={`${row.label}: ${row.orders} pedidos`}
+              className="flex w-[5.5rem] shrink-0 flex-col items-center gap-2 sm:w-24"
+            >
+              <span className="text-center text-xs font-semibold text-ink">{row.orders}</span>
+              <svg width="36" height="160" aria-hidden="true" className="overflow-visible">
+                <rect x="0" y="0" width="36" height="160" rx="6" className="fill-ink/10" />
+                <rect
+                  x="0"
+                  y="0"
+                  width="36"
+                  height="160"
+                  rx="6"
+                  className="stat-bar fill-terracotta"
+                  style={{ transform: `scaleY(${grown ? scale : 0})` }}
+                />
+              </svg>
+              <span className="text-center text-sm font-medium text-ink">{row.label}</span>
+              <span className="text-center text-xs text-clay">
+                {row.orders === 1 ? "solicitud" : "solicitudes"}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function findCount<T extends CountStat>(rows: T[], key: keyof T, value: string) {
   return rows.find((row) => row[key] === value) ?? { orders: 0, sales_cents: 0 };
 }
@@ -383,14 +452,12 @@ export function EstadisticasPanel() {
     };
   }, [anchor, grain]);
 
-  const channelRows = [
+  const originRows: BarRow[] = [
     { label: "Web", ...findCount(summary?.channels ?? [], "source", "web") },
     { label: "Mostrador", ...findCount(summary?.channels ?? [], "source", "mostrador") },
   ];
-  const deliveryRows = [
-    { label: "Recoger", ...findCount(summary?.fulfillment ?? [], "fulfillment", "pickup") },
-    { label: "Envío", ...findCount(summary?.fulfillment ?? [], "fulfillment", "delivery") },
-  ];
+
+  const soldQty = soldQtyByKind(summary?.products ?? []);
 
   return (
     <div className="min-w-0 space-y-6 pb-4">
@@ -464,8 +531,11 @@ export function EstadisticasPanel() {
               <p className="mt-2 text-2xl font-semibold text-ink">{summary.orders_delivered}</p>
             </article>
             <article className="rounded-[10px] border border-ink/10 bg-smoke p-4">
-              <h2 className="text-sm font-medium text-clay">Ticket promedio</h2>
-              <p className="mt-2 text-2xl font-semibold text-ink">{formatMxn(summary.avg_ticket_cents)}</p>
+              <h2 className="text-sm font-medium text-clay">Vendidos (tacos / aguas)</h2>
+              <p className="mt-2 text-2xl font-semibold text-ink">
+                {soldQty.tacos} / {soldQty.drinks}
+              </p>
+              <p className="mt-1 text-sm text-clay">tacos · aguas</p>
             </article>
             <article className="rounded-[10px] border border-ink/10 bg-smoke p-4">
               <h2 className="text-sm font-medium text-clay">Cancelados</h2>
@@ -491,6 +561,9 @@ export function EstadisticasPanel() {
 
           <section className="min-w-0">
             <h2 className="font-display text-2xl text-ink">Productos</h2>
+            <p className="mt-1 text-sm text-clay">
+              Ranking de venta · {rankingGrainLabel(summary.grain)}
+            </p>
             <div className="mt-3 overflow-x-auto rounded-[10px] border border-ink/10 bg-smoke">
               <table className="w-full min-w-[36rem] text-left text-sm">
                 <caption className="sr-only">Productos vendidos en el periodo</caption>
@@ -503,7 +576,7 @@ export function EstadisticasPanel() {
                       Tipo
                     </th>
                     <th scope="col" className="px-4 py-3 text-right font-medium">
-                      Piezas
+                      Cantidad vendida
                     </th>
                     <th scope="col" className="px-4 py-3 text-right font-medium">
                       Importe
@@ -535,68 +608,11 @@ export function EstadisticasPanel() {
           </section>
 
           <section className="min-w-0">
-            <h2 className="font-display text-2xl text-ink">Origen</h2>
-            <div className="mt-3 overflow-x-auto rounded-[10px] border border-ink/10 bg-smoke">
-              <table className="w-full min-w-[36rem] text-left text-sm">
-                <caption className="sr-only">Ventas por canal y forma de entrega</caption>
-                <thead>
-                  <tr className="text-clay">
-                    <th scope="col" className="px-4 py-3 font-medium">
-                      Origen
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-right font-medium">
-                      Pedidos
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-right font-medium">
-                      Ventas
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-right font-medium">
-                      Ticket
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <th
-                      colSpan={4}
-                      scope="colgroup"
-                      className="border-t border-ink/10 bg-paper px-4 py-2 text-left text-sm font-semibold text-clay"
-                    >
-                      Canal
-                    </th>
-                  </tr>
-                  {channelRows.map((row) => (
-                    <tr key={row.label} className="border-t border-ink/10">
-                      <th scope="row" className="px-4 py-3 text-left font-medium text-ink">
-                        {row.label}
-                      </th>
-                      <td className="px-4 py-3 text-right text-ink">{row.orders}</td>
-                      <td className="px-4 py-3 text-right text-ink">{formatMxn(row.sales_cents)}</td>
-                      <td className="px-4 py-3 text-right text-ink">{ticket(row.sales_cents, row.orders)}</td>
-                    </tr>
-                  ))}
-                  <tr>
-                    <th
-                      colSpan={4}
-                      scope="colgroup"
-                      className="border-t border-ink/10 bg-paper px-4 py-2 text-left text-sm font-semibold text-clay"
-                    >
-                      Entrega
-                    </th>
-                  </tr>
-                  {deliveryRows.map((row) => (
-                    <tr key={row.label} className="border-t border-ink/10">
-                      <th scope="row" className="px-4 py-3 text-left font-medium text-ink">
-                        {row.label}
-                      </th>
-                      <td className="px-4 py-3 text-right text-ink">{row.orders}</td>
-                      <td className="px-4 py-3 text-right text-ink">{formatMxn(row.sales_cents)}</td>
-                      <td className="px-4 py-3 text-right text-ink">{ticket(row.sales_cents, row.orders)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <h2 className="font-display text-2xl text-ink">Fuente de solicitud de pedido</h2>
+            <p className="mt-1 text-sm text-clay">
+              Cuántos pedidos llegaron por la página web y cuántos se registraron en mostrador (sin cancelados).
+            </p>
+            <OriginBars rows={originRows} />
           </section>
         </>
       ) : null}

@@ -135,7 +135,7 @@ export function ProductDetail() {
               </ul>
 
               {product.allergens.length > 0 ? (
-                <p className="mt-4 text-sm text-clay">Alérgenos: {product.allergens.join(" · ")}</p>
+                <p className="mt-4 text-sm text-clay">Contiene: {product.allergens.join(" · ")}</p>
               ) : null}
 
               <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -162,7 +162,7 @@ export function ProductDetail() {
               {inCart > 0 ? (
                 <p className="mt-3 text-sm text-clay">
                   En el pedido: {inCart}.{" "}
-                  <Link to="/pedido" className="font-medium text-terracotta">
+                  <Link to="/pedido" className="cursor-pointer font-medium text-terracotta hover:underline">
                     Ver pedido
                   </Link>
                 </p>

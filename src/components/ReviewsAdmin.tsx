@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Eye, EyeOff, Pencil, Plus, Save, Star, Trash2, X } from "lucide-react";
 import { DateField } from "@/components/ui/DateField";
+import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Select } from "@/components/ui/Select";
 import { Switch } from "@/components/ui/Switch";
 import { useReviews } from "@/context/ReviewsContext";
@@ -68,7 +69,7 @@ export function ReviewsAdmin() {
         <h2 className="font-display text-2xl text-ink">{editingId ? "Editar opinión" : "Nueva opinión"}</h2>
 
         <label className="text-sm text-clay">
-          <span className="font-medium text-ink/80">Autor</span>
+          <FieldLabel required>Autor</FieldLabel>
           <input
             value={draft.author}
             onChange={(event) => setDraft({ ...draft, author: event.target.value })}
@@ -79,7 +80,7 @@ export function ReviewsAdmin() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="text-sm text-clay">
-            <span className="font-medium text-ink/80">Puntuación</span>
+            <FieldLabel required>Puntuación</FieldLabel>
             <Select
               className="mt-2"
               value={String(draft.rating)}
@@ -89,7 +90,7 @@ export function ReviewsAdmin() {
             />
           </label>
           <label className="text-sm text-clay">
-            <span className="font-medium text-ink/80">Fecha</span>
+            <FieldLabel required>Fecha</FieldLabel>
             <DateField
               className="mt-2"
               value={draft.publishedAt}
@@ -99,7 +100,7 @@ export function ReviewsAdmin() {
         </div>
 
         <label className="text-sm text-clay">
-          <span className="font-medium text-ink/80">Comentario</span>
+          <FieldLabel required>Comentario</FieldLabel>
           <textarea
             value={draft.text}
             onChange={(event) => setDraft({ ...draft, text: event.target.value })}
@@ -115,17 +116,15 @@ export function ReviewsAdmin() {
           description="Si está apagado, la opinión no aparece en la página pública."
         />
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <button type="button" onClick={reset} className="btn-secondary h-11 px-5 text-sm">
+            <X size={16} aria-hidden />
+            Cancelar
+          </button>
           <button type="submit" className="btn-accent h-11 px-5">
             {editingId ? <Save size={16} aria-hidden /> : <Plus size={16} aria-hidden />}
             {editingId ? "Guardar cambios" : "Publicar"}
           </button>
-          {editingId ? (
-            <button type="button" onClick={reset} className="btn-secondary h-11 px-5 text-sm">
-              <X size={16} aria-hidden />
-              Cancelar
-            </button>
-          ) : null}
         </div>
       </form>
 

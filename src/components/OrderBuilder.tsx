@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Bike, Info, LogIn, Send, Store, Trash2, UtensilsCrossed } from "lucide-react";
+import { Bike, Info, LogIn, Send, Store, Trash2, UtensilsCrossed, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useProducts } from "@/context/ProductsContext";
 import { useSiteContent } from "@/context/SiteContentContext";
-import { formatMxn, isProductAvailable, isWithinServiceHours, shortFolio } from "@/lib/format";
+import { formatMxn, isProductAvailable, isWithinServiceHours, formatOrderCode } from "@/lib/format";
 import {
   formatAddress,
   supabase,
@@ -15,6 +15,17 @@ import {
 import { buildOrderMessage, whatsappUrl } from "@/lib/whatsapp";
 import { GoogleGateModal } from "@/components/GoogleGateModal";
 import { QtyStepper } from "@/components/QtyStepper";
+import { FieldLabel } from "@/components/ui/FieldLabel";
+
+function isValidPhone(value: string) {
+  const digits = value.replace(/\D/g, "");
+  return digits.length >= 10 && digits.length <= 15;
+}
+
+function isValidName(value: string) {
+  const trimmed = value.trim();
+  return trimmed.length >= 2 && /[a-záéíóúüñ]/i.test(trimmed);
+}
 
 export function OrderBuilder() {
   const { products, refresh } = useProducts();
@@ -34,9 +45,12 @@ export function OrderBuilder() {
   const [fulfillment, setFulfillment] = useState<Fulfillment>("pickup");
   const [address, setAddress] = useState(emptyAddress);
   const [gate, setGate] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginBusy, setLoginBusy] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const lines = useMemo(
     () =>
@@ -61,8 +75,74 @@ export function OrderBuilder() {
     if (fullName) setName(fullName);
   }, [name, user]);
 
+  function validate(): boolean {
+    const next: Record<string, string> = {};
+    if (!isValidName(name)) {
+      next.name = "Escribe tu nombre (al menos 2 letras).";
+    }
+    if (!isValidPhone(phone)) {
+      next.phone = "Escribe un teléfono válido de 10 dígitos (con lada).";
+    }
+    if (fulfillment === "delivery") {
+      if (!address.street.trim() || address.street.trim().length < 3) {
+        next.street = "Escribe la calle y el número.";
+      }
+      if (!address.colonia.trim() || address.colonia.trim().length < 2) {
+        next.colonia = "Escribe la colonia.";
+      }
+      if (!address.city.trim() || address.city.trim().length < 2) {
+        next.city = "Escribe la ciudad.";
+      }
+    }
+    setFieldErrors(next);
+    return Object.keys(next).length === 0;
+  }
+
+  function cancelForm() {
+    setName(
+      user
+        ? typeof user.user_metadata.full_name === "string"
+          ? user.user_metadata.full_name
+          : typeof user.user_metadata.name === "string"
+            ? user.user_metadata.name
+            : ""
+        : "",
+    );
+    setPhone("");
+    setNotes("");
+    setFulfillment("pickup");
+    setAddress(emptyAddress);
+    setError(null);
+    setSuccess(null);
+    setFieldErrors({});
+  }
+
+  async function handleLogin() {
+    setLoginError(null);
+    if (!configured) {
+      setLoginError("Falta configurar Supabase en el archivo .env.");
+      return;
+    }
+    setLoginBusy(true);
+    try {
+      sessionStorage.setItem("vargas_post_login", "/pedido");
+      await signInGoogle(`${window.location.origin}/cuenta`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "No se pudo iniciar sesión con Google.";
+      if (/provider is not enabled/i.test(message)) {
+        setLoginError(
+          "Google no está habilitado en Supabase. En Authentication → Providers → Google: actívalo, pega Client ID y Secret, y guarda.",
+        );
+      } else {
+        setLoginError(message);
+      }
+      setLoginBusy(false);
+    }
+  }
+
   async function submitOrder() {
     setError(null);
+    setSuccess(null);
     if (totalItems < 1) {
       setError("Agrega tacos o bebidas desde el menú.");
       return;
@@ -71,14 +151,8 @@ export function OrderBuilder() {
       setGate(true);
       return;
     }
-    if (fulfillment === "delivery") {
-      if (!address.street.trim() || !address.colonia.trim() || !address.city.trim()) {
-        setError("Para mensajería completa calle, colonia y ciudad.");
-        return;
-      }
-    }
-    if (phone.replace(/\D/g, "").length < 8) {
-      setError("Escribe un teléfono de contacto.");
+    if (!validate()) {
+      setError("Revisa los campos marcados.");
       return;
     }
     if (!supabase) {
@@ -93,13 +167,10 @@ export function OrderBuilder() {
 
     setSubmitting(true);
     try {
-      const displayName =
-        name ||
-        (typeof user.user_metadata.full_name === "string" ? user.user_metadata.full_name : "") ||
-        "Cliente";
+      const displayName = name.trim();
       const { data, error: rpcError } = await supabase.rpc("place_order", {
         p_customer_name: displayName,
-        p_phone: phone,
+        p_phone: phone.trim(),
         p_fulfillment: fulfillment,
         p_delivery_address: deliveryPayload,
         p_items: lines.map((line) => ({ id: line.product.id, qty: line.qty })),
@@ -108,11 +179,15 @@ export function OrderBuilder() {
       if (rpcError) throw rpcError;
 
       const orderId = String((data as { id: string }).id);
-      const folio = shortFolio(orderId);
+      const orderNumber =
+        data && typeof data === "object" && "order_number" in data
+          ? Number((data as { order_number: number }).order_number)
+          : null;
+      const folio = formatOrderCode(orderNumber, orderId);
       const message = buildOrderMessage({
         folio,
         name: displayName,
-        phone,
+        phone: phone.trim(),
         fulfillment,
         address: formatAddress(deliveryPayload),
         items: lines.map((line) => ({
@@ -151,7 +226,7 @@ export function OrderBuilder() {
             <button
               type="button"
               onClick={clear}
-              className="inline-flex h-11 items-center gap-2 rounded-full border border-ink/20 px-4 text-sm font-semibold text-ink transition hover:border-ember hover:bg-ember hover:text-tortilla"
+              className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-full border border-ink/20 px-4 text-sm font-semibold text-ink transition hover:border-ember hover:bg-ember hover:text-tortilla"
             >
               <Trash2 size={16} aria-hidden />
               Vaciar pedido
@@ -171,10 +246,7 @@ export function OrderBuilder() {
             <p className="mx-auto mt-3 max-w-md text-clay">
               Elige tacos y bebidas en el menú. Aquí verás la miniatura, el precio y la cantidad de cada uno.
             </p>
-            <Link
-              to="/#menu"
-              className="mt-8 btn-accent"
-            >
+            <Link to="/#menu" className="mt-8 btn-accent">
               <UtensilsCrossed size={18} aria-hidden />
               Ir al menú
             </Link>
@@ -185,10 +257,7 @@ export function OrderBuilder() {
               {lines.map(({ product, qty }) => {
                 const available = isProductAvailable(product.soldOut, product.stock);
                 return (
-                  <li
-                    key={product.id}
-                    className="flex gap-4 rounded-2xl bg-smoke p-3 sm:p-4 card-shadow"
-                  >
+                  <li key={product.id} className="flex gap-4 rounded-2xl bg-smoke p-3 sm:p-4 card-shadow">
                     <img
                       src={product.imageUrl}
                       alt={product.name}
@@ -233,15 +302,15 @@ export function OrderBuilder() {
                 event.preventDefault();
                 void submitOrder();
               }}
+              noValidate
             >
               <fieldset>
                 <legend className="font-display text-2xl text-ink">¿Cómo lo recibes?</legend>
                 <div className="mt-4 grid gap-3">
                   <label
-                    className={`flex gap-3 rounded-xl border p-4 transition ${fulfillment === "pickup"
-                      ? "border-terracotta bg-gold/20"
-                      : "border-ink/15 bg-white"
-                      }`}
+                    className={`flex cursor-pointer gap-3 rounded-xl border p-4 transition ${
+                      fulfillment === "pickup" ? "border-terracotta bg-gold/20" : "border-ink/15 bg-white"
+                    }`}
                   >
                     <input
                       type="radio"
@@ -259,10 +328,9 @@ export function OrderBuilder() {
                     </span>
                   </label>
                   <label
-                    className={`flex gap-3 rounded-xl border p-4 transition ${fulfillment === "delivery"
-                      ? "border-terracotta bg-gold/20"
-                      : "border-ink/15 bg-white"
-                      }`}
+                    className={`flex cursor-pointer gap-3 rounded-xl border p-4 transition ${
+                      fulfillment === "delivery" ? "border-terracotta bg-gold/20" : "border-ink/15 bg-white"
+                    }`}
                   >
                     <input
                       type="radio"
@@ -290,25 +358,26 @@ export function OrderBuilder() {
                     cobra en esta página.
                   </p>
                   <label className="block text-sm text-clay">
-                    Calle y número
+                    <FieldLabel required>Calle y número</FieldLabel>
                     <input
                       value={address.street}
                       onChange={(event) => setAddress({ ...address, street: event.target.value })}
                       className="mt-2 h-12 w-full rounded-xl border border-ink/15 bg-white px-3 text-ink"
-                      required
+                      autoComplete="street-address"
                     />
+                    {fieldErrors.street ? <p className="mt-1 text-xs text-terracotta">{fieldErrors.street}</p> : null}
                   </label>
                   <label className="block text-sm text-clay">
-                    Colonia
+                    <FieldLabel required>Colonia</FieldLabel>
                     <input
                       value={address.colonia}
                       onChange={(event) => setAddress({ ...address, colonia: event.target.value })}
                       className="mt-2 h-12 w-full rounded-xl border border-ink/15 bg-white px-3 text-ink"
-                      required
                     />
+                    {fieldErrors.colonia ? <p className="mt-1 text-xs text-terracotta">{fieldErrors.colonia}</p> : null}
                   </label>
                   <label className="block text-sm text-clay">
-                    Referencias
+                    <FieldLabel>Referencias</FieldLabel>
                     <input
                       value={address.references}
                       onChange={(event) => setAddress({ ...address, references: event.target.value })}
@@ -316,39 +385,43 @@ export function OrderBuilder() {
                     />
                   </label>
                   <label className="block text-sm text-clay">
-                    Ciudad
+                    <FieldLabel required>Ciudad</FieldLabel>
                     <input
                       value={address.city}
                       onChange={(event) => setAddress({ ...address, city: event.target.value })}
                       className="mt-2 h-12 w-full rounded-xl border border-ink/15 bg-white px-3 text-ink"
-                      required
+                      autoComplete="address-level2"
                     />
+                    {fieldErrors.city ? <p className="mt-1 text-xs text-terracotta">{fieldErrors.city}</p> : null}
                   </label>
                 </div>
               ) : null}
 
               <label className="mt-5 block text-sm text-clay">
-                Nombre
+                <FieldLabel required>Nombre</FieldLabel>
                 <input
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                   className="mt-2 h-12 w-full rounded-xl border border-ink/15 bg-white px-3 text-ink"
                   autoComplete="name"
                 />
+                {fieldErrors.name ? <p className="mt-1 text-xs text-terracotta">{fieldErrors.name}</p> : null}
               </label>
               <label className="mt-4 block text-sm text-clay">
-                Teléfono
+                <FieldLabel required hint="10 dígitos con lada, sin espacios obligatorios">
+                  Teléfono
+                </FieldLabel>
                 <input
                   value={phone}
                   onChange={(event) => setPhone(event.target.value)}
                   className="mt-2 h-12 w-full rounded-xl border border-ink/15 bg-white px-3 text-ink"
                   inputMode="tel"
                   autoComplete="tel"
-                  required
                 />
+                {fieldErrors.phone ? <p className="mt-1 text-xs text-terracotta">{fieldErrors.phone}</p> : null}
               </label>
               <label className="mt-4 block text-sm text-clay">
-                Notas (sabor de agua, sin cebolla…)
+                <FieldLabel>Notas (sabor de agua, sin cebolla…)</FieldLabel>
                 <textarea
                   value={notes}
                   onChange={(event) => setNotes(event.target.value)}
@@ -372,7 +445,7 @@ export function OrderBuilder() {
                 <div className="mt-5 rounded-xl border border-ink/10 bg-paper px-4 py-3 text-sm text-clay">
                   Sesión: <span className="font-medium text-ink">{user.email}</span>
                   {" · "}
-                  <Link to="/mis-pedidos" className="text-ember hover:underline">
+                  <Link to="/mis-pedidos" className="cursor-pointer text-ember hover:underline">
                     Ver mis pedidos
                   </Link>
                 </div>
@@ -387,7 +460,10 @@ export function OrderBuilder() {
                   </p>
                   <button
                     type="button"
-                    onClick={() => setGate(true)}
+                    onClick={() => {
+                      setLoginError(null);
+                      setGate(true);
+                    }}
                     className="btn-accent mt-4 w-full"
                   >
                     <LogIn size={18} aria-hidden />
@@ -396,27 +472,32 @@ export function OrderBuilder() {
                 </div>
               ) : null}
 
-              {canConfirm ? (
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="btn-accent mt-6 w-full disabled:opacity-60"
-                >
-                  <Send size={18} aria-hidden />
-                  {submitting ? "Enviando…" : "Confirmar pedido"}
+              <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
+                <button type="button" onClick={cancelForm} className="btn-secondary h-11 px-5 text-sm">
+                  <X size={16} aria-hidden />
+                  Cancelar
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  disabled
-                  className="btn-accent mt-6 w-full cursor-not-allowed opacity-45"
-                  title="Inicia sesión con Google para confirmar"
-                >
-                  <Send size={18} aria-hidden />
-                  Confirmar pedido
-                </button>
-              )}
-              <Link to="/#menu" className="mt-3 inline-flex h-11 w-full items-center justify-center text-sm text-clay">
+                {canConfirm ? (
+                  <button type="submit" disabled={submitting} className="btn-accent h-11 px-6 disabled:opacity-60">
+                    <Send size={18} aria-hidden />
+                    {submitting ? "Enviando…" : "Confirmar pedido"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="btn-accent h-11 cursor-not-allowed px-6 opacity-45"
+                    title="Inicia sesión con Google para confirmar"
+                  >
+                    <Send size={18} aria-hidden />
+                    Confirmar pedido
+                  </button>
+                )}
+              </div>
+              <Link
+                to="/#menu"
+                className="mt-3 inline-flex h-11 w-full cursor-pointer items-center justify-center text-sm text-clay hover:underline"
+              >
                 Seguir viendo el menú
               </Link>
               {!configured ? (
@@ -433,9 +514,14 @@ export function OrderBuilder() {
         open={gate}
         title="Inicia sesión para pedir"
         body="Necesitas una cuenta con Google para confirmar el pedido y verlo después en Mis pedidos. El menú se puede ver sin cuenta."
-        onClose={() => setGate(false)}
+        error={loginError}
+        onClose={() => {
+          setGate(false);
+          setLoginError(null);
+          setLoginBusy(false);
+        }}
         onConfirm={() => {
-          void signInGoogle(`${window.location.origin}/pedido`);
+          if (!loginBusy) void handleLogin();
         }}
       />
     </section>

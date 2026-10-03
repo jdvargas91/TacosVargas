@@ -6,7 +6,7 @@ import { useSiteContent } from "@/context/SiteContentContext";
 /**
  * Destino neutro tras Google OAuth.
  * Espera a que AuthContext reclame invitaciones de equipo y enruta por rol:
- * staff → /sistema · cliente → /mis-pedidos · sin sesión → /login
+ * staff → /sistema · cliente → return path o /mis-pedidos · sin sesión → /login
  */
 export function Cuenta() {
   const { user, loading, isStaff } = useAuth();
@@ -28,8 +28,12 @@ export function Cuenta() {
   }
 
   if (isStaff) {
+    sessionStorage.removeItem("vargas_post_login");
     return <Navigate to="/sistema" replace />;
   }
 
-  return <Navigate to="/mis-pedidos" replace />;
+  const stored = sessionStorage.getItem("vargas_post_login");
+  sessionStorage.removeItem("vargas_post_login");
+  const allowed = stored === "/pedido" || stored === "/mis-pedidos" ? stored : "/mis-pedidos";
+  return <Navigate to={allowed} replace />;
 }

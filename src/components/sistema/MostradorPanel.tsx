@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { CheckCircle2, CupSoda, Minus, Package, Plus, Receipt, RotateCcw, UtensilsCrossed } from "lucide-react";
 import { useProducts } from "@/context/ProductsContext";
 import type { ProductKind } from "@/data/seedProducts";
-import { formatMxn, isProductAvailable, shortFolio } from "@/lib/format";
+import { formatMxn, isProductAvailable, formatOrderCode } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/cn";
 
@@ -69,10 +69,13 @@ export function MostradorPanel() {
 
     // Prefer place_counter_sale (migración nueva). Si aún no está en el proyecto, usa la RPC legacy.
     let orderId: string | null = null;
+    let orderNumber: number | null = null;
     const sale = await supabase.rpc("place_counter_sale", { p_items: items });
 
     if (!sale.error && sale.data && typeof sale.data === "object" && "id" in sale.data) {
-      orderId = String((sale.data as { id: string }).id);
+      const payload = sale.data as { id: string; order_number?: number };
+      orderId = String(payload.id);
+      orderNumber = typeof payload.order_number === "number" ? payload.order_number : null;
     } else {
       const legacy = await supabase.rpc("place_counter_order", {
         p_customer_name: "Mostrador",
@@ -87,14 +90,16 @@ export function MostradorPanel() {
         setError(legacy.error?.message ?? sale.error?.message ?? "No se pudo registrar la venta");
         return;
       }
-      orderId = String((legacy.data as { id: string }).id);
+      const payload = legacy.data as { id: string; order_number?: number };
+      orderId = String(payload.id);
+      orderNumber = typeof payload.order_number === "number" ? payload.order_number : null;
       // La RPC antigua deja status "recibido"; forzamos entregada en venta de mostrador.
       await supabase.from("orders").update({ status: "entregado" }).eq("id", orderId);
     }
 
     setSubmitting(false);
 
-    const folio = shortFolio(orderId);
+    const folio = formatOrderCode(orderNumber, orderId);
     setLastFolio(folio);
     setMessage(`Venta ${folio} registrada como entregada · ${formatMxn(totalCents)}`);
     setCart({});

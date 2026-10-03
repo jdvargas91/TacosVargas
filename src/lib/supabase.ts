@@ -57,6 +57,7 @@ export type OrderItemPayload = {
 
 export type OrderRow = {
   id: string;
+  order_number?: number | null;
   user_id: string | null;
   customer_name: string | null;
   phone: string;

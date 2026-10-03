@@ -1,40 +1,17 @@
 import { useEffect, useState } from "react";
 import { MessageCircle, Package, Store } from "lucide-react";
 import { Select } from "@/components/ui/Select";
-import { formatMxn, shortFolio } from "@/lib/format";
+import { formatMxn, formatOrderCode } from "@/lib/format";
+import { ORDER_STATUS_LABELS, ORDER_STATUS_TONES, ORDER_STATUSES } from "@/lib/orderStatus";
 import { formatFulfillment, supabase, type OrderRow } from "@/lib/supabase";
 import { whatsappCustomerUrl } from "@/lib/whatsapp";
 import { cn } from "@/lib/cn";
-
-const statusOptions: OrderRow["status"][] = [
-  "recibido",
-  "en_preparacion",
-  "en_camino",
-  "entregado",
-  "cancelado",
-];
-
-const statusLabel: Record<OrderRow["status"], string> = {
-  recibido: "Recibido",
-  en_preparacion: "En preparación",
-  en_camino: "En camino",
-  entregado: "Entregado",
-  cancelado: "Cancelado",
-};
-
-const statusTone: Record<OrderRow["status"], string> = {
-  recibido: "bg-amber-500/15 text-amber-900 border-amber-500/25",
-  en_preparacion: "bg-terracotta/15 text-ember border-terracotta/30",
-  en_camino: "bg-sky-500/12 text-sky-900 border-sky-500/25",
-  entregado: "bg-emerald-500/12 text-emerald-900 border-emerald-500/25",
-  cancelado: "bg-ink/8 text-clay border-ink/15",
-};
 
 type SourceFilter = "todos" | "web" | "mostrador";
 
 const filterOptions = [
   { value: "todos", label: "Todos los estados" },
-  ...statusOptions.map((status) => ({ value: status, label: statusLabel[status] })),
+  ...ORDER_STATUSES.map((status) => ({ value: status, label: ORDER_STATUS_LABELS[status] })),
 ];
 
 const sourceFilterOptions = [
@@ -43,9 +20,9 @@ const sourceFilterOptions = [
   { value: "mostrador", label: "Solo mostrador" },
 ];
 
-const statusSelectOptions = statusOptions.map((status) => ({
+const statusSelectOptions = ORDER_STATUSES.map((status) => ({
   value: status,
-  label: statusLabel[status],
+  label: ORDER_STATUS_LABELS[status],
 }));
 
 export function PedidosPanel() {
@@ -123,14 +100,16 @@ export function PedidosPanel() {
             <article
               key={order.id}
               className={cn(
-                "card-shadow overflow-hidden rounded-[10px] border bg-smoke",
+                "card-shadow rounded-[10px] border bg-smoke",
                 isCounter ? "border-ember/20" : "border-ink/8",
               )}
             >
-              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-ink/8 bg-paper/50 px-5 py-4">
+              <div className="relative z-10 flex flex-wrap items-start justify-between gap-4 border-b border-ink/8 bg-paper/50 px-5 py-4">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-display text-2xl tracking-wide text-ink">{shortFolio(order.id)}</p>
+                    <p className="font-display text-2xl tracking-wide text-ink">
+                      {formatOrderCode(order.order_number, order.id)}
+                    </p>
                     <span
                       className={cn(
                         "inline-flex items-center gap-1 rounded-[8px] border px-2.5 py-0.5 text-xs font-semibold",
@@ -145,10 +124,10 @@ export function PedidosPanel() {
                     <span
                       className={cn(
                         "inline-flex items-center rounded-[8px] border px-2.5 py-0.5 text-xs font-semibold",
-                        statusTone[order.status],
+                        ORDER_STATUS_TONES[order.status],
                       )}
                     >
-                      {statusLabel[order.status]}
+                      {ORDER_STATUS_LABELS[order.status]}
                     </span>
                   </div>
                   {isCounter ? (
@@ -161,7 +140,7 @@ export function PedidosPanel() {
                     </p>
                   )}
                 </div>
-                <div className="w-full min-w-[12rem] sm:w-52">
+                <div className="w-full min-w-[12rem] sm:w-56">
                   <p className="mb-1.5 text-xs font-medium text-clay">
                     {isCounter ? "Estado (fijo)" : "Cambiar estado"}
                   </p>
@@ -170,7 +149,7 @@ export function PedidosPanel() {
                     onValueChange={(v) => void updateStatus(order.id, v as OrderRow["status"])}
                     options={statusSelectOptions}
                     disabled={isCounter}
-                    aria-label={`Estado del pedido ${shortFolio(order.id)}`}
+                    aria-label={`Estado del pedido ${formatOrderCode(order.order_number, order.id)}`}
                   />
                 </div>
               </div>

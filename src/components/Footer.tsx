@@ -16,7 +16,7 @@ export function Footer() {
     { href: business.socials.facebook, label: "Facebook", icon: Facebook },
     { href: business.socials.instagram, label: "Instagram", icon: Instagram },
     { href: business.socials.tiktok, label: "TikTok", icon: TikTokIcon },
-  ];
+  ].filter((social) => social.href && !social.href.endsWith("tiktok.com/") && social.href !== "https://www.tiktok.com/");
 
   return (
     <footer className="border-t border-ink/10 bg-smoke px-4 py-12 md:px-6">
@@ -28,7 +28,7 @@ export function Footer() {
         <div className="text-sm text-clay">
           <p>
             WhatsApp{" "}
-            <a className="font-medium text-ember" href={`https://wa.me/${business.whatsapp}`}>
+            <a className="cursor-pointer font-medium text-ember hover:underline" href={`https://wa.me/${business.whatsapp}`}>
               {business.phone}
             </a>
           </p>
@@ -46,7 +46,7 @@ export function Footer() {
                   target="_blank"
                   rel="noreferrer"
                   aria-label={social.label}
-                  className="grid h-11 w-11 place-items-center rounded-full bg-terracotta text-ink transition hover:bg-[#dc5c38]"
+                  className="grid h-11 w-11 place-items-center rounded-full bg-terracotta text-white transition hover:bg-[#dc5c38]"
                 >
                   <social.icon />
                 </a>

@@ -19,10 +19,12 @@ const links = [
 ];
 
 export function Header() {
-  const { user, isStaff, signOut, signInGoogle, loading } = useAuth();
+  const { user, isStaff, signOut, signInGoogle, loading, configured } = useAuth();
   const { totalItems } = useCart();
   const [open, setOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginBusy, setLoginBusy] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const reduce = useReducedMotion();
@@ -33,8 +35,8 @@ export function Header() {
   const hideBrand = home && !scrolled && !open;
 
   const authLinkClass = solid
-    ? "rounded-full px-3 py-2 text-sm text-clay hover:text-ink"
-    : "rounded-full px-3 py-2 text-sm text-tortilla/90 hover:text-tortilla";
+    ? "cursor-pointer rounded-full px-3 py-2 text-sm text-clay hover:text-ink hover:underline"
+    : "cursor-pointer rounded-full px-3 py-2 text-sm text-tortilla/90 hover:text-tortilla hover:underline";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -77,10 +79,40 @@ export function Header() {
   }, [open]);
 
   const navClass = solid
-    ? "text-sm font-medium text-clay transition hover:text-ink"
-    : "text-sm font-medium text-tortilla/90 transition hover:text-tortilla";
+    ? "cursor-pointer text-sm font-medium text-clay transition hover:text-ink hover:underline"
+    : "cursor-pointer text-sm font-medium text-tortilla/90 transition hover:text-tortilla hover:underline";
 
   const redirectAfterLogin = `${window.location.origin}/cuenta`;
+
+  async function handleLogin() {
+    setLoginError(null);
+    if (!configured) {
+      setLoginError("Falta configurar Supabase en el archivo .env.");
+      return;
+    }
+    setLoginBusy(true);
+    try {
+      const returnTo = location.pathname.startsWith("/pedido")
+        ? "/pedido"
+        : location.pathname === "/mis-pedidos"
+          ? "/mis-pedidos"
+          : "/cuenta";
+      sessionStorage.setItem("vargas_post_login", returnTo);
+      await signInGoogle(redirectAfterLogin);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "No se pudo iniciar sesión con Google.";
+      if (/provider is not enabled/i.test(message)) {
+        setLoginError(
+          "Google no está habilitado en Supabase. En Authentication → Providers → Google: actívalo, pega Client ID y Secret, y guarda.",
+        );
+      } else if (/Supabase no está configurado/i.test(message)) {
+        setLoginError("Falta configurar Supabase en el archivo .env.");
+      } else {
+        setLoginError(message);
+      }
+      setLoginBusy(false);
+    }
+  }
 
   const drawer = (
     <AnimatePresence>
@@ -134,7 +166,7 @@ export function Header() {
                   key={link.href}
                   href={link.href}
                   onClick={() => setOpen(false)}
-                  className="py-3 text-lg text-ink"
+                  className="cursor-pointer py-3 text-lg text-ink hover:underline"
                 >
                   {link.label}
                 </a>
@@ -142,24 +174,25 @@ export function Header() {
               {user ? (
                 <>
                   {!isStaff ? (
-                    <NavLink to="/mis-pedidos" onClick={() => setOpen(false)} className="py-3 text-lg">
+                    <NavLink to="/mis-pedidos" onClick={() => setOpen(false)} className="cursor-pointer py-3 text-lg hover:underline">
                       Mis pedidos
                     </NavLink>
                   ) : (
-                    <NavLink to="/sistema" onClick={() => setOpen(false)} className="py-3 text-lg">
+                    <NavLink to="/sistema" onClick={() => setOpen(false)} className="cursor-pointer py-3 text-lg hover:underline">
                       Sistema
                     </NavLink>
                   )}
-                  <button type="button" className="py-3 text-left text-lg" onClick={() => void signOut()}>
+                  <button type="button" className="cursor-pointer py-3 text-left text-lg hover:underline" onClick={() => void signOut()}>
                     Salir
                   </button>
                 </>
               ) : (
                 <button
                   type="button"
-                  className="py-3 text-left text-lg text-ink"
+                  className="cursor-pointer py-3 text-left text-lg text-ink hover:underline"
                   onClick={() => {
                     setOpen(false);
+                    setLoginError(null);
                     setLoginOpen(true);
                   }}
                 >
@@ -229,7 +262,10 @@ export function Header() {
             {!loading && !user ? (
               <button
                 type="button"
-                onClick={() => setLoginOpen(true)}
+                onClick={() => {
+                  setLoginError(null);
+                  setLoginOpen(true);
+                }}
                 className={`hidden items-center gap-2 sm:inline-flex ${authLinkClass}`}
               >
                 <LogIn size={16} aria-hidden />
@@ -265,9 +301,14 @@ export function Header() {
         open={loginOpen}
         title="Tu cuenta Vargas"
         body="Entra con Google para pedir, guardar tu historial y ver el estado de tus órdenes. El sitio público se sigue viendo sin cuenta."
-        onClose={() => setLoginOpen(false)}
+        error={loginError}
+        onClose={() => {
+          setLoginOpen(false);
+          setLoginError(null);
+          setLoginBusy(false);
+        }}
         onConfirm={() => {
-          void signInGoogle(redirectAfterLogin);
+          if (!loginBusy) void handleLogin();
         }}
       />
     </>

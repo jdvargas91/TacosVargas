@@ -19,6 +19,18 @@ type Member = {
   role: UserRole;
 };
 
+const inviteStatusLabel: Record<Invite["status"], string> = {
+  pending: "Pendiente",
+  accepted: "Aceptada",
+  revoked: "Revocada",
+};
+
+const roleLabel: Record<"vendedor" | "admin" | "cliente", string> = {
+  vendedor: "Vendedor",
+  admin: "Administrador",
+  cliente: "Cliente",
+};
+
 const inviteRoleOptions = [
   { value: "vendedor", label: "Vendedor" },
   { value: "admin", label: "Administrador" },
@@ -105,7 +117,7 @@ export function EquipoPanel() {
         <p className="mt-2 text-sm text-clay">
           El miembro entra con Google usando este correo. Al iniciar sesión recibe el rol asignado.
         </p>
-        <div className="mt-4 flex flex-wrap gap-3">
+        <div className="mt-4 flex flex-wrap items-end justify-end gap-3">
           <input
             type="email"
             value={email}
@@ -163,7 +175,7 @@ export function EquipoPanel() {
               <div>
                 <p className="font-medium text-ink">{inviteRow.email}</p>
                 <p className="text-sm text-clay">
-                  {inviteRow.role} · {inviteRow.status}
+                  {roleLabel[inviteRow.role]} · {inviteStatusLabel[inviteRow.status]}
                 </p>
               </div>
               {inviteRow.status === "pending" ? (

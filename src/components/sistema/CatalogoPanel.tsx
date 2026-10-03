@@ -1,8 +1,9 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { PackageMinus, PackagePlus, Save, Warehouse } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { PackageMinus, PackagePlus, Pencil, Save, Search, Warehouse, X } from "lucide-react";
 import { MediaUpload } from "@/components/ui/MediaUpload";
 import { Select } from "@/components/ui/Select";
 import { Switch } from "@/components/ui/Switch";
+import { FieldLabel } from "@/components/ui/FieldLabel";
 import { useProducts } from "@/context/ProductsContext";
 import type { Product, ProductKind } from "@/data/seedProducts";
 import { formatMxn } from "@/lib/format";
@@ -34,6 +35,9 @@ const kindOptions = [
 
 export function CatalogoPanel() {
   const { products, refresh } = useProducts();
+  const [mode, setMode] = useState<"list" | "create" | "edit">("list");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -41,19 +45,67 @@ export function CatalogoPanel() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  const editing = products.find((p) => p.id === editingId) ?? null;
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter((p) => p.name.toLowerCase().includes(q));
+  }, [products, query]);
+
   useEffect(() => {
     return () => {
       if (imagePreview) URL.revokeObjectURL(imagePreview);
     };
   }, [imagePreview]);
 
+  function openCreate() {
+    setError(null);
+    setMessage(null);
+    setForm(emptyForm);
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
+    setEditingId(null);
+    setMode("create");
+  }
+
+  function openEdit(product: Product) {
+    setError(null);
+    setMessage(null);
+    setEditingId(product.id);
+    setMode("edit");
+  }
+
+  function cancelForm() {
+    setMode("list");
+    setEditingId(null);
+    setForm(emptyForm);
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
+    setError(null);
+  }
+
   async function createProduct() {
     if (!supabase) return;
     setError(null);
     setMessage(null);
     const priceCents = Math.round(Number(form.price) * 100);
-    if (!form.name.trim() || Number.isNaN(priceCents)) {
-      setError("El nombre y el precio son obligatorios.");
+    if (!form.name.trim()) {
+      setError("El nombre es obligatorio.");
+      return;
+    }
+    if (!form.description.trim()) {
+      setError("La descripción corta es obligatoria.");
+      return;
+    }
+    if (Number.isNaN(priceCents) || priceCents < 0) {
+      setError("Escribe un precio válido en pesos.");
+      return;
+    }
+    if (!form.serving.trim()) {
+      setError("La porción es obligatoria.");
       return;
     }
     setCreating(true);
@@ -96,151 +148,317 @@ export function CatalogoPanel() {
     }
 
     setCreating(false);
-    setForm(emptyForm);
-    setImageFile(null);
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setImagePreview(null);
     setMessage("Producto agregado al menú.");
+    cancelForm();
     void refresh();
   }
 
+  if (mode === "create") {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-2xl text-ink">Nuevo producto</h2>
+            <p className="mt-1 text-sm text-clay">Completa los datos para publicarlo en el menú.</p>
+          </div>
+        </div>
+
+        {error ? (
+          <p className="rounded-[10px] border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm text-terracotta">
+            {error}
+          </p>
+        ) : null}
+
+        <section className="card-shadow rounded-[10px] border border-ink/8 bg-smoke p-5 md:p-6">
+          <div className="grid gap-5 md:grid-cols-[160px_1fr]">
+            <MediaUpload
+              value={imagePreview}
+              label="Foto del producto"
+              onChange={(file) => {
+                if (imagePreview) URL.revokeObjectURL(imagePreview);
+                setImageFile(file);
+                setImagePreview(URL.createObjectURL(file));
+              }}
+            />
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <Field label="Tipo de producto" hint="Taco o bebida" required>
+                <Select
+                  className="mt-2"
+                  value={form.kind}
+                  onValueChange={(v) => {
+                    const kind = v as ProductKind;
+                    setForm({
+                      ...form,
+                      kind,
+                      serving: kind === "taco" ? "1 taco" : "1 porción",
+                    });
+                  }}
+                  options={kindOptions}
+                  aria-label="Tipo de producto"
+                />
+              </Field>
+              <Field label="Nombre" hint="Cómo aparece en el menú" required>
+                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={fieldClass} />
+              </Field>
+              <Field label="Descripción corta" hint="Una o dos líneas bajo el nombre" className="md:col-span-2" required>
+                <input
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  className={fieldClass}
+                />
+              </Field>
+              <Field label="Descripción completa" hint="Texto de la ficha del producto" className="md:col-span-2">
+                <textarea
+                  value={form.longDescription}
+                  onChange={(e) => setForm({ ...form, longDescription: e.target.value })}
+                  className={areaClass}
+                />
+              </Field>
+              <Field label="Ingredientes" hint="Sepáralos con coma">
+                <input
+                  value={form.ingredients}
+                  onChange={(e) => setForm({ ...form, ingredients: e.target.value })}
+                  className={fieldClass}
+                  placeholder="Tortilla de maíz, Camarón, Salsa…"
+                />
+              </Field>
+              <Field label="Contiene" hint="Alimentos que pueden causar reacción. Sepáralos con coma">
+                <input
+                  value={form.allergens}
+                  onChange={(e) => setForm({ ...form, allergens: e.target.value })}
+                  className={fieldClass}
+                  placeholder="Maíz, Gluten…"
+                />
+              </Field>
+              <Field label="Precio (pesos MXN)" hint="Sin el signo de pesos" required>
+                <input
+                  value={form.price}
+                  onChange={(e) => setForm({ ...form, price: e.target.value })}
+                  className={fieldClass}
+                  inputMode="decimal"
+                />
+              </Field>
+              <Field label="Existencias iniciales" hint="Cuántas piezas hay al darlo de alta" required>
+                <input
+                  value={form.stock}
+                  onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                  className={fieldClass}
+                  inputMode="numeric"
+                />
+              </Field>
+              <Field label="Porción" hint="Ej. 1 taco o vaso chico" required>
+                <input value={form.serving} onChange={(e) => setForm({ ...form, serving: e.target.value })} className={fieldClass} />
+              </Field>
+              <Field label="Peso aproximado (gramos)" hint="Opcional">
+                <input
+                  value={form.weightGrams}
+                  onChange={(e) => setForm({ ...form, weightGrams: e.target.value })}
+                  className={fieldClass}
+                  inputMode="numeric"
+                />
+              </Field>
+              <Field label="Orden en el menú" hint="Número más chico = aparece primero" required>
+                <input
+                  value={form.sortOrder}
+                  onChange={(e) => setForm({ ...form, sortOrder: e.target.value })}
+                  className={fieldClass}
+                  inputMode="numeric"
+                />
+              </Field>
+              <div className="md:col-span-2 grid gap-3 sm:grid-cols-2">
+                <Switch
+                  checked={form.soldOut}
+                  onCheckedChange={(soldOut) => setForm({ ...form, soldOut })}
+                  label="Marcar como agotado"
+                  description="Si está encendido, el cliente no puede pedirlo aunque haya existencias."
+                />
+                <Switch
+                  checked={form.isFeatured}
+                  onCheckedChange={(isFeatured) => setForm({ ...form, isFeatured })}
+                  label="Destacar en el menú"
+                  description="Lo muestra con prioridad / como especialidad de la casa."
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
+            <button type="button" onClick={cancelForm} className="btn-secondary h-12 px-6">
+              <X size={16} aria-hidden />
+              Cancelar
+            </button>
+            <button type="button" disabled={creating} onClick={() => void createProduct()} className="btn-accent h-12 px-6">
+              <PackagePlus size={16} aria-hidden />
+              {creating ? "Guardando…" : "Crear producto"}
+            </button>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  if (mode === "edit") {
+    if (!editing) {
+      return (
+        <div className="space-y-4">
+          <p className="text-clay">Ese producto ya no está en el menú.</p>
+          <button type="button" onClick={cancelForm} className="btn-secondary h-11 px-5">
+            Volver al listado
+          </button>
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="font-display text-2xl text-ink">Editar producto</h2>
+          <p className="mt-1 text-sm text-clay">{editing.name}</p>
+        </div>
+        <ProductEditor product={editing} onSaved={() => void refresh()} onCancel={cancelForm} />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <p className="max-w-2xl text-sm text-clay">
         Aquí armas el menú que ve el cliente en la página. Puedes dar de alta tacos o bebidas, subir foto, marcar si ya
         no hay y sumar o restar piezas del almacén.
       </p>
 
-      {error ? <p className="rounded-[10px] border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm text-terracotta">{error}</p> : null}
+      {error ? (
+        <p className="rounded-[10px] border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm text-terracotta">{error}</p>
+      ) : null}
       {message ? <p className="rounded-[10px] border border-ink/10 bg-paper px-4 py-3 text-sm text-clay">{message}</p> : null}
 
-      <section className="card-shadow rounded-[10px] border border-ink/8 bg-smoke p-5 md:p-6">
-        <h2 className="font-display text-2xl text-ink">Agregar producto al menú</h2>
-        <p className="mt-1 text-sm text-clay">Completa los mismos datos que usas al editar un producto ya existente.</p>
-
-        <div className="mt-5 grid gap-5 md:grid-cols-[160px_1fr]">
-          <MediaUpload
-            value={imagePreview}
-            label="Foto del producto"
-            onChange={(file) => {
-              if (imagePreview) URL.revokeObjectURL(imagePreview);
-              setImageFile(file);
-              setImagePreview(URL.createObjectURL(file));
-            }}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <label className="relative block min-w-0 flex-1 py-1 sm:max-w-sm">
+          <span className="sr-only">Buscar por nombre</span>
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-clay" aria-hidden />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por nombre…"
+            className="h-11 w-full rounded-[10px] border border-ink/15 bg-white pl-10 pr-3 text-ink focus-visible:border-terracotta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta/35"
           />
-
-          <div className="grid gap-3 md:grid-cols-2">
-            <Field label="Tipo de producto" hint="Taco o bebida">
-              <Select
-                className="mt-2"
-                value={form.kind}
-                onValueChange={(v) => {
-                  const kind = v as ProductKind;
-                  setForm({
-                    ...form,
-                    kind,
-                    serving: kind === "taco" ? "1 taco" : "1 porción",
-                  });
-                }}
-                options={kindOptions}
-                aria-label="Tipo de producto"
-              />
-            </Field>
-            <Field label="Nombre" hint="Cómo aparece en el menú">
-              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={fieldClass} />
-            </Field>
-            <Field label="Descripción corta" hint="Una o dos líneas bajo el nombre" className="md:col-span-2">
-              <input
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                className={fieldClass}
-              />
-            </Field>
-            <Field label="Descripción completa" hint="Texto de la ficha del producto" className="md:col-span-2">
-              <textarea
-                value={form.longDescription}
-                onChange={(e) => setForm({ ...form, longDescription: e.target.value })}
-                className={areaClass}
-              />
-            </Field>
-            <Field label="Ingredientes" hint="Sepáralos con coma">
-              <input
-                value={form.ingredients}
-                onChange={(e) => setForm({ ...form, ingredients: e.target.value })}
-                className={fieldClass}
-                placeholder="Tortilla de maíz, Camarón, Salsa…"
-              />
-            </Field>
-            <Field label="Alérgenos" hint="Sepáralos con coma">
-              <input
-                value={form.allergens}
-                onChange={(e) => setForm({ ...form, allergens: e.target.value })}
-                className={fieldClass}
-                placeholder="Maíz, Gluten…"
-              />
-            </Field>
-            <Field label="Precio (pesos MXN)" hint="Sin el signo de pesos">
-              <input value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className={fieldClass} inputMode="decimal" />
-            </Field>
-            <Field label="Existencias iniciales" hint="Cuántas piezas hay al darlo de alta">
-              <input value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} className={fieldClass} inputMode="numeric" />
-            </Field>
-            <Field label="Porción" hint="Ej. 1 taco o vaso chico">
-              <input value={form.serving} onChange={(e) => setForm({ ...form, serving: e.target.value })} className={fieldClass} />
-            </Field>
-            <Field label="Peso aproximado (gramos)" hint="Opcional">
-              <input
-                value={form.weightGrams}
-                onChange={(e) => setForm({ ...form, weightGrams: e.target.value })}
-                className={fieldClass}
-                inputMode="numeric"
-              />
-            </Field>
-            <Field label="Orden en el menú" hint="Número más chico = aparece primero">
-              <input
-                value={form.sortOrder}
-                onChange={(e) => setForm({ ...form, sortOrder: e.target.value })}
-                className={fieldClass}
-                inputMode="numeric"
-              />
-            </Field>
-            <div className="md:col-span-2 grid gap-3 sm:grid-cols-2">
-              <Switch
-                checked={form.soldOut}
-                onCheckedChange={(soldOut) => setForm({ ...form, soldOut })}
-                label="Marcar como agotado"
-                description="Si está encendido, el cliente no puede pedirlo aunque haya existencias."
-              />
-              <Switch
-                checked={form.isFeatured}
-                onCheckedChange={(isFeatured) => setForm({ ...form, isFeatured })}
-                label="Destacar en el menú"
-                description="Lo muestra con prioridad / como especialidad de la casa."
-              />
-            </div>
-          </div>
-        </div>
-
-        <button type="button" disabled={creating} onClick={() => void createProduct()} className="btn-accent mt-6 h-12 px-6">
+        </label>
+        <button type="button" onClick={openCreate} className="btn-accent h-11 shrink-0 self-end px-5 sm:self-auto">
           <PackagePlus size={16} aria-hidden />
-          {creating ? "Guardando…" : "Agregar al menú"}
+          Crear producto
         </button>
-      </section>
-
-      <div>
-        <h2 className="font-display text-2xl text-ink">Productos del menú</h2>
-        <p className="mt-1 text-sm text-clay">{products.length} productos activos</p>
-        <div className="mt-5 space-y-6">
-          {products.map((product) => (
-            <ProductEditor key={product.id} product={product} onSaved={() => void refresh()} />
-          ))}
-        </div>
       </div>
+
+      <p className="text-sm text-clay">
+        {filtered.length} de {products.length} producto{products.length === 1 ? "" : "s"}
+      </p>
+
+      {filtered.length === 0 ? (
+        <div className="rounded-[10px] border border-dashed border-ink/15 bg-smoke/60 px-6 py-12 text-center">
+          <p className="text-clay">{query.trim() ? "Ningún producto coincide con la búsqueda." : "Aún no hay productos."}</p>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-[10px] border border-ink/10 bg-smoke">
+          <ul className="divide-y divide-ink/10">
+            {filtered.map((product) => (
+              <li key={product.id}>
+                <article className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:gap-4 sm:px-4 sm:py-3">
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-[8px] bg-paper sm:h-[4.5rem] sm:w-[4.5rem]">
+                    {product.imageUrl ? (
+                      <img
+                        src={product.imageUrl}
+                        alt=""
+                        width={72}
+                        height={72}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="grid h-full place-items-center text-[10px] text-clay">Sin foto</div>
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <p className="truncate font-medium text-ink">{product.name}</p>
+                      <p className="shrink-0 text-sm font-semibold tabular-nums text-ink">
+                        {formatMxn(product.priceCents)}
+                      </p>
+                    </div>
+                    <p className="mt-0.5 text-xs text-clay sm:text-sm">
+                      {product.kind === "drink" ? "Bebida" : "Taco"}
+                      <span className="mx-1.5 text-ink/25">·</span>
+                      {product.stock} en existencia
+                      {product.soldOut ? (
+                        <>
+                          <span className="mx-1.5 text-ink/25">·</span>
+                          <span className="text-terracotta">Agotado</span>
+                        </>
+                      ) : null}
+                    </p>
+                  </div>
+
+                  <div className="grid shrink-0 grid-cols-2 gap-2 sm:w-auto sm:grid-cols-[7.5rem_7.5rem]">
+                    <button
+                      type="button"
+                      onClick={() => openEdit(product)}
+                      className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-[10px] border border-ink/15 bg-white px-3 text-sm font-medium text-ink"
+                    >
+                      <Pencil size={14} aria-hidden />
+                      Editar
+                    </button>
+                    <DeleteProductButton product={product} onDone={() => void refresh()} />
+                  </div>
+                </article>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
 
-function ProductEditor({ product, onSaved }: { product: Product; onSaved: () => void }) {
+function DeleteProductButton({ product, onDone }: { product: Product; onDone: () => void }) {
+  const [busy, setBusy] = useState(false);
+
+  async function remove() {
+    if (!supabase) return;
+    if (
+      !confirm(
+        `¿Eliminar “${product.name}” del menú?\n\nDejará de mostrarse a los clientes. Esta acción pide confirmación a propósito.`,
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase.from("products").update({ archived: true }).eq("id", product.id);
+    setBusy(false);
+    if (error) alert(error.message);
+    else onDone();
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={() => void remove()}
+      className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-[10px] border border-terracotta/40 bg-white px-3 text-sm font-medium text-terracotta disabled:opacity-50"
+    >
+      <PackageMinus size={14} aria-hidden />
+      {busy ? "…" : "Eliminar"}
+    </button>
+  );
+}
+
+function ProductEditor({
+  product,
+  onSaved,
+  onCancel,
+}: {
+  product: Product;
+  onSaved: () => void;
+  onCancel: () => void;
+}) {
   const [name, setName] = useState(product.name);
   const [description, setDescription] = useState(product.description);
   const [longDescription, setLongDescription] = useState(product.longDescription);
@@ -276,6 +494,11 @@ function ProductEditor({ product, onSaved }: { product: Product; onSaved: () => 
     setSaving(true);
     setMessage(null);
     const priceCents = Math.round(Number(price) * 100);
+    if (!name.trim() || Number.isNaN(priceCents)) {
+      setMessage("El nombre y el precio son obligatorios.");
+      setSaving(false);
+      return;
+    }
     const { error } = await supabase
       .from("products")
       .update({
@@ -327,23 +550,6 @@ function ProductEditor({ product, onSaved }: { product: Product; onSaved: () => 
     }
   }
 
-  async function archive() {
-    if (!supabase) return;
-    if (
-      !confirm(
-        `¿Quitar “${product.name}” del menú público?\n\nEl producto deja de mostrarse a los clientes. No se borra del historial; puedes volver a darlo de alta después si hace falta.`,
-      )
-    ) {
-      return;
-    }
-    const { error } = await supabase.from("products").update({ archived: true }).eq("id", product.id);
-    if (error) setMessage(error.message);
-    else {
-      setMessage("Producto oculto del menú.");
-      onSaved();
-    }
-  }
-
   async function upload(file: File) {
     if (!supabase) return;
     const path = `${product.id}-${file.name}`;
@@ -363,28 +569,17 @@ function ProductEditor({ product, onSaved }: { product: Product; onSaved: () => 
       <MediaUpload value={product.imageUrl} label="Foto del producto" onChange={(file) => void upload(file)} />
 
       <div className="grid gap-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-sm text-clay">
-              En existencia: <span className="font-semibold text-ink">{product.stock}</span> ·{" "}
-              {formatMxn(product.priceCents)}
-            </p>
-            <p className="mt-0.5 text-xs text-clay">Lo que ve el cliente en el menú público</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void archive()}
-            className="inline-flex h-11 items-center gap-2 rounded-[10px] border border-terracotta/40 px-4 text-sm font-medium text-terracotta"
-          >
-            <PackageMinus size={16} aria-hidden />
-            Quitar del menú
-          </button>
+        <div>
+          <p className="text-sm text-clay">
+            En existencia: <span className="font-semibold text-ink">{product.stock}</span> · {formatMxn(product.priceCents)}
+          </p>
+          <p className="mt-0.5 text-xs text-clay">Lo que ve el cliente en el menú público</p>
         </div>
 
-        <Field label="Nombre">
+        <Field label="Nombre" required>
           <input value={name} onChange={(e) => setName(e.target.value)} className={fieldClass} />
         </Field>
-        <Field label="Descripción corta">
+        <Field label="Descripción corta" required>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} className={areaClass} />
         </Field>
         <Field label="Descripción completa">
@@ -393,21 +588,21 @@ function ProductEditor({ product, onSaved }: { product: Product; onSaved: () => 
         <Field label="Ingredientes" hint="Sepáralos con coma">
           <input value={ingredients} onChange={(e) => setIngredients(e.target.value)} className={fieldClass} />
         </Field>
-        <Field label="Alérgenos" hint="Sepáralos con coma">
+        <Field label="Contiene" hint="Alimentos que pueden causar reacción. Sepáralos con coma">
           <input value={allergens} onChange={(e) => setAllergens(e.target.value)} className={fieldClass} />
         </Field>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Precio (pesos MXN)">
+          <Field label="Precio (pesos MXN)" required>
             <input value={price} onChange={(e) => setPrice(e.target.value)} className={fieldClass} inputMode="decimal" />
           </Field>
-          <Field label="Porción">
+          <Field label="Porción" required>
             <input value={serving} onChange={(e) => setServing(e.target.value)} className={fieldClass} />
           </Field>
           <Field label="Peso (gramos)">
             <input value={weightGrams} onChange={(e) => setWeightGrams(e.target.value)} className={fieldClass} inputMode="numeric" />
           </Field>
-          <Field label="Orden en el menú" hint="Más chico = primero">
+          <Field label="Orden en el menú" hint="Más chico = primero" required>
             <input value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} className={fieldClass} inputMode="numeric" />
           </Field>
         </div>
@@ -432,8 +627,7 @@ function ProductEditor({ product, onSaved }: { product: Product; onSaved: () => 
           <p className="mt-1 text-sm text-clay">
             Aquí no escribes el total nuevo: escribes cuánto <strong className="font-medium text-ink">sumar o restar</strong>.
             Ejemplo: llegó mercancía → escribe <code className="rounded bg-smoke px-1">10</code>. Se echó a perder o se
-            usó → escribe <code className="rounded bg-smoke px-1">-5</code>. El motivo queda anotado para saber por qué
-            cambió.
+            usó → escribe <code className="rounded bg-smoke px-1">-5</code>.
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-[8rem_1fr_auto]">
             <Field label="Cantidad (±)">
@@ -462,12 +656,16 @@ function ProductEditor({ product, onSaved }: { product: Product; onSaved: () => 
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          {message ? <p className="mr-auto text-sm text-clay">{message}</p> : null}
+          <button type="button" onClick={onCancel} className="btn-secondary h-11 px-6">
+            <X size={16} aria-hidden />
+            Cancelar
+          </button>
           <button type="button" onClick={() => void save()} disabled={saving} className="btn-accent h-11 px-6">
             <Save size={16} aria-hidden />
             {saving ? "Guardando…" : "Guardar cambios"}
           </button>
-          {message ? <p className="text-sm text-clay">{message}</p> : null}
         </div>
       </div>
     </article>
@@ -477,18 +675,21 @@ function ProductEditor({ product, onSaved }: { product: Product; onSaved: () => 
 function Field({
   label,
   hint,
+  required,
   className = "",
   children,
 }: {
   label: string;
   hint?: string;
+  required?: boolean;
   className?: string;
   children: ReactNode;
 }) {
   return (
     <label className={`block text-sm text-clay ${className}`}>
-      <span className="font-medium text-ink/80">{label}</span>
-      {hint ? <span className="mt-0.5 block text-xs text-clay">{hint}</span> : null}
+      <FieldLabel required={required} hint={hint}>
+        {label}
+      </FieldLabel>
       {children}
     </label>
   );

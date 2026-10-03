@@ -28,6 +28,15 @@ export function shortFolio(id: string) {
   return id.replace(/-/g, "").slice(0, 8).toUpperCase();
 }
 
+/** Folio legible: ORD-0001. Si aún no hay número, usa un recorte del UUID. */
+export function formatOrderCode(orderNumber?: number | null, fallbackId?: string) {
+  if (typeof orderNumber === "number" && Number.isFinite(orderNumber) && orderNumber > 0) {
+    return `ORD-${String(Math.trunc(orderNumber)).padStart(4, "0")}`;
+  }
+  if (fallbackId) return shortFolio(fallbackId);
+  return "ORD-????";
+}
+
 export function isProductAvailable(soldOut: boolean, stock: number) {
   return !soldOut && stock > 0;
 }

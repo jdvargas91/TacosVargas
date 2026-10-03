@@ -38,6 +38,7 @@ export function Login() {
     setError(null);
     setBusy(true);
     try {
+      sessionStorage.setItem("vargas_post_login", "/cuenta");
       await signInGoogle(`${window.location.origin}/cuenta`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "No se pudo iniciar sesión con Google.";
