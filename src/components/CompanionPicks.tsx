@@ -7,7 +7,7 @@ import { useCart } from "@/context/CartContext";
 import { formatMxn, isProductAvailable } from "@/lib/format";
 
 export function CompanionPicks({ current, items }: { current: Product; items: Product[] }) {
-  const { cart, addQty } = useCart();
+  const { qtyForProduct, addQty } = useCart();
   const [addedId, setAddedId] = useState<string | null>(null);
   const pairingDrinks = current.kind === "taco";
 
@@ -30,7 +30,7 @@ export function CompanionPicks({ current, items }: { current: Product; items: Pr
       <ul className="mt-8 grid grid-cols-2 gap-5 py-4 md:grid-cols-4">
         {items.map((item) => {
           const available = isProductAvailable(item.soldOut, item.stock);
-          const inCart = cart[item.id] ?? 0;
+          const inCart = qtyForProduct(item.id);
           const remaining = available ? Math.max(0, item.stock - inCart) : 0;
           const canAdd = remaining > 0;
 
@@ -59,7 +59,7 @@ export function CompanionPicks({ current, items }: { current: Product; items: Pr
                   type="button"
                   disabled={!canAdd}
                   onClick={() => {
-                    addQty(item.id, 1);
+                    addQty(item.id, 1, item.kind === "taco" ? 2 : undefined);
                     setAddedId(item.id);
                   }}
                   className="btn-accent mt-auto h-11 w-full px-3 text-sm disabled:opacity-50"

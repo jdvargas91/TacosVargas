@@ -29,6 +29,13 @@ export type BusinessContent = {
     lng: number;
   };
   payment: string;
+  cardPayment: {
+    bank: string;
+    accountName: string;
+    clabe: string;
+    cardNumber: string;
+    hint: string;
+  };
   socials: {
     facebook: string;
     instagram: string;
@@ -142,7 +149,15 @@ const SiteContentContext = createContext<SiteContentValue | null>(null);
 
 function asBusiness(value: unknown): BusinessContent {
   const v = repairDeep(value) as Partial<BusinessContent> | null;
-  if (!v || typeof v !== "object") return { ...fallbackBusiness, hours: { ...fallbackBusiness.hours, weekdays: [...fallbackBusiness.hours.weekdays] }, location: { ...fallbackBusiness.location }, socials: { ...fallbackBusiness.socials } };
+  if (!v || typeof v !== "object") {
+    return {
+      ...fallbackBusiness,
+      hours: { ...fallbackBusiness.hours, weekdays: [...fallbackBusiness.hours.weekdays] },
+      location: { ...fallbackBusiness.location },
+      cardPayment: { ...fallbackBusiness.cardPayment },
+      socials: { ...fallbackBusiness.socials },
+    };
+  }
   return {
     name: v.name ?? fallbackBusiness.name,
     legalName: v.legalName ?? fallbackBusiness.legalName,
@@ -167,6 +182,13 @@ function asBusiness(value: unknown): BusinessContent {
       lng: v.location?.lng ?? fallbackBusiness.location.lng,
     },
     payment: v.payment ?? fallbackBusiness.payment,
+    cardPayment: {
+      bank: v.cardPayment?.bank ?? fallbackBusiness.cardPayment.bank,
+      accountName: v.cardPayment?.accountName ?? fallbackBusiness.cardPayment.accountName,
+      clabe: v.cardPayment?.clabe ?? fallbackBusiness.cardPayment.clabe,
+      cardNumber: v.cardPayment?.cardNumber ?? fallbackBusiness.cardPayment.cardNumber,
+      hint: v.cardPayment?.hint ?? fallbackBusiness.cardPayment.hint,
+    },
     socials: {
       facebook: v.socials?.facebook ?? fallbackBusiness.socials.facebook,
       instagram: v.socials?.instagram ?? fallbackBusiness.socials.instagram,

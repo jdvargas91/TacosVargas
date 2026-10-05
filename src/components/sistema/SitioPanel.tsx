@@ -137,7 +137,7 @@ export function SitioPanel() {
           <Field label="Días" value={biz.hours.days} onChange={(v) => setBiz({ ...biz, hours: { ...biz.hours, days: v } })} />
           <Field label="Abre (HH:MM)" value={biz.hours.opens} onChange={(v) => setBiz({ ...biz, hours: { ...biz.hours, opens: v } })} />
           <Field label="Cierra (HH:MM)" value={biz.hours.closes} onChange={(v) => setBiz({ ...biz, hours: { ...biz.hours, closes: v } })} />
-          <Field label="Ubicación (label)" value={biz.location.label} onChange={(v) => setBiz({ ...biz, location: { ...biz.location, label: v } })} />
+          <Field label="Ubicación" value={biz.location.label} onChange={(v) => setBiz({ ...biz, location: { ...biz.location, label: v } })} />
           <Field label="Ciudad" value={biz.location.city} onChange={(v) => setBiz({ ...biz, location: { ...biz.location, city: v } })} />
           <Field label="Facebook" value={biz.socials.facebook} onChange={(v) => setBiz({ ...biz, socials: { ...biz.socials, facebook: v } })} />
           <Field label="Instagram" value={biz.socials.instagram} onChange={(v) => setBiz({ ...biz, socials: { ...biz.socials, instagram: v } })} />
@@ -146,6 +146,34 @@ export function SitioPanel() {
             <textarea
               value={biz.payment}
               onChange={(e) => setBiz({ ...biz, payment: e.target.value })}
+              className="mt-2 min-h-16 w-full rounded-[10px] border border-ink/15 bg-white px-3 py-2 text-ink"
+            />
+          </label>
+          <Field
+            label="Banco (transferencia)"
+            value={biz.cardPayment.bank}
+            onChange={(v) => setBiz({ ...biz, cardPayment: { ...biz.cardPayment, bank: v } })}
+          />
+          <Field
+            label="Titular de la cuenta"
+            value={biz.cardPayment.accountName}
+            onChange={(v) => setBiz({ ...biz, cardPayment: { ...biz.cardPayment, accountName: v } })}
+          />
+          <Field
+            label="CLABE"
+            value={biz.cardPayment.clabe}
+            onChange={(v) => setBiz({ ...biz, cardPayment: { ...biz.cardPayment, clabe: v } })}
+          />
+          <Field
+            label="Número de tarjeta"
+            value={biz.cardPayment.cardNumber}
+            onChange={(v) => setBiz({ ...biz, cardPayment: { ...biz.cardPayment, cardNumber: v } })}
+          />
+          <label className="text-sm text-clay md:col-span-2">
+            <span className="font-medium text-ink/80">Instrucción de transferencia</span>
+            <textarea
+              value={biz.cardPayment.hint}
+              onChange={(e) => setBiz({ ...biz, cardPayment: { ...biz.cardPayment, hint: e.target.value } })}
               className="mt-2 min-h-16 w-full rounded-[10px] border border-ink/15 bg-white px-3 py-2 text-ink"
             />
           </label>

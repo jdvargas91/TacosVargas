@@ -4,39 +4,44 @@ import { ShoppingBag, UtensilsCrossed } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { QtyStepper } from "@/components/QtyStepper";
+import { TortillaPicker } from "@/components/TortillaPicker";
 import { Seo } from "@/components/Seo";
 import { useCart } from "@/context/CartContext";
 import { useProducts } from "@/context/ProductsContext";
 import { CompanionPicks } from "@/components/CompanionPicks";
 import { companionProducts, productPath, relatedProducts } from "@/data/seedProducts";
 import { useSiteContent } from "@/context/SiteContentContext";
+import type { Tortillas } from "@/lib/cart";
 import { formatMxn, isProductAvailable } from "@/lib/format";
 
 export function ProductDetail() {
   const { id } = useParams();
   const { products, loading } = useProducts();
   const { business } = useSiteContent();
-  const { cart, addQty } = useCart();
+  const { qtyForProduct, addQty } = useCart();
   const product = products.find((item) => item.id === id);
   const [pick, setPick] = useState(1);
+  const [tortillas, setTortillas] = useState<Tortillas>(2);
   const [added, setAdded] = useState(false);
 
   useEffect(() => {
     setPick(1);
+    setTortillas(2);
     setAdded(false);
     window.scrollTo(0, 0);
   }, [id]);
 
   useEffect(() => {
     if (!product) return;
+    const inCart = qtyForProduct(product.id);
     const remaining = isProductAvailable(product.soldOut, product.stock)
-      ? Math.max(0, product.stock - (cart[product.id] ?? 0))
+      ? Math.max(0, product.stock - inCart)
       : 0;
     setPick((current) => {
       if (remaining <= 0) return 0;
       return Math.min(Math.max(current, 1), remaining);
     });
-  }, [product, cart]);
+  }, [product, qtyForProduct]);
 
   if (!loading && !product) {
     return (
@@ -71,7 +76,8 @@ export function ProductDetail() {
   const available = isProductAvailable(product.soldOut, product.stock);
   const related = relatedProducts(product, products);
   const companions = companionProducts(product, products);
-  const inCart = cart[product.id] ?? 0;
+  const inCart = qtyForProduct(product.id);
+  const isTaco = product.kind === "taco";
 
   return (
     <>
@@ -114,29 +120,39 @@ export function ProductDetail() {
               <p className="mt-3 text-3xl font-semibold text-ink">{formatMxn(product.priceCents)}</p>
               <p className="mt-5 max-w-prose text-clay">{product.longDescription}</p>
 
-              <dl className="mt-8 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl bg-smoke p-4 card-shadow">
-                  <dt className="text-sm text-clay">Porción</dt>
-                  <dd className="mt-1 font-medium text-ink">{product.serving}</dd>
-                </div>
-                <div className="rounded-2xl bg-smoke p-4 card-shadow">
-                  <dt className="text-sm text-clay">Peso aproximado</dt>
-                  <dd className="mt-1 font-medium text-ink">{product.weightGrams} g</dd>
-                </div>
-              </dl>
+              {isTaco ? (
+                <dl className="mt-8 grid gap-4 sm:grid-cols-2">
+                  <div className="rounded-2xl bg-smoke p-4 card-shadow">
+                    <dt className="text-sm text-clay">Porción</dt>
+                    <dd className="mt-1 font-medium text-ink">{product.serving}</dd>
+                  </div>
+                  {product.weightGrams ? (
+                    <div className="rounded-2xl bg-smoke p-4 card-shadow">
+                      <dt className="text-sm text-clay">Peso aproximado</dt>
+                      <dd className="mt-1 font-medium text-ink">{product.weightGrams} g</dd>
+                    </div>
+                  ) : null}
+                </dl>
+              ) : null}
 
-              <h2 className="mt-8 font-display text-2xl text-ink">Ingredientes</h2>
-              <ul className="mt-3 flex flex-wrap gap-2">
-                {product.ingredients.map((ingredient) => (
-                  <li key={ingredient} className="rounded-full bg-gold/25 px-3 py-1 text-sm text-ink">
-                    {ingredient}
-                  </li>
-                ))}
-              </ul>
+              {product.ingredients.length > 0 ? (
+                <>
+                  <h2 className="mt-8 font-display text-2xl text-ink">Ingredientes</h2>
+                  <ul className="mt-3 flex flex-wrap gap-2">
+                    {product.ingredients.map((ingredient) => (
+                      <li key={ingredient} className="rounded-full bg-gold/25 px-3 py-1 text-sm text-ink">
+                        {ingredient}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : null}
 
               {product.allergens.length > 0 ? (
                 <p className="mt-4 text-sm text-clay">Contiene: {product.allergens.join(" · ")}</p>
               ) : null}
+
+              {isTaco ? <TortillaPicker className="mt-8" value={tortillas} onChange={setTortillas} /> : null}
 
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 <QtyStepper
@@ -150,7 +166,7 @@ export function ProductDetail() {
                   type="button"
                   disabled={!available || pick < 1}
                   onClick={() => {
-                    addQty(product.id, pick);
+                    addQty(product.id, pick, isTaco ? tortillas : undefined);
                     setAdded(true);
                   }}
                   className="btn-accent disabled:opacity-50"

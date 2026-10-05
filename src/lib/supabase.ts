@@ -53,6 +53,7 @@ export type OrderItemPayload = {
   kind: "taco" | "drink";
   qty: number;
   unitPrice: number;
+  tortillas?: 1 | 2 | null;
 };
 
 export type OrderRow = {
@@ -66,7 +67,8 @@ export type OrderRow = {
   items: OrderItemPayload[];
   notes: string | null;
   total_cents: number;
-  payment_method: "presencial";
+  payment_method: "presencial" | "tarjeta";
+  payment_proof_url?: string | null;
   status: "recibido" | "en_preparacion" | "en_camino" | "entregado" | "cancelado";
   source?: "web" | "mostrador";
   created_by?: string | null;
@@ -106,7 +108,6 @@ export function formatAddress(address: AddressPayload) {
 
 export function formatFulfillment(address: AddressPayload, fulfillment?: Fulfillment) {
   const mode = fulfillment ?? address.mode;
-  if (mode === "pickup") return "Recoger en el local";
-  const line = formatAddress(address);
-  return line ? `Mensajería · ${line}` : "Mensajería";
+  if (mode === "delivery") return "Recoger en el local";
+  return "Recoger en el local";
 }

@@ -1,27 +1,27 @@
 export const kitchenCrew = {
   headline: "Manos en la plancha",
-  lede: "Tres elaboradoras, tres estaciones. El mismo vapor de las 7:30 y el taco que sale todavía caliente.",
+  lede: "Tres personas en cocina y servicio. El mismo vapor de las 7:30 y el taco que sale todavía caliente.",
   people: [
     {
       name: "Marisol Cuevas",
-      role: "Elaboradora de mariscos",
-      station: "Camarón capeado y pescado empanizado. La especialidad de la casa sale de su estación.",
+      role: "Elaboradora de Guisos",
+      station: "Guisos de la casa: huevo a la mexicana, chicharrón y lo que salga del día en olla.",
       image: "/products/camaron.jpg",
-      imageAlt: "Taco de camarón capeado, estación de mariscos",
+      imageAlt: "Estación de guisos",
     },
     {
       name: "Itzel Navarro",
-      role: "Elaboradora de carnes",
+      role: "Elaboradora de Carnes",
       station: "Arrachera, barbacoa, adobada y carnitas. El taco que se pide con hambre de verdad.",
       image: "/gallery/plancha.jpg",
       imageAlt: "Plancha con tacos de carne",
     },
     {
       name: "Paola Mendoza",
-      role: "Elaboradora de la mañana",
-      station: "Huevo a la mexicana y chicharrón prensado. El primer taco del día.",
+      role: "Personal de servicio",
+      station: "Atiende el mostrador, toma pedidos y entrega el taco todavía caliente.",
       image: "/products/huevo.jpg",
-      imageAlt: "Taco de huevo a la mexicana, estación de mañana",
+      imageAlt: "Personal de servicio en el local",
     },
   ],
 } as const;

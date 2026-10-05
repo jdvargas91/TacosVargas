@@ -11,7 +11,7 @@ set
     ],
     "values": [
       {"title": "Sabor de plancha", "body": "Camarón capeado, pescado, arrachera y los clásicos de cerdo. Cada taco se arma al momento."},
-      {"title": "Horario de mañana", "body": "De 7:30 a.m. a 1:30 p.m., lunes a sábado. El antojo es de desayuno y comida, no de madrugada."},
+      {"title": "Horario de mañana", "body": "De 7:30 a.m. a 1:30 p.m., lunes a sábado."},
       {"title": "Trato de barrio", "body": "Pedidos por WhatsApp, pago presencial y seguimiento claro. Sin filas digitales ni cobros en línea."}
     ],
     "image": "/about.jpg"

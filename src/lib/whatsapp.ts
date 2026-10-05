@@ -4,14 +4,13 @@ export type WhatsAppOrderItem = {
   name: string;
   qty: number;
   unitPriceCents: number;
+  tortillas?: 1 | 2;
 };
 
 export type WhatsAppOrder = {
   folio: string;
   name: string;
   phone: string;
-  fulfillment: "pickup" | "delivery";
-  address: string;
   items: WhatsAppOrderItem[];
   totalCents: number;
   notes?: string;
@@ -24,19 +23,18 @@ function money(cents: number) {
 export function buildOrderMessage(order: WhatsAppOrder) {
   const lines = [
     `Hola, soy ${order.name}.`,
-    `Pedido Vargas Tacos · folio ${order.folio}`,
+    `Pedido Vargas Tacos · ${order.folio}`,
     "",
-    ...order.items.map(
-      (item) =>
-        `• ${item.qty}× ${item.name} (${money(item.unitPriceCents * item.qty)})`,
-    ),
+    ...order.items.map((item) => {
+      const tort =
+        item.tortillas === 1 ? " · 1 tortilla" : item.tortillas === 2 ? " · 2 tortillas" : "";
+      return `• ${item.qty}× ${item.name}${tort} (${money(item.unitPriceCents * item.qty)})`;
+    }),
     "",
     `Total: ${money(order.totalCents)}`,
-    order.fulfillment === "pickup"
-      ? "Entrega: recoger en el local"
-      : `Entrega: mensajería (costo extra por confirmar)\nDirección: ${order.address}`,
+    "Entrega: recoger en el local",
     `Teléfono: ${order.phone}`,
-    "Pago: presencial",
+    "Pago: transferencia (comprobante subido)",
   ];
   if (order.notes?.trim()) {
     lines.push(`Notas: ${order.notes.trim()}`);

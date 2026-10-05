@@ -12,7 +12,7 @@ export const business = {
     weekdays: [1, 2, 3, 4, 5, 6] as number[],
   },
   location: {
-    city: "Colima",
+    city: "Manzanillo",
     region: "Colima",
     country: "México",
     addressConfirmed: false,
@@ -21,7 +21,14 @@ export const business = {
     lat: 19.2433,
     lng: -103.725,
   },
-  payment: "Pago presencial al recoger o al entregar el pedido.",
+  payment: "Recoges en el local. El pago se hace por transferencia a la tarjeta del negocio; sube tu comprobante para confirmar el pedido.",
+  cardPayment: {
+    bank: "BBVA",
+    accountName: "Vargas Tacos",
+    clabe: "012180001234567890",
+    cardNumber: "4152 3131 0000 0000",
+    hint: "Transfiere el total exacto y guarda la captura. La necesitarás para confirmar el pedido.",
+  },
   socials: {
     facebook: "https://www.facebook.com/",
     instagram: "https://www.instagram.com/",

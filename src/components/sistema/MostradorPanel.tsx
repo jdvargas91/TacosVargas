@@ -1,33 +1,86 @@
-import { useMemo, useState } from "react";
-import { CheckCircle2, CupSoda, Minus, Package, Plus, Receipt, RotateCcw, UtensilsCrossed } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import {
+  CheckCircle2,
+  CupSoda,
+  FilePlus,
+  Minus,
+  Package,
+  Pencil,
+  Plus,
+  Receipt,
+  RotateCcw,
+  Save,
+  UtensilsCrossed,
+} from "lucide-react";
+import { FieldLabel } from "@/components/ui/FieldLabel";
 import { useProducts } from "@/context/ProductsContext";
 import type { ProductKind } from "@/data/seedProducts";
-import { formatMxn, isProductAvailable, formatOrderCode } from "@/lib/format";
-import { supabase } from "@/lib/supabase";
+import { formatMxn, formatOrderCode } from "@/lib/format";
+import { supabase, type OrderItemPayload } from "@/lib/supabase";
+import { personNameError } from "@/lib/validation";
 import { cn } from "@/lib/cn";
+
+function cartFromQtyMap(items: { id: string; qty: number }[]): Record<string, number> {
+  const cart: Record<string, number> = {};
+  for (const item of items) {
+    if (!item?.id || !item.qty) continue;
+    cart[item.id] = (cart[item.id] ?? 0) + item.qty;
+  }
+  return cart;
+}
 
 const kindTabs: { id: ProductKind; label: string; icon: typeof UtensilsCrossed }[] = [
   { id: "taco", label: "Tacos", icon: UtensilsCrossed },
   { id: "drink", label: "Bebidas", icon: CupSoda },
 ];
 
+const OPEN_STATUSES = ["recibido", "en_preparacion", "en_camino"] as const;
+
+type OpenCounterOrder = {
+  id: string;
+  order_number: number | null;
+  customer_name: string | null;
+  total_cents: number;
+  status: string;
+  items: OrderItemPayload[];
+};
+
+type RpcOrderPayload = {
+  id: string;
+  order_number?: number;
+  customer_name?: string;
+  total_cents?: number;
+};
+
 export function MostradorPanel() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const editParam = searchParams.get("edit");
   const { products, refresh } = useProducts();
   const [kindTab, setKindTab] = useState<ProductKind>("taco");
   const [cart, setCart] = useState<Record<string, number>>({});
+  /** Cantidades ya reservadas en el pedido (para no bloquear por stock al editar). */
+  const [baselineQty, setBaselineQty] = useState<Record<string, number>>({});
+  const [customerName, setCustomerName] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
+  const [openOrders, setOpenOrders] = useState<OpenCounterOrder[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [lastFolio, setLastFolio] = useState<string | null>(null);
 
   const catalog = useMemo(
     () =>
-      products.map((product) => ({
-        product,
-        qty: cart[product.id] ?? 0,
-        available: isProductAvailable(product.soldOut, product.stock),
-      })),
-    [cart, products],
+      products.map((product) => {
+        const qty = cart[product.id] ?? 0;
+        const reserved = baselineQty[product.id] ?? 0;
+        const effectiveStock = product.stock + reserved;
+        const available =
+          qty > 0 || (!product.soldOut && effectiveStock > 0) || reserved > 0;
+        return { product, qty, available, max: Math.max(effectiveStock, qty) };
+      }),
+    [baselineQty, cart, products],
   );
 
   const visible = catalog.filter((line) => line.product.kind === kindTab);
@@ -35,8 +88,66 @@ export function MostradorPanel() {
   const totalCents = selected.reduce((sum, line) => sum + line.product.priceCents * line.qty, 0);
   const totalItems = selected.reduce((sum, line) => sum + line.qty, 0);
 
+  const editingOrder = useMemo(
+    () => openOrders.find((order) => order.id === editingOrderId) ?? null,
+    [editingOrderId, openOrders],
+  );
+
   const itemsInTab = (kind: ProductKind) =>
     catalog.filter((line) => line.product.kind === kind && line.qty > 0).reduce((sum, line) => sum + line.qty, 0);
+
+  const loadOpenOrders = useCallback(async () => {
+    if (!supabase) {
+      setOpenOrders([]);
+      setLoadingOrders(false);
+      return;
+    }
+    setLoadingOrders(true);
+    const { data, error: fetchError } = await supabase
+      .from("orders")
+      .select("id, order_number, customer_name, total_cents, status, items")
+      .eq("source", "mostrador")
+      .in("status", [...OPEN_STATUSES])
+      .order("created_at", { ascending: false });
+
+    setLoadingOrders(false);
+    if (fetchError) {
+      setOpenOrders([]);
+      return;
+    }
+    setOpenOrders(
+      ((data ?? []) as OpenCounterOrder[]).map((order) => ({
+        ...order,
+        items: Array.isArray(order.items) ? order.items : [],
+      })),
+    );
+  }, []);
+
+  useEffect(() => {
+    void loadOpenOrders();
+  }, [loadOpenOrders]);
+
+  const applyOrderToTicket = useCallback((order: OpenCounterOrder) => {
+    const nextCart = cartFromQtyMap(order.items);
+    setEditingOrderId(order.id);
+    setCustomerName(order.customer_name?.trim() ?? "");
+    setNameError(personNameError(order.customer_name?.trim() ?? ""));
+    setCart(nextCart);
+    setBaselineQty(nextCart);
+    setError(null);
+    setMessage(null);
+  }, []);
+
+  useEffect(() => {
+    if (!editParam || loadingOrders) return;
+    if (editingOrderId === editParam) return;
+    const order = openOrders.find((item) => item.id === editParam);
+    if (order) {
+      applyOrderToTicket(order);
+      return;
+    }
+    setError("Ese pedido no está abierto en mostrador (ya se entregó o no existe).");
+  }, [applyOrderToTicket, editParam, editingOrderId, loadingOrders, openOrders]);
 
   function setQty(id: string, qty: number) {
     setCart((current) => {
@@ -48,13 +159,47 @@ export function MostradorPanel() {
   }
 
   function clearCart() {
+    if (editingOrderId) {
+      setError("En edición no puedes vaciar el ticket. Baja cantidades o guarda los cambios.");
+      return;
+    }
     setCart({});
     setError(null);
+  }
+
+  function startNewOrder() {
+    setEditingOrderId(null);
+    setCustomerName("");
+    setNameError(null);
+    setCart({});
+    setBaselineQty({});
+    setError(null);
+    setMessage(null);
+    if (searchParams.has("edit")) {
+      searchParams.delete("edit");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }
+
+  function selectOpenOrder(orderId: string) {
+    const order = openOrders.find((item) => item.id === orderId);
+    if (!order) return;
+    applyOrderToTicket(order);
+    setSearchParams({ edit: orderId }, { replace: true });
   }
 
   async function submit() {
     setError(null);
     setMessage(null);
+    setNameError(null);
+
+    const nameErr = personNameError(customerName);
+    if (nameErr) {
+      setNameError(nameErr);
+      setError(nameErr);
+      return;
+    }
+    const name = customerName.trim();
     if (selected.length < 1) {
       setError("Elige al menos un producto.");
       return;
@@ -64,61 +209,69 @@ export function MostradorPanel() {
       return;
     }
 
-    setSubmitting(true);
     const items = selected.map((line) => ({ id: line.product.id, qty: line.qty }));
+    setSubmitting(true);
 
-    // Prefer place_counter_sale (migración nueva). Si aún no está en el proyecto, usa la RPC legacy.
-    let orderId: string | null = null;
-    let orderNumber: number | null = null;
-    const sale = await supabase.rpc("place_counter_sale", { p_items: items });
-
-    if (!sale.error && sale.data && typeof sale.data === "object" && "id" in sale.data) {
-      const payload = sale.data as { id: string; order_number?: number };
-      orderId = String(payload.id);
-      orderNumber = typeof payload.order_number === "number" ? payload.order_number : null;
-    } else {
-      const legacy = await supabase.rpc("place_counter_order", {
-        p_customer_name: "Mostrador",
-        p_phone: "00000000",
-        p_fulfillment: "pickup",
-        p_delivery_address: { mode: "pickup", street: "", colonia: "", references: "", city: "" },
+    if (editingOrderId) {
+      const { data, error: rpcError } = await supabase.rpc("sync_counter_order", {
+        p_order_id: editingOrderId,
         p_items: items,
-        p_notes: "",
+        p_customer_name: name,
       });
-      if (legacy.error || !legacy.data || typeof legacy.data !== "object" || !("id" in legacy.data)) {
-        setSubmitting(false);
-        setError(legacy.error?.message ?? sale.error?.message ?? "No se pudo registrar la venta");
+      setSubmitting(false);
+
+      if (rpcError || !data || typeof data !== "object" || !("id" in data)) {
+        setError(rpcError?.message ?? "No se pudo guardar el pedido");
         return;
       }
-      const payload = legacy.data as { id: string; order_number?: number };
-      orderId = String(payload.id);
-      orderNumber = typeof payload.order_number === "number" ? payload.order_number : null;
-      // La RPC antigua deja status "recibido"; forzamos entregada en venta de mostrador.
-      await supabase.from("orders").update({ status: "entregado" }).eq("id", orderId);
+
+      const payload = data as RpcOrderPayload;
+      const folio = formatOrderCode(payload.order_number, String(payload.id));
+      setMessage(`${folio} actualizado · ${formatMxn(payload.total_cents ?? totalCents)}`);
+      setBaselineQty(cartFromQtyMap(items));
+      void refresh();
+      void loadOpenOrders();
+      return;
     }
 
+    const { data, error: rpcError } = await supabase.rpc("place_counter_sale", {
+      p_items: items,
+      p_customer_name: name,
+    });
     setSubmitting(false);
 
-    const folio = formatOrderCode(orderNumber, orderId);
-    setLastFolio(folio);
-    setMessage(`Venta ${folio} registrada como entregada · ${formatMxn(totalCents)}`);
-    setCart({});
+    if (rpcError || !data || typeof data !== "object" || !("id" in data)) {
+      setError(rpcError?.message ?? "No se pudo abrir el pedido");
+      return;
+    }
+
+    const payload = data as RpcOrderPayload;
+    const folio = formatOrderCode(payload.order_number, String(payload.id));
+    setMessage(`Pedido ${folio} abierto · puedes seguir editándolo`);
+    const createdId = String(payload.id);
+    setEditingOrderId(createdId);
+    setBaselineQty(cartFromQtyMap(items));
+    setSearchParams({ edit: createdId }, { replace: true });
     void refresh();
+    void loadOpenOrders();
   }
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-6 lg:flex-row lg:overflow-hidden">
-      {/* Catálogo: scrollea solo; el ticket no se mueve */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:overflow-hidden">
         <div className="mb-4 flex shrink-0 flex-wrap items-end justify-between gap-2">
           <div>
             <h2 className="font-display text-2xl text-ink">Productos</h2>
-            <p className="mt-1 text-sm text-clay">Elige tacos o bebidas; todo suma al mismo ticket.</p>
+            <p className="mt-1 text-sm text-clay">
+              {editingOrderId
+                ? "Ajusta cantidades o agrega productos; el ticket refleja todo el pedido."
+                : "Elige tacos o bebidas; todo suma al mismo ticket."}
+            </p>
           </div>
-          {totalItems > 0 ? (
+          {totalItems > 0 && !editingOrderId ? (
             <button type="button" onClick={clearCart} className="btn-secondary h-10 px-3 text-sm">
               <RotateCcw size={15} aria-hidden />
-              Limpiar
+              Limpiar ticket
             </button>
           ) : null}
         </div>
@@ -163,8 +316,7 @@ export function MostradorPanel() {
 
         <div className="min-h-0 flex-1 lg:overflow-y-auto lg:pr-1">
           <div className="grid gap-3 sm:grid-cols-2">
-            {visible.map(({ product, qty, available }) => {
-              const max = Math.max(product.stock, qty);
+            {visible.map(({ product, qty, available, max }) => {
               const locked = !available && qty === 0;
               const active = qty > 0;
               return (
@@ -193,7 +345,10 @@ export function MostradorPanel() {
                     <p className="text-sm font-semibold leading-snug text-ink">{product.name}</p>
                     <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                       <p className="text-sm font-semibold text-ember">{formatMxn(product.priceCents)}</p>
-                      <p className="text-xs text-clay">{!available ? "Agotado" : `${product.stock} en stock`}</p>
+                      <p className="text-xs text-clay">
+                        {locked ? "Agotado" : `${product.stock} en stock`}
+                        {baselineQty[product.id] ? ` · ${baselineQty[product.id]} en pedido` : ""}
+                      </p>
                     </div>
 
                     <div className="mt-2.5 flex items-center gap-1.5">
@@ -244,15 +399,12 @@ export function MostradorPanel() {
           {visible.length === 0 ? (
             <div className="rounded-[10px] border border-dashed border-ink/15 px-6 py-12 text-center">
               <Package className="mx-auto text-clay" size={28} aria-hidden />
-              <p className="mt-3 text-clay">
-                No hay {kindTab === "taco" ? "tacos" : "bebidas"} en el menú.
-              </p>
+              <p className="mt-3 text-clay">No hay {kindTab === "taco" ? "tacos" : "bebidas"} en el menú.</p>
             </div>
           ) : null}
         </div>
       </div>
 
-      {/* Ticket fijo en desktop: columna propia, no scrollea con el catálogo */}
       <aside className="w-full shrink-0 lg:flex lg:h-full lg:w-[20rem] lg:flex-col xl:w-[22rem]">
         <div className="card-shadow flex flex-col rounded-[10px] border border-ink/8 bg-smoke p-5 lg:h-full lg:min-h-0">
           <div className="shrink-0">
@@ -260,7 +412,85 @@ export function MostradorPanel() {
               <Receipt size={18} className="text-ember" aria-hidden />
               <h2 className="font-display text-xl text-ink">Ticket</h2>
             </div>
-            <p className="mt-1 text-xs text-clay">Venta presencial · se marca entregada al registrar</p>
+            <p className="mt-1 text-xs text-clay">
+              {editingOrderId
+                ? `Editando ${formatOrderCode(editingOrder?.order_number, editingOrderId)} · cambia cantidades y guarda`
+                : "Nuevo pedido de mostrador · queda en recibido hasta entregarlo"}
+            </p>
+          </div>
+
+          <div className="mt-4 shrink-0 space-y-3">
+            <button
+              type="button"
+              onClick={startNewOrder}
+              className={cn(
+                "inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-[8px] border px-2 text-xs font-semibold transition",
+                !editingOrderId
+                  ? "border-terracotta bg-terracotta/10 text-ember"
+                  : "border-ink/15 bg-paper/70 text-clay hover:border-ink/25 hover:text-ink",
+              )}
+            >
+              <FilePlus size={14} aria-hidden />
+              Abrir pedido nuevo
+            </button>
+
+            {loadingOrders ? (
+              <p className="text-xs text-clay">Cargando pedidos abiertos…</p>
+            ) : openOrders.length > 0 ? (
+              <div>
+                <p className="mb-1.5 text-xs font-medium text-ink/70">
+                  <Pencil size={12} className="mr-1 inline align-text-bottom" aria-hidden />
+                  Pedidos abiertos
+                </p>
+                <ul className="max-h-36 space-y-1 overflow-y-auto pr-0.5" aria-label="Pedidos de mostrador abiertos">
+                  {openOrders.map((order) => {
+                    const active = editingOrderId === order.id;
+                    const folio = formatOrderCode(order.order_number, order.id);
+                    return (
+                      <li key={order.id}>
+                        <button
+                          type="button"
+                          onClick={() => selectOpenOrder(order.id)}
+                          className={cn(
+                            "flex w-full items-start justify-between gap-2 rounded-[8px] border px-2.5 py-2 text-left text-xs transition",
+                            active
+                              ? "border-terracotta bg-terracotta/10 text-ink"
+                              : "border-ink/10 bg-paper/60 text-clay hover:border-ink/20 hover:text-ink",
+                          )}
+                        >
+                          <span className="min-w-0">
+                            <span className="block font-semibold text-ink">{folio}</span>
+                            <span className="block truncate">{order.customer_name?.trim() || "Sin nombre"}</span>
+                          </span>
+                          <span className="shrink-0 font-medium tabular-nums">{formatMxn(order.total_cents)}</span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ) : (
+              <p className="text-xs text-clay">No hay pedidos abiertos en mostrador.</p>
+            )}
+
+            <label className="block text-sm text-clay">
+              <FieldLabel required>Nombre del cliente</FieldLabel>
+              <input
+                value={customerName}
+                onChange={(event) => {
+                  setCustomerName(event.target.value);
+                  setNameError(personNameError(event.target.value));
+                }}
+                className={cn(
+                  "mt-2 h-11 w-full rounded-[10px] border bg-white px-3 text-sm text-ink",
+                  nameError ? "border-terracotta" : "border-ink/15",
+                )}
+                autoComplete="name"
+                placeholder="Solo letras, ej. Ana López"
+                inputMode="text"
+              />
+              {nameError ? <p className="mt-1 text-xs text-terracotta">{nameError}</p> : null}
+            </label>
           </div>
 
           <div className="mt-4 min-h-0 flex-1 lg:overflow-y-auto">
@@ -281,7 +511,27 @@ export function MostradorPanel() {
                         {qty} × {formatMxn(product.priceCents)}
                       </p>
                     </div>
-                    <p className="shrink-0 text-sm font-semibold text-ink">{formatMxn(product.priceCents * qty)}</p>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <p className="text-sm font-semibold text-ink">{formatMxn(product.priceCents * qty)}</p>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          aria-label={`Quitar uno de ${product.name}`}
+                          className="grid h-8 w-8 place-items-center rounded-[8px] border border-ink/15 text-ink"
+                          onClick={() => setQty(product.id, qty - 1)}
+                        >
+                          <Minus size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Agregar uno de ${product.name}`}
+                          className="grid h-8 w-8 place-items-center rounded-[8px] border border-ink/15 text-ink"
+                          onClick={() => setQty(product.id, qty + 1)}
+                        >
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -303,18 +553,21 @@ export function MostradorPanel() {
                 <span>{message}</span>
               </p>
             ) : null}
-            {lastFolio && !message ? (
-              <p className="mt-2 text-xs text-clay">Última venta: {lastFolio}</p>
-            ) : null}
 
             <button
               type="button"
-              disabled={submitting || selected.length === 0}
+              disabled={submitting || selected.length === 0 || Boolean(personNameError(customerName))}
               onClick={() => void submit()}
               className="btn-accent mt-4 h-12 w-full"
             >
-              <CheckCircle2 size={16} aria-hidden />
-              {submitting ? "Registrando…" : "Registrar venta"}
+              {editingOrderId ? <Save size={16} aria-hidden /> : <CheckCircle2 size={16} aria-hidden />}
+              {submitting
+                ? editingOrderId
+                  ? "Guardando…"
+                  : "Abriendo…"
+                : editingOrderId
+                  ? "Guardar cambios"
+                  : "Abrir pedido"}
             </button>
           </div>
         </div>

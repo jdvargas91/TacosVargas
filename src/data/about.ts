@@ -12,7 +12,7 @@ export const about = {
     },
     {
       title: "Horario de mañana",
-      body: "De 7:30 a.m. a 1:30 p.m., lunes a sábado. El antojo es de desayuno y comida, no de madrugada.",
+      body: "De 7:30 a.m. a 1:30 p.m., lunes a sábado.",
     },
     {
       title: "Trato de barrio",

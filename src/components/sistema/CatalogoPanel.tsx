@@ -19,7 +19,7 @@ const emptyForm = {
   weightGrams: "",
   serving: "1 taco",
   price: "",
-  stock: "50",
+  stock: "100",
   soldOut: false,
   isFeatured: false,
   sortOrder: "100",
@@ -104,7 +104,7 @@ export function CatalogoPanel() {
       setError("Escribe un precio válido en pesos.");
       return;
     }
-    if (!form.serving.trim()) {
+    if (form.kind === "taco" && !form.serving.trim()) {
       setError("La porción es obligatoria.");
       return;
     }
@@ -121,8 +121,8 @@ export function CatalogoPanel() {
         weight_grams: form.weightGrams ? Number(form.weightGrams) : null,
         serving: form.serving || null,
         price_cents: priceCents,
-        stock: Math.max(0, Number(form.stock) || 0),
-        sold_out: form.soldOut,
+        stock: 100,
+        sold_out: false,
         is_featured: form.isFeatured,
         sort_order: Number(form.sortOrder) || 100,
         archived: false,
@@ -215,47 +215,52 @@ export function CatalogoPanel() {
                   className={areaClass}
                 />
               </Field>
-              <Field label="Ingredientes" hint="Sepáralos con coma">
-                <input
-                  value={form.ingredients}
-                  onChange={(e) => setForm({ ...form, ingredients: e.target.value })}
-                  className={fieldClass}
-                  placeholder="Tortilla de maíz, Camarón, Salsa…"
-                />
-              </Field>
-              <Field label="Contiene" hint="Alimentos que pueden causar reacción. Sepáralos con coma">
-                <input
-                  value={form.allergens}
-                  onChange={(e) => setForm({ ...form, allergens: e.target.value })}
-                  className={fieldClass}
-                  placeholder="Maíz, Gluten…"
-                />
-              </Field>
+              {form.kind === "taco" ? (
+                <>
+                  <Field label="Ingredientes" hint="Sepáralos con coma">
+                    <input
+                      value={form.ingredients}
+                      onChange={(e) => setForm({ ...form, ingredients: e.target.value })}
+                      className={fieldClass}
+                      placeholder="Tortilla de maíz, Camarón, Salsa…"
+                    />
+                  </Field>
+                  <Field label="Contiene" hint="Alimentos que pueden causar reacción. Sepáralos con coma">
+                    <input
+                      value={form.allergens}
+                      onChange={(e) => setForm({ ...form, allergens: e.target.value })}
+                      className={fieldClass}
+                      placeholder="Maíz, Gluten…"
+                    />
+                  </Field>
+                  <Field label="Porción" hint="Ej. 1 taco" required>
+                    <input value={form.serving} onChange={(e) => setForm({ ...form, serving: e.target.value })} className={fieldClass} />
+                  </Field>
+                  <Field label="Peso aproximado (gramos)" hint="Opcional">
+                    <input
+                      value={form.weightGrams}
+                      onChange={(e) => setForm({ ...form, weightGrams: e.target.value })}
+                      className={fieldClass}
+                      inputMode="numeric"
+                    />
+                  </Field>
+                </>
+              ) : (
+                <Field label="Contiene" hint="Opcional. Sepáralos con coma" className="md:col-span-2">
+                  <input
+                    value={form.allergens}
+                    onChange={(e) => setForm({ ...form, allergens: e.target.value })}
+                    className={fieldClass}
+                    placeholder="Puede contener azúcar…"
+                  />
+                </Field>
+              )}
               <Field label="Precio (pesos MXN)" hint="Sin el signo de pesos" required>
                 <input
                   value={form.price}
                   onChange={(e) => setForm({ ...form, price: e.target.value })}
                   className={fieldClass}
                   inputMode="decimal"
-                />
-              </Field>
-              <Field label="Existencias iniciales" hint="Cuántas piezas hay al darlo de alta" required>
-                <input
-                  value={form.stock}
-                  onChange={(e) => setForm({ ...form, stock: e.target.value })}
-                  className={fieldClass}
-                  inputMode="numeric"
-                />
-              </Field>
-              <Field label="Porción" hint="Ej. 1 taco o vaso chico" required>
-                <input value={form.serving} onChange={(e) => setForm({ ...form, serving: e.target.value })} className={fieldClass} />
-              </Field>
-              <Field label="Peso aproximado (gramos)" hint="Opcional">
-                <input
-                  value={form.weightGrams}
-                  onChange={(e) => setForm({ ...form, weightGrams: e.target.value })}
-                  className={fieldClass}
-                  inputMode="numeric"
                 />
               </Field>
               <Field label="Orden en el menú" hint="Número más chico = aparece primero" required>
@@ -266,13 +271,7 @@ export function CatalogoPanel() {
                   inputMode="numeric"
                 />
               </Field>
-              <div className="md:col-span-2 grid gap-3 sm:grid-cols-2">
-                <Switch
-                  checked={form.soldOut}
-                  onCheckedChange={(soldOut) => setForm({ ...form, soldOut })}
-                  label="Marcar como agotado"
-                  description="Si está encendido, el cliente no puede pedirlo aunque haya existencias."
-                />
+              <div className="md:col-span-2">
                 <Switch
                   checked={form.isFeatured}
                   onCheckedChange={(isFeatured) => setForm({ ...form, isFeatured })}
@@ -585,23 +584,35 @@ function ProductEditor({
         <Field label="Descripción completa">
           <textarea value={longDescription} onChange={(e) => setLongDescription(e.target.value)} className={areaClass} />
         </Field>
-        <Field label="Ingredientes" hint="Sepáralos con coma">
-          <input value={ingredients} onChange={(e) => setIngredients(e.target.value)} className={fieldClass} />
-        </Field>
-        <Field label="Contiene" hint="Alimentos que pueden causar reacción. Sepáralos con coma">
-          <input value={allergens} onChange={(e) => setAllergens(e.target.value)} className={fieldClass} />
-        </Field>
+        {product.kind === "taco" ? (
+          <>
+            <Field label="Ingredientes" hint="Sepáralos con coma">
+              <input value={ingredients} onChange={(e) => setIngredients(e.target.value)} className={fieldClass} />
+            </Field>
+            <Field label="Contiene" hint="Alimentos que pueden causar reacción. Sepáralos con coma">
+              <input value={allergens} onChange={(e) => setAllergens(e.target.value)} className={fieldClass} />
+            </Field>
+          </>
+        ) : (
+          <Field label="Contiene" hint="Opcional. Sepáralos con coma">
+            <input value={allergens} onChange={(e) => setAllergens(e.target.value)} className={fieldClass} />
+          </Field>
+        )}
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Field label="Precio (pesos MXN)" required>
             <input value={price} onChange={(e) => setPrice(e.target.value)} className={fieldClass} inputMode="decimal" />
           </Field>
-          <Field label="Porción" required>
-            <input value={serving} onChange={(e) => setServing(e.target.value)} className={fieldClass} />
-          </Field>
-          <Field label="Peso (gramos)">
-            <input value={weightGrams} onChange={(e) => setWeightGrams(e.target.value)} className={fieldClass} inputMode="numeric" />
-          </Field>
+          {product.kind === "taco" ? (
+            <>
+              <Field label="Porción" required>
+                <input value={serving} onChange={(e) => setServing(e.target.value)} className={fieldClass} />
+              </Field>
+              <Field label="Peso (gramos)">
+                <input value={weightGrams} onChange={(e) => setWeightGrams(e.target.value)} className={fieldClass} inputMode="numeric" />
+              </Field>
+            </>
+          ) : null}
           <Field label="Orden en el menú" hint="Más chico = primero" required>
             <input value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} className={fieldClass} inputMode="numeric" />
           </Field>
