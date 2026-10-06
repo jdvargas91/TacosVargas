@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Clock, ShoppingBag, UtensilsCrossed } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
+import { useReducedMotion } from "framer-motion";
 import { useSiteContent } from "@/context/SiteContentContext";
 
 /** Video de prueba en el hero. Quitar o sustituir cuando se confirme el asset final. */
@@ -12,16 +12,8 @@ const HERO_PLAYBACK_RATE = 0.65;
 export function Hero() {
   const { business, hero } = useSiteContent();
   const reduce = useReducedMotion();
-  const [wide, setWide] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const media = window.matchMedia("(min-width: 768px)");
-    const sync = () => setWide(media.matches);
-    sync();
-    media.addEventListener("change", sync);
-    return () => media.removeEventListener("change", sync);
-  }, []);
+  const useVideo = Boolean(HERO_VIDEO) && !reduce;
 
   useEffect(() => {
     const video = videoRef.current;
@@ -36,14 +28,11 @@ export function Hero() {
       video.removeEventListener("loadedmetadata", applyRate);
       video.removeEventListener("play", applyRate);
     };
-  }, []);
-
-  const kenBurns = !reduce && wide;
-  const useVideo = Boolean(HERO_VIDEO) && !reduce;
+  }, [useVideo]);
 
   return (
     <section id="inicio" className="relative isolate min-h-svh overflow-hidden bg-carbon">
-      {useVideo && (
+      {useVideo ? (
         <video
           ref={videoRef}
           className="hero-media absolute inset-0 h-full w-full"
@@ -51,12 +40,18 @@ export function Hero() {
           muted
           loop
           playsInline
-          preload="metadata"
-          poster={wide ? hero.imageDesktop : hero.imageMobile}
+          preload="auto"
           aria-hidden
         >
           <source src={HERO_VIDEO} type="video/mp4" />
         </video>
+      ) : (
+        <img
+          src={hero.imageDesktop}
+          alt={hero.imageAlt}
+          fetchPriority="high"
+          className="hero-media absolute inset-0 h-full w-full"
+        />
       )}
 
       {/* Gradiente general de lectura + banda inferior para tapar la marca de agua */}
