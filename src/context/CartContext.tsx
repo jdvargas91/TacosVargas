@@ -18,6 +18,7 @@ type CartContextValue = {
   qtyForProduct: (productId: string) => number;
   setQty: (productId: string, qty: number, tortillas?: Tortillas) => void;
   addQty: (productId: string, delta?: number, tortillas?: Tortillas) => void;
+  setLineTortillas: (productId: string, from: Tortillas, to: Tortillas) => void;
   clear: () => void;
 };
 
@@ -106,6 +107,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [products],
   );
 
+  /**
+   * Cambia las tortillas de una línea de taco conservando su posición en el carrito.
+   * Si ya existe una línea con las tortillas destino, fusiona las cantidades (sin duplicar).
+   */
+  const setLineTortillas = useCallback((productId: string, from: Tortillas, to: Tortillas) => {
+    if (from === to) return;
+    setCart((current) => {
+      const fromKey = cartLineKey(productId, from);
+      if (!current[fromKey]) return current;
+      const toKey = cartLineKey(productId, to);
+      // Reconstruimos en el mismo orden; fromKey se mapea a toKey y se suma donde toque.
+      const next: CartMap = {};
+      for (const [key, qty] of Object.entries(current)) {
+        const finalKey = key === fromKey ? toKey : key;
+        next[finalKey] = (next[finalKey] ?? 0) + qty;
+      }
+      writeCart(next);
+      return next;
+    });
+  }, []);
+
   const clear = useCallback(() => {
     writeCart({});
     setCart({});
@@ -114,8 +136,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const qtyForProduct = useCallback((productId: string) => cartQtyForProduct(cart, productId), [cart]);
 
   const value = useMemo(
-    () => ({ cart, totalItems: cartQty(cart), qtyForProduct, setQty, addQty, clear }),
-    [cart, clear, setQty, addQty, qtyForProduct],
+    () => ({ cart, totalItems: cartQty(cart), qtyForProduct, setQty, addQty, setLineTortillas, clear }),
+    [cart, clear, setQty, addQty, setLineTortillas, qtyForProduct],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

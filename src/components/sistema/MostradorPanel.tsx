@@ -14,8 +14,10 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 import { FieldLabel } from "@/components/ui/FieldLabel";
+import { Switch } from "@/components/ui/Switch";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useProducts } from "@/context/ProductsContext";
-import type { ProductKind } from "@/data/seedProducts";
+import type { Product, ProductKind } from "@/data/seedProducts";
 import { formatMxn, formatOrderCode } from "@/lib/format";
 import { supabase, type OrderItemPayload } from "@/lib/supabase";
 import { personNameError } from "@/lib/validation";
@@ -69,6 +71,8 @@ export function MostradorPanel() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [soldOutTarget, setSoldOutTarget] = useState<{ product: Product; next: boolean } | null>(null);
+  const [soldOutBusy, setSoldOutBusy] = useState(false);
 
   const catalog = useMemo(
     () =>
@@ -186,6 +190,31 @@ export function MostradorPanel() {
     if (!order) return;
     applyOrderToTicket(order);
     setSearchParams({ edit: orderId }, { replace: true });
+  }
+
+  async function confirmSoldOut() {
+    if (!soldOutTarget || !supabase) {
+      setSoldOutTarget(null);
+      return;
+    }
+    const { product, next } = soldOutTarget;
+    setSoldOutBusy(true);
+    const { error: rpcError } = await supabase.rpc("set_product_sold_out", {
+      p_product_id: product.id,
+      p_sold_out: next,
+    });
+    setSoldOutBusy(false);
+    setSoldOutTarget(null);
+    if (rpcError) {
+      setError(rpcError.message ?? "No se pudo cambiar la disponibilidad");
+      return;
+    }
+    setMessage(
+      next
+        ? `${product.name} marcado como agotado`
+        : `${product.name} vuelve a estar disponible`,
+    );
+    void refresh();
   }
 
   async function submit() {
@@ -390,6 +419,28 @@ export function MostradorPanel() {
                         <Plus size={15} />
                       </button>
                     </div>
+
+                    <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-ink/8 pt-2.5">
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1.5 text-xs font-semibold",
+                          product.soldOut ? "text-terracotta" : "text-emerald-700",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "h-1.5 w-1.5 rounded-full",
+                            product.soldOut ? "bg-terracotta" : "bg-emerald-500",
+                          )}
+                          aria-hidden
+                        />
+                        {product.soldOut ? "Agotado" : "Disponible"}
+                      </span>
+                      <Switch
+                        checked={product.soldOut}
+                        onCheckedChange={(next) => setSoldOutTarget({ product, next })}
+                      />
+                    </div>
                   </div>
                 </article>
               );
@@ -572,6 +623,26 @@ export function MostradorPanel() {
           </div>
         </div>
       </aside>
+
+      <ConfirmDialog
+        open={Boolean(soldOutTarget)}
+        tone={soldOutTarget?.next ? "danger" : "accent"}
+        title={soldOutTarget?.next ? "¿Marcar como agotado?" : "¿Volver a disponible?"}
+        body={
+          soldOutTarget
+            ? soldOutTarget.next
+              ? `"${soldOutTarget.product.name}" dejará de estar disponible para pedir en el sitio y el mostrador hasta que lo reactives.`
+              : `"${soldOutTarget.product.name}" volverá a estar disponible para pedir de inmediato.`
+            : ""
+        }
+        confirmLabel={soldOutTarget?.next ? "Marcar agotado" : "Hacer disponible"}
+        busyLabel="Guardando…"
+        busy={soldOutBusy}
+        onConfirm={() => void confirmSoldOut()}
+        onCancel={() => {
+          if (!soldOutBusy) setSoldOutTarget(null);
+        }}
+      />
     </div>
   );
 }

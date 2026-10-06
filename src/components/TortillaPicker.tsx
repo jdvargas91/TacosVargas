@@ -31,7 +31,7 @@ export function TortillaPicker({
               : "hover:bg-white/60",
           )}
         >
-          <span className="block text-sm font-semibold text-ink">Dos tortillas</span>
+          <span className="block text-sm font-semibold text-ink">Doble tortilla</span>
           <span className="mt-0.5 block text-xs text-clay">Lo habitual</span>
           {value === 2 ? (
             <span className="absolute right-2 top-2 rounded-full bg-terracotta/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-ember">

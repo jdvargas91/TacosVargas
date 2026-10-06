@@ -2,6 +2,15 @@
   command = "npm run build"
   publish = "dist"
 
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Respaldo del desagotado diario (00:00 America/Mexico_City = 06:00 UTC).
+# El mecanismo principal recomendado es pg_cron en Supabase (ver supabase/CRON_RESET.sql).
+[functions."reset-availability"]
+  schedule = "0 6 * * *"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

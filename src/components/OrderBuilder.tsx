@@ -1,23 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, LogIn, Store, Trash2, UtensilsCrossed, X } from "lucide-react";
+import { ArrowRight, Check, Copy, LogIn, Trash2, UtensilsCrossed, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useProducts } from "@/context/ProductsContext";
 import { useSiteContent } from "@/context/SiteContentContext";
 import { formatMxn, isProductAvailable, isWithinServiceHours } from "@/lib/format";
-import { cartLineKey, parseCartLineKey, type Tortillas } from "@/lib/cart";
-import { savePendingCheckout, type PendingCheckoutItem } from "@/lib/pendingCheckout";
+import { parseCartLineKey, type Tortillas } from "@/lib/cart";
+import { savePendingCheckout, type PaymentMethod, type PendingCheckoutItem } from "@/lib/pendingCheckout";
 import { GoogleGateModal } from "@/components/GoogleGateModal";
 import { QtyStepper } from "@/components/QtyStepper";
 import { TortillaPicker } from "@/components/TortillaPicker";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { personNameError } from "@/lib/validation";
-
-function isValidPhone(value: string) {
-  const digits = value.replace(/\D/g, "");
-  return digits.length >= 10 && digits.length <= 15;
-}
+import { cn } from "@/lib/cn";
 
 function tortillaLineLabel(tortillas?: Tortillas) {
   if (tortillas === 1) return "1 tortilla";
@@ -35,12 +31,13 @@ export function OrderBuilder() {
   const navigate = useNavigate();
   const { products } = useProducts();
   const { business } = useSiteContent();
-  const { cart, setQty, clear, totalItems } = useCart();
+  const { cart, setQty, setLineTortillas, clear, totalItems } = useCart();
   const { user, configured, signInGoogle, loading: authLoading } = useAuth();
 
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("presencial");
+  const [copied, setCopied] = useState(false);
   const [gate, setGate] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loginBusy, setLoginBusy] = useState(false);
@@ -82,9 +79,6 @@ export function OrderBuilder() {
     const next: Record<string, string> = {};
     const nameErr = personNameError(name);
     if (nameErr) next.name = nameErr;
-    if (!isValidPhone(phone)) {
-      next.phone = "Escribe un teléfono válido de 10 dígitos (con lada).";
-    }
     setFieldErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -99,11 +93,21 @@ export function OrderBuilder() {
             : ""
         : "",
     );
-    setPhone("");
     setNotes("");
+    setPaymentMethod("presencial");
     setError(null);
     setInfo(null);
     setFieldErrors({});
+  }
+
+  async function copyCardNumber() {
+    try {
+      await navigator.clipboard.writeText(card.cardNumber.replace(/\s+/g, ""));
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setError("No pudimos copiar el número. Cópialo manualmente.");
+    }
   }
 
   function buildPendingItems(): PendingCheckoutItem[] {
@@ -120,10 +124,11 @@ export function OrderBuilder() {
   function persistPendingCheckout() {
     savePendingCheckout({
       name: name.trim(),
-      phone: phone.trim(),
+      phone: "",
       notes: notes.trim(),
       items: buildPendingItems(),
       totalCents,
+      paymentMethod,
       createdAt: new Date().toISOString(),
     });
   }
@@ -140,15 +145,12 @@ export function OrderBuilder() {
     }
   }
 
-  function changeLineTortillas(cartKey: string, qty: number, next: Tortillas) {
+  function changeLineTortillas(cartKey: string, next: Tortillas) {
     const { productId } = parseCartLineKey(cartKey);
     const product = products.find((item) => item.id === productId);
     if (!product || product.kind !== "taco") return;
     const from = effectiveTortillas(cartKey, "taco") ?? 2;
-    if (from === next) return;
-    const targetQty = (cart[cartLineKey(productId, next)] ?? 0) + qty;
-    setQty(productId, 0, from);
-    setQty(productId, targetQty, next);
+    setLineTortillas(productId, from, next);
   }
 
   async function handleLogin() {
@@ -277,7 +279,7 @@ export function OrderBuilder() {
                         <TortillaPicker
                           className="mt-3"
                           value={pickerValue}
-                          onChange={(next) => changeLineTortillas(cartKey, qty, next)}
+                          onChange={(next) => changeLineTortillas(cartKey, next)}
                         />
                       ) : null}
 
@@ -312,40 +314,85 @@ export function OrderBuilder() {
               }}
               noValidate
             >
-              <div className="rounded-xl border border-terracotta/25 bg-gold/15 p-4">
-                <div className="flex gap-3">
-                  <Store className="mt-0.5 shrink-0 text-terracotta" size={22} aria-hidden />
-                  <div>
-                    <p className="font-medium text-ink">Recoger en el local</p>
-                    <p className="mt-1 text-sm text-clay">
-                      Preparamos tu pedido para que lo recojas en {business.location.city}. No hay envío a domicilio.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
               <div className="mt-6">
-                <h2 className="font-display text-2xl text-ink">Pago por transferencia o tarjeta</h2>
-                <p className="mt-2 text-sm text-clay">{business.payment}</p>
-                <dl className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-[12px] border border-ink/10 bg-white px-4 py-3">
-                    <dt className="text-xs font-medium uppercase tracking-wide text-clay">Banco</dt>
-                    <dd className="mt-1 font-semibold text-ink">{card.bank}</dd>
+                <h2 className="font-display text-2xl text-ink">¿Cómo quieres pagar?</h2>
+                <div
+                  role="radiogroup"
+                  aria-label="Forma de pago"
+                  className="mt-3 grid grid-cols-2 gap-2 rounded-[14px] bg-ink/[0.04] p-1"
+                >
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={paymentMethod === "presencial"}
+                    onClick={() => setPaymentMethod("presencial")}
+                    className={cn(
+                      "rounded-[11px] px-3 py-3 text-left transition",
+                      paymentMethod === "presencial"
+                        ? "border-terracotta/25 bg-gold/15 shadow-[0_6px_18px_rgb(30_23_16_/0.10)] ring-1 ring-terracotta/35"
+                        : "hover:bg-white/60",
+                    )}
+                  >
+                    <span className="block text-sm font-semibold text-ink">Pago al recoger</span>
+                    <span className="mt-0.5 block text-xs text-clay">Pagas en el local al entregarlo</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={paymentMethod === "transferencia"}
+                    onClick={() => setPaymentMethod("transferencia")}
+                    className={cn(
+                      "rounded-[11px] px-3 py-3 text-left transition",
+                      paymentMethod === "transferencia"
+                        ? "border-terracotta/25 bg-gold/15 shadow-[0_6px_18px_rgb(30_23_16_/0.10)] ring-1 ring-terracotta/35"
+                        : "hover:bg-white/60",
+                    )}
+                  >
+                    <span className="block text-sm font-semibold text-ink">Transferencia</span>
+                    <span className="mt-0.5 block text-xs text-clay">Pagas antes y subes tu comprobante</span>
+                  </button>
+                </div>
+
+                {paymentMethod === "transferencia" ? (
+                  <div className="mt-4">
+                    <dl className="mt-1 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-[12px] border border-ink/10 bg-white px-4 py-3">
+                        <dt className="text-xs font-medium uppercase tracking-wide text-clay">Banco</dt>
+                        <dd className="mt-1 font-semibold text-ink">{card.bank}</dd>
+                      </div>
+                      <div className="rounded-[12px] border border-ink/10 bg-white px-4 py-3">
+                        <dt className="text-xs font-medium uppercase tracking-wide text-clay">Titular</dt>
+                        <dd className="mt-1 font-semibold text-ink">{card.accountName}</dd>
+                      </div>
+                      {card.clabe.trim() ? (
+                        <div className="rounded-[12px] border border-ink/10 bg-white px-4 py-3 sm:col-span-2">
+                          <dt className="text-xs font-medium uppercase tracking-wide text-clay">CLABE</dt>
+                          <dd className="mt-1 font-semibold tabular-nums text-ink">{card.clabe}</dd>
+                        </div>
+                      ) : null}
+                      <div className="rounded-[12px] border border-ink/10 bg-white px-4 py-3 sm:col-span-2">
+                        <dt className="text-xs font-medium uppercase tracking-wide text-clay">Tarjeta</dt>
+                        <div className="mt-1 flex items-center justify-between gap-3">
+                          <dd className="font-semibold tabular-nums text-ink">{card.cardNumber}</dd>
+                          <button
+                            type="button"
+                            onClick={() => void copyCardNumber()}
+                            aria-label="Copiar número de tarjeta"
+                            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[8px] border border-ink/15 bg-paper px-3 text-xs font-semibold text-ink transition hover:border-terracotta hover:text-ember"
+                          >
+                            {copied ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
+                            {copied ? "Copiado" : "Copiar"}
+                          </button>
+                        </div>
+                      </div>
+                    </dl>
+                    <p className="mt-3 text-sm text-clay">{card.hint}</p>
                   </div>
-                  <div className="rounded-[12px] border border-ink/10 bg-white px-4 py-3">
-                    <dt className="text-xs font-medium uppercase tracking-wide text-clay">Titular</dt>
-                    <dd className="mt-1 font-semibold text-ink">{card.accountName}</dd>
-                  </div>
-                  <div className="rounded-[12px] border border-ink/10 bg-white px-4 py-3 sm:col-span-2">
-                    <dt className="text-xs font-medium uppercase tracking-wide text-clay">CLABE</dt>
-                    <dd className="mt-1 font-semibold tabular-nums text-ink">{card.clabe}</dd>
-                  </div>
-                  <div className="rounded-[12px] border border-ink/10 bg-white px-4 py-3 sm:col-span-2">
-                    <dt className="text-xs font-medium uppercase tracking-wide text-clay">Tarjeta</dt>
-                    <dd className="mt-1 font-semibold tabular-nums text-ink">{card.cardNumber}</dd>
-                  </div>
-                </dl>
-                <p className="mt-3 text-sm text-clay">{card.hint}</p>
+                ) : (
+                  <p className="mt-3 text-sm text-clay">
+                    Pagas directamente cuando recojas tu pedido en el local. No necesitas comprobante.
+                  </p>
+                )}
               </div>
 
               <label className="mt-6 block text-sm text-clay">
@@ -370,19 +417,6 @@ export function OrderBuilder() {
                   placeholder="Solo letras, ej. Ana López"
                 />
                 {fieldErrors.name ? <p className="mt-1 text-xs text-terracotta">{fieldErrors.name}</p> : null}
-              </label>
-              <label className="mt-4 block text-sm text-clay">
-                <FieldLabel required hint="10 dígitos con lada, sin espacios obligatorios">
-                  Teléfono
-                </FieldLabel>
-                <input
-                  value={phone}
-                  onChange={(event) => setPhone(event.target.value)}
-                  className="mt-2 h-12 w-full rounded-xl border border-ink/15 bg-white px-3 text-ink"
-                  inputMode="tel"
-                  autoComplete="tel"
-                />
-                {fieldErrors.phone ? <p className="mt-1 text-xs text-terracotta">{fieldErrors.phone}</p> : null}
               </label>
               <label className="mt-4 block text-sm text-clay">
                 <FieldLabel>Notas (sabor de agua, sin cebolla…)</FieldLabel>
@@ -445,7 +479,12 @@ export function OrderBuilder() {
                   <X size={16} aria-hidden />
                   Cancelar
                 </button>
-                <button type="submit" disabled={submitting} className="btn-accent h-11 px-6 disabled:opacity-60">
+                <button
+                  type="submit"
+                  disabled={submitting || !user}
+                  title={!user ? "Inicia sesión con Google para continuar" : undefined}
+                  className="btn-accent h-11 px-6 disabled:opacity-60"
+                >
                   <ArrowRight size={18} aria-hidden />
                   {submitting ? "Continuando…" : "Continuar"}
                 </button>

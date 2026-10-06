@@ -9,12 +9,15 @@ export type PendingCheckoutItem = {
   tortillas?: 1 | 2;
 };
 
+export type PaymentMethod = "presencial" | "transferencia";
+
 export type PendingCheckout = {
   name: string;
   phone: string;
   notes: string;
   items: PendingCheckoutItem[];
   totalCents: number;
+  paymentMethod: PaymentMethod;
   createdAt: string;
 };
 

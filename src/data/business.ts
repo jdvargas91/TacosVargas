@@ -23,11 +23,11 @@ export const business = {
   },
   payment: "Recoges en el local. El pago se hace por transferencia a la tarjeta del negocio; sube tu comprobante para confirmar el pedido.",
   cardPayment: {
-    bank: "BBVA",
-    accountName: "Vargas Tacos",
-    clabe: "012180001234567890",
-    cardNumber: "4152 3131 0000 0000",
-    hint: "Transfiere el total exacto y guarda la captura. La necesitarás para confirmar el pedido.",
+    bank: "Banorte",
+    accountName: "Juan Diego Vargas",
+    clabe: "",
+    cardNumber: "4189 2810 1062 2216",
+    hint: "Transfiere el total exacto a esta tarjeta Visa Banorte y guarda la captura. La necesitarás para confirmar el pedido.",
   },
   socials: {
     facebook: "https://www.facebook.com/",
