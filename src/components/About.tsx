@@ -26,15 +26,6 @@ export function About() {
           </figure>
         </Reveal>
       </div>
-
-      <div className="mx-auto mt-20 max-w-6xl divide-y divide-ink/10 border-y border-ink/10">
-        {about.values.map((value) => (
-          <div key={value.title} className="grid gap-3 py-8 md:grid-cols-[minmax(0,16rem)_1fr] md:gap-10">
-            <h3 className="font-display text-2xl text-ink md:text-3xl">{value.title}</h3>
-            <p className="max-w-[55ch] self-center text-clay">{value.body}</p>
-          </div>
-        ))}
-      </div>
     </section>
   );
 }

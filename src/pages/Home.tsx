@@ -6,7 +6,6 @@ import { KitchenCrew } from "@/components/KitchenCrew";
 import { MenuSection } from "@/components/MenuSection";
 import { Gallery } from "@/components/Gallery";
 import { ReviewsSection } from "@/components/ReviewsSection";
-import { PaymentNote } from "@/components/PaymentNote";
 import { Footer } from "@/components/Footer";
 import { BackToTop } from "@/components/BackToTop";
 import { Seo } from "@/components/Seo";
@@ -37,7 +36,6 @@ export function Home() {
         <MenuSection tacos={tacos} drinks={drinks} />
         <Gallery />
         <ReviewsSection />
-        <PaymentNote />
         <Suspense fallback={<section id="ubicacion" className="h-[520px]" aria-label="Cargando mapa" />}>
           <LocationMap />
         </Suspense>
