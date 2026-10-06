@@ -43,7 +43,7 @@ export function Hero() {
 
   return (
     <section id="inicio" className="relative isolate min-h-svh overflow-hidden bg-carbon">
-      {useVideo ? (
+      {useVideo && (
         <video
           ref={videoRef}
           className="hero-media absolute inset-0 h-full w-full"
@@ -57,19 +57,6 @@ export function Hero() {
         >
           <source src={HERO_VIDEO} type="video/mp4" />
         </video>
-      ) : (
-        <picture>
-          <source media="(max-width: 767px)" srcSet={hero.imageMobile} type="image/webp" />
-          <motion.img
-            src={hero.imageDesktop}
-            alt={hero.imageAlt}
-            fetchPriority="high"
-            className="hero-media absolute inset-0 h-full w-full"
-            initial={{ scale: 1 }}
-            animate={kenBurns ? { scale: 1.06 } : undefined}
-            transition={{ duration: 20, ease: "linear", repeat: Infinity, repeatType: "reverse" }}
-          />
-        </picture>
       )}
 
       {/* Gradiente general de lectura + banda inferior para tapar la marca de agua */}
