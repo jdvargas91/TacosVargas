@@ -32,7 +32,6 @@ export function Header() {
   const titleId = useId();
   const home = location.pathname === "/";
   const solid = !home || scrolled || open;
-  const hideBrand = home && !scrolled && !open;
 
   const authLinkClass = solid
     ? "cursor-pointer rounded-full px-3 py-2 text-sm text-clay hover:text-ink hover:underline"
@@ -221,15 +220,8 @@ export function Header() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 md:px-6">
           <a
             href={home ? "#inicio" : "/#inicio"}
-            className={`shrink-0 transition-opacity duration-300 ${
-              hideBrand
-                ? "pointer-events-none opacity-0 max-md:w-0 max-md:min-w-0 max-md:overflow-hidden"
-                : "opacity-100"
-            }`}
-            aria-hidden={hideBrand}
-            aria-label={hideBrand ? undefined : "Vargas Tacos"}
-            tabIndex={hideBrand ? -1 : undefined}
-            inert={hideBrand || undefined}
+            className="shrink-0"
+            aria-label="Vargas Tacos"
           >
             <BrandLogo />
           </a>

@@ -1,13 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Clock, ShoppingBag, UtensilsCrossed } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useSiteContent } from "@/context/SiteContentContext";
 
+/** Video de prueba en el hero. Quitar o sustituir cuando se confirme el asset final. */
+const HERO_VIDEO = "/hero.mp4";
+/** Más lento que 1.0 para que el movimiento se sienta cinematográfico. */
+const HERO_PLAYBACK_RATE = 0.65;
+
 export function Hero() {
   const { business, hero } = useSiteContent();
   const reduce = useReducedMotion();
   const [wide, setWide] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const media = window.matchMedia("(min-width: 768px)");
@@ -17,23 +23,64 @@ export function Hero() {
     return () => media.removeEventListener("change", sync);
   }, []);
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const applyRate = () => {
+      video.playbackRate = HERO_PLAYBACK_RATE;
+    };
+    applyRate();
+    video.addEventListener("loadedmetadata", applyRate);
+    video.addEventListener("play", applyRate);
+    return () => {
+      video.removeEventListener("loadedmetadata", applyRate);
+      video.removeEventListener("play", applyRate);
+    };
+  }, []);
+
   const kenBurns = !reduce && wide;
+  const useVideo = Boolean(HERO_VIDEO) && !reduce;
 
   return (
     <section id="inicio" className="relative isolate min-h-svh overflow-hidden bg-carbon">
-      <picture>
-        <source media="(max-width: 767px)" srcSet={hero.imageMobile} type="image/webp" />
-        <motion.img
-          src={hero.imageDesktop}
-          alt={hero.imageAlt}
-          fetchPriority="high"
+      {useVideo ? (
+        <video
+          ref={videoRef}
           className="hero-media absolute inset-0 h-full w-full"
-          initial={{ scale: 1 }}
-          animate={kenBurns ? { scale: 1.06 } : undefined}
-          transition={{ duration: 20, ease: "linear", repeat: Infinity, repeatType: "reverse" }}
-        />
-      </picture>
-      <div className="absolute inset-0 bg-gradient-to-t from-carbon/85 via-carbon/20 to-carbon/10 md:from-carbon/90 md:via-carbon/40 md:to-carbon/20" />
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          poster={wide ? hero.imageDesktop : hero.imageMobile}
+          aria-hidden
+        >
+          <source src={HERO_VIDEO} type="video/mp4" />
+        </video>
+      ) : (
+        <picture>
+          <source media="(max-width: 767px)" srcSet={hero.imageMobile} type="image/webp" />
+          <motion.img
+            src={hero.imageDesktop}
+            alt={hero.imageAlt}
+            fetchPriority="high"
+            className="hero-media absolute inset-0 h-full w-full"
+            initial={{ scale: 1 }}
+            animate={kenBurns ? { scale: 1.06 } : undefined}
+            transition={{ duration: 20, ease: "linear", repeat: Infinity, repeatType: "reverse" }}
+          />
+        </picture>
+      )}
+
+      {/* Gradiente general de lectura + banda inferior para tapar la marca de agua */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-carbon via-carbon/35 to-carbon/15 md:from-carbon/95 md:via-carbon/40 md:to-carbon/20"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[18%] bg-gradient-to-t from-carbon from-40% via-carbon/85 to-transparent"
+        aria-hidden
+      />
 
       <div className="relative mx-auto flex min-h-svh max-w-6xl flex-col justify-end px-4 pb-16 pt-28 md:px-6 md:pb-28">
         <h1 className="sr-only">{business.name}</h1>
