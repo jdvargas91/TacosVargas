@@ -118,22 +118,22 @@ const defaultGallery: GalleryContent = {
       className: "md:col-start-1 md:row-start-1 md:row-span-2",
     },
     {
-      src: "/products/camaron.jpg",
+      src: "/products/camaron_capeado.webp",
       alt: "Taco de camarón capeado",
       className: "md:col-start-2 md:col-span-2 md:row-start-1",
     },
     {
-      src: "/products/barbacoa.jpg",
+      src: "/products/barbacoa.webp",
       alt: "Taco de barbacoa",
       className: "md:col-start-2 md:row-start-2",
     },
     {
-      src: "/products/bistec.jpg",
+      src: "/products/arrachera.webp",
       alt: "Taco de bistec de arrachera",
       className: "md:col-start-3 md:row-start-2",
     },
     {
-      src: "/products/adobada.jpg",
+      src: "/products/adobada.webp",
       alt: "Taco de adobada de cerdo",
       className: "md:col-start-1 md:row-start-3",
     },

@@ -149,10 +149,10 @@ insert into public.site_sections (id, kind, content, sort_order) values
     "bandImage": "/about.jpg",
     "shots": [
       {"src": "/gallery/plancha.jpg", "alt": "Tacos en la plancha, fotografía de referencia", "className": "md:col-start-1 md:row-start-1 md:row-span-2"},
-      {"src": "/products/camaron.jpg", "alt": "Taco de camarón capeado", "className": "md:col-start-2 md:col-span-2 md:row-start-1"},
-      {"src": "/products/barbacoa.jpg", "alt": "Taco de barbacoa", "className": "md:col-start-2 md:row-start-2"},
-      {"src": "/products/bistec.jpg", "alt": "Taco de bistec de arrachera", "className": "md:col-start-3 md:row-start-2"},
-      {"src": "/products/adobada.jpg", "alt": "Taco de adobada de cerdo", "className": "md:col-start-1 md:row-start-3"},
+      {"src": "/products/camaron_capeado.webp", "alt": "Taco de camarón capeado", "className": "md:col-start-2 md:col-span-2 md:row-start-1"},
+      {"src": "/products/barbacoa.webp", "alt": "Taco de barbacoa", "className": "md:col-start-2 md:row-start-2"},
+      {"src": "/products/arrachera.webp", "alt": "Taco de bistec de arrachera", "className": "md:col-start-3 md:row-start-2"},
+      {"src": "/products/adobada.webp", "alt": "Taco de adobada de cerdo", "className": "md:col-start-1 md:row-start-3"},
       {"src": "/about.jpg", "alt": "Tacos al vapor, fotografía de referencia", "className": "md:col-start-2 md:col-span-2 md:row-start-3"}
     ]
   }'::jsonb, 4)

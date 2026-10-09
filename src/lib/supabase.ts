@@ -92,7 +92,7 @@ export function mapProduct(row: ProductRow): Product {
     serving: repairMojibake(row.serving || "") || details.serving,
     allergens: row.allergens?.length ? row.allergens.map(repairMojibake) : details.allergens,
     priceCents: row.price_cents,
-    imageUrl: row.image_url || "/products/fallback.jpg",
+    imageUrl: row.image_url || "/products/camaron_capeado.webp",
     stock: row.stock,
     soldOut: row.sold_out,
     isFeatured: row.is_featured,
