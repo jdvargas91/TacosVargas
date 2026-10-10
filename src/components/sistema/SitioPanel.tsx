@@ -138,7 +138,27 @@ export function SitioPanel() {
           <Field label="Abre (HH:MM)" value={biz.hours.opens} onChange={(v) => setBiz({ ...biz, hours: { ...biz.hours, opens: v } })} />
           <Field label="Cierra (HH:MM)" value={biz.hours.closes} onChange={(v) => setBiz({ ...biz, hours: { ...biz.hours, closes: v } })} />
           <Field label="Ubicación" value={biz.location.label} onChange={(v) => setBiz({ ...biz, location: { ...biz.location, label: v } })} />
+          <Field
+            label="Referencia / punto cercano"
+            value={biz.location.landmark}
+            onChange={(v) => setBiz({ ...biz, location: { ...biz.location, landmark: v } })}
+          />
           <Field label="Ciudad" value={biz.location.city} onChange={(v) => setBiz({ ...biz, location: { ...biz.location, city: v } })} />
+          <Field
+            label="Enlace de Google Maps"
+            value={biz.location.mapsUrl}
+            onChange={(v) => setBiz({ ...biz, location: { ...biz.location, mapsUrl: v } })}
+          />
+          <Field
+            label="Latitud"
+            value={String(biz.location.lat)}
+            onChange={(v) => setBiz({ ...biz, location: { ...biz.location, lat: Number(v) || biz.location.lat } })}
+          />
+          <Field
+            label="Longitud"
+            value={String(biz.location.lng)}
+            onChange={(v) => setBiz({ ...biz, location: { ...biz.location, lng: Number(v) || biz.location.lng } })}
+          />
           <Field label="Facebook" value={biz.socials.facebook} onChange={(v) => setBiz({ ...biz, socials: { ...biz.socials, facebook: v } })} />
           <Field label="Instagram" value={biz.socials.instagram} onChange={(v) => setBiz({ ...biz, socials: { ...biz.socials, instagram: v } })} />
           <label className="text-sm text-clay md:col-span-2">

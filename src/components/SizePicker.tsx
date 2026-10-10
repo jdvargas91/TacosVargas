@@ -20,7 +20,7 @@ export function SizePicker({
       <div
         role="radiogroup"
         aria-label="Tamaño del agua"
-        className="grid grid-cols-2 gap-2 rounded-[14px] bg-ink/[0.04] p-1"
+        className="grid grid-cols-2 gap-2 rounded-[10px] bg-ink/[0.04] p-1"
       >
         {sizes.map((size) => {
           const active = value === size.id;
@@ -32,7 +32,7 @@ export function SizePicker({
               aria-checked={active}
               onClick={() => onChange(size.id)}
               className={cn(
-                "rounded-[11px] px-3 py-3 text-left transition",
+                "rounded-[10px] px-3 py-3 text-left transition",
                 active
                   ? "bg-white shadow-[0_6px_18px_rgb(30_23_16_/0.10)] ring-1 ring-terracotta/35"
                   : "hover:bg-white/60",

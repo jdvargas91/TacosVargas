@@ -25,6 +25,8 @@ export type BusinessContent = {
     addressConfirmed: boolean;
     street: string;
     label: string;
+    landmark: string;
+    mapsUrl: string;
     lat: number;
     lng: number;
   };
@@ -171,16 +173,29 @@ function asBusiness(value: unknown): BusinessContent {
       closes: v.hours?.closes ?? fallbackBusiness.hours.closes,
       weekdays: v.hours?.weekdays ?? [...fallbackBusiness.hours.weekdays],
     },
-    location: {
-      city: v.location?.city ?? fallbackBusiness.location.city,
-      region: v.location?.region ?? fallbackBusiness.location.region,
-      country: v.location?.country ?? fallbackBusiness.location.country,
-      addressConfirmed: v.location?.addressConfirmed ?? fallbackBusiness.location.addressConfirmed,
-      street: v.location?.street ?? fallbackBusiness.location.street,
-      label: v.location?.label ?? fallbackBusiness.location.label,
-      lat: v.location?.lat ?? fallbackBusiness.location.lat,
-      lng: v.location?.lng ?? fallbackBusiness.location.lng,
-    },
+    location: (() => {
+      const stored = v.location;
+      const stale =
+        !stored ||
+        !stored.mapsUrl ||
+        (typeof stored.label === "string" && stored.label.includes("3PQC+")) ||
+        (stored.lat === 19.2433 && stored.lng === -103.725);
+      if (stale) {
+        return { ...fallbackBusiness.location };
+      }
+      return {
+        city: stored.city ?? fallbackBusiness.location.city,
+        region: stored.region ?? fallbackBusiness.location.region,
+        country: stored.country ?? fallbackBusiness.location.country,
+        addressConfirmed: stored.addressConfirmed ?? fallbackBusiness.location.addressConfirmed,
+        street: stored.street ?? fallbackBusiness.location.street,
+        label: stored.label ?? fallbackBusiness.location.label,
+        landmark: stored.landmark ?? fallbackBusiness.location.landmark,
+        mapsUrl: stored.mapsUrl ?? fallbackBusiness.location.mapsUrl,
+        lat: stored.lat ?? fallbackBusiness.location.lat,
+        lng: stored.lng ?? fallbackBusiness.location.lng,
+      };
+    })(),
     payment: v.payment ?? fallbackBusiness.payment,
     cardPayment: {
       bank: v.cardPayment?.bank ?? fallbackBusiness.cardPayment.bank,

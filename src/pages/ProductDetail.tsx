@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ShoppingBag, UtensilsCrossed } from "lucide-react";
+import useEmblaCarousel from "embla-carousel-react";
+import { ChevronLeft, ChevronRight, ShoppingBag, UtensilsCrossed } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { QtyStepper } from "@/components/QtyStepper";
@@ -127,21 +128,6 @@ export function ProductDetail() {
               <p className="mt-3 text-3xl font-semibold text-ink">{formatMxn(unitPrice)}</p>
               <p className="mt-5 max-w-prose text-clay">{product.longDescription}</p>
 
-              {isTaco ? (
-                <dl className="mt-8 grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-2xl bg-smoke p-4 card-shadow">
-                    <dt className="text-sm text-clay">Porción</dt>
-                    <dd className="mt-1 font-medium text-ink">{product.serving}</dd>
-                  </div>
-                  {product.weightGrams ? (
-                    <div className="rounded-2xl bg-smoke p-4 card-shadow">
-                      <dt className="text-sm text-clay">Peso aproximado</dt>
-                      <dd className="mt-1 font-medium text-ink">{product.weightGrams} g</dd>
-                    </div>
-                  ) : null}
-                </dl>
-              ) : null}
-
               {showTags ? (
                 <>
                   <h2 className="mt-8 font-display text-2xl text-ink">{tagsLabel}</h2>
@@ -205,36 +191,76 @@ export function ProductDetail() {
 
           <CompanionPicks current={product} items={companions} />
 
-          {related.length > 0 ? (
-            <section className="mt-20">
-              <h2 className="font-display text-3xl text-ink">También te puede gustar</h2>
-              <p className="mt-3 text-clay">
-                {product.kind === "taco"
-                  ? "Otros tacos del mostrador, en miniatura."
-                  : "Otras bebidas del menú, en miniatura."}
-              </p>
-              <ul className="mt-8 grid grid-cols-2 gap-5 py-4 md:grid-cols-4">
-                {related.map((item) => (
-                  <li key={item.id}>
-                    <Link to={productPath(item.id)} className="card-shadow group block rounded-2xl bg-smoke">
-                      <ProductMedia src={item.imageUrl} alt={item.name} tone="card" />
-                      <div className="p-4">
-                        <p className="font-semibold text-ink">{item.name}</p>
-                        <p className="mt-1 text-sm text-ink">
-                          {item.sizes?.length
-                            ? `Desde ${formatMxn(Math.min(...item.sizes.map((s) => s.priceCents)))}`
-                            : formatMxn(item.priceCents)}
-                        </p>
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
+          {related.length > 0 ? <RelatedPicks productKind={product.kind} items={related} /> : null}
         </div>
       </main>
       <Footer />
     </>
+  );
+}
+
+function RelatedPicks({
+  productKind,
+  items,
+}: {
+  productKind: "taco" | "drink";
+  items: ReturnType<typeof relatedProducts>;
+}) {
+  const [emblaRef, embla] = useEmblaCarousel({ align: "start", containScroll: "trimSnaps" });
+
+  return (
+    <section className="mt-20">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 className="font-display text-3xl text-ink">También te puede gustar</h2>
+          <p className="mt-3 text-clay">
+            {productKind === "taco"
+              ? "Otros tacos del mostrador, en miniatura."
+              : "Otras bebidas del menú, en miniatura."}
+          </p>
+        </div>
+        {items.length > 1 ? (
+          <div className="flex gap-2">
+            <button
+              type="button"
+              aria-label="Productos anteriores"
+              onClick={() => embla?.scrollPrev()}
+              className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink hover:bg-terracotta"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <button
+              type="button"
+              aria-label="Productos siguientes"
+              onClick={() => embla?.scrollNext()}
+              className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink hover:bg-terracotta"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        ) : null}
+      </div>
+      <div className="mt-8">
+        <div className="-mx-1 overflow-hidden px-2 pb-6 pt-1 sm:px-3 sm:pb-8" ref={emblaRef}>
+          <ul className="flex gap-5">
+            {items.map((item) => (
+              <li key={item.id} className="min-w-0 flex-[0_0_78%] sm:flex-[0_0_46%] lg:flex-[0_0_31%]">
+                <Link to={productPath(item.id)} className="card-shadow group block overflow-hidden rounded-2xl bg-smoke">
+                  <ProductMedia src={item.imageUrl} alt={item.name} tone="card" />
+                  <div className="p-4">
+                    <p className="font-semibold text-ink group-hover:text-ember">{item.name}</p>
+                    <p className="mt-1 text-sm text-ink">
+                      {item.sizes?.length
+                        ? `Desde ${formatMxn(Math.min(...item.sizes.map((s) => s.priceCents)))}`
+                        : formatMxn(item.priceCents)}
+                    </p>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
   );
 }

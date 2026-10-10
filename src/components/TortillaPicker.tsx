@@ -17,7 +17,7 @@ export function TortillaPicker({
       <div
         role="radiogroup"
         aria-label="Cantidad de tortillas"
-        className="grid grid-cols-2 gap-2 rounded-[14px] bg-ink/[0.04] p-1"
+        className="grid grid-cols-2 gap-2 rounded-[10px] bg-ink/[0.04] p-1"
       >
         <button
           type="button"
@@ -25,7 +25,7 @@ export function TortillaPicker({
           aria-checked={value === 2}
           onClick={() => onChange(2)}
           className={cn(
-            "relative rounded-[11px] px-3 py-3 text-left transition",
+            "relative rounded-[10px] px-3 py-3 text-left transition",
             value === 2
               ? "bg-white shadow-[0_6px_18px_rgb(30_23_16_/0.10)] ring-1 ring-terracotta/35"
               : "hover:bg-white/60",
@@ -45,7 +45,7 @@ export function TortillaPicker({
           aria-checked={value === 1}
           onClick={() => onChange(1)}
           className={cn(
-            "rounded-[11px] px-3 py-3 text-left transition",
+            "rounded-[10px] px-3 py-3 text-left transition",
             value === 1
               ? "bg-white shadow-[0_6px_18px_rgb(30_23_16_/0.10)] ring-1 ring-terracotta/35"
               : "hover:bg-white/60",

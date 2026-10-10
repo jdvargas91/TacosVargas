@@ -167,7 +167,7 @@ export function PedidosPanel() {
 
       {/* Pestañas por estado */}
       <div
-        className="flex gap-1 rounded-[12px] border border-ink/10 bg-paper/80 p-1"
+        className="flex gap-1 rounded-[10px] border border-ink/10 bg-paper/80 p-1"
         role="tablist"
         aria-label="Agrupar pedidos"
       >
@@ -291,7 +291,7 @@ export function PedidosPanel() {
             <article
               key={order.id}
               className={cn(
-                "card-shadow overflow-hidden rounded-[12px] border bg-smoke",
+                "card-shadow overflow-hidden rounded-[10px] border bg-smoke",
                 hasProof ? "border-amber-500/40" : isCounter ? "border-ember/20" : "border-ink/8",
               )}
             >

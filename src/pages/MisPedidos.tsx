@@ -218,7 +218,7 @@ export function MisPedidos() {
       <Header />
       <main id="contenido" className="relative mx-auto min-h-svh max-w-4xl px-4 pb-20 pt-28">
         <div className="pointer-events-none sticky top-[4.75rem] z-30 -mx-4 mb-4 flex justify-end px-4 md:top-20">
-          <div className="pointer-events-auto inline-flex max-w-[min(100%,18rem)] items-start gap-2 rounded-[12px] border border-ink/10 bg-paper/95 px-3 py-2 text-left text-xs text-clay shadow-[0_8px_24px_rgb(30_23_16_/0.08)] backdrop-blur-md">
+          <div className="pointer-events-auto inline-flex max-w-[min(100%,18rem)] items-start gap-2 rounded-[10px] border border-ink/10 bg-paper/95 px-3 py-2 text-left text-xs text-clay shadow-[0_8px_24px_rgb(30_23_16_/0.08)] backdrop-blur-md">
             <MapPin size={14} className="mt-0.5 shrink-0 text-ember" aria-hidden />
             <div>
               <p className="font-semibold text-ink">Recoger en el local</p>
@@ -256,7 +256,7 @@ export function MisPedidos() {
             </header>
 
             <div className="px-5 py-5 sm:px-6">
-              <div className="overflow-hidden rounded-[12px] border border-ink/8 bg-paper/60">
+              <div className="overflow-hidden rounded-[10px] border border-ink/8 bg-paper/60">
                 <ul className="divide-y divide-ink/8">
                   {pending.items.map((item) => (
                     <li
@@ -301,7 +301,7 @@ export function MisPedidos() {
                     onChange={(e) => handleProofFile(e.target.files?.[0] ?? null)}
                   />
                   {proofPreview ? (
-                    <figure className="mt-2 overflow-hidden rounded-[14px] border border-ink/10 bg-paper">
+                    <figure className="mt-2 overflow-hidden rounded-[10px] border border-ink/10 bg-paper">
                       <div className="relative">
                         <img
                           src={proofPreview}
@@ -356,7 +356,7 @@ export function MisPedidos() {
                       }}
                       onDrop={handleDrop}
                       className={cn(
-                        "mt-2 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-[14px] border-2 border-dashed px-6 py-8 text-center transition",
+                        "mt-2 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-[10px] border-2 border-dashed px-6 py-8 text-center transition",
                         dragActive
                           ? "border-terracotta bg-terracotta/10"
                           : "border-ink/20 bg-paper/60 hover:border-terracotta/60 hover:bg-terracotta/5",
@@ -454,7 +454,7 @@ export function MisPedidos() {
                 </header>
 
                 <div className="px-5 py-4">
-                  <div className="overflow-hidden rounded-[12px] border border-ink/8 bg-paper/60">
+                  <div className="overflow-hidden rounded-[10px] border border-ink/8 bg-paper/60">
                     <ul className="divide-y divide-ink/8">
                       {order.items.map((item, idx) => (
                         <li

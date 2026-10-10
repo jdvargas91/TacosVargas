@@ -13,6 +13,10 @@
   --color-gold: #ffc72c;
   --font-display: "Fugaz One", cursive;
   --font-sans: "Nunito Sans", sans-serif;
+  --radius-lg: 10px;
+  --radius-xl: 10px;
+  --radius-2xl: 10px;
+  --radius-3xl: 10px;
 }
 
 html {
@@ -277,7 +281,7 @@ html.nav-open #root {
 .kitchen-frame {
   position: relative;
   overflow: hidden;
-  border-radius: 1rem;
+  border-radius: 10px;
   box-shadow: 0 22px 48px rgb(0 0 0 / 0.38);
 }
 

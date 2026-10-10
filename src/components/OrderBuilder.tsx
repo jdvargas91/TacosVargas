@@ -342,7 +342,7 @@ export function OrderBuilder() {
                 <div
                   role="radiogroup"
                   aria-label="Forma de pago"
-                  className="mt-3 grid grid-cols-2 gap-2 rounded-[14px] bg-ink/[0.04] p-1"
+                  className="mt-3 grid grid-cols-2 gap-2 rounded-[10px] bg-ink/[0.04] p-1"
                 >
                   <button
                     type="button"
@@ -350,7 +350,7 @@ export function OrderBuilder() {
                     aria-checked={paymentMethod === "presencial"}
                     onClick={() => setPaymentMethod("presencial")}
                     className={cn(
-                      "rounded-[11px] px-3 py-3 text-left transition",
+                      "rounded-[10px] px-3 py-3 text-left transition",
                       paymentMethod === "presencial"
                         ? "border-terracotta/25 bg-gold/15 shadow-[0_6px_18px_rgb(30_23_16_/0.10)] ring-1 ring-terracotta/35"
                         : "hover:bg-white/60",
@@ -365,7 +365,7 @@ export function OrderBuilder() {
                     aria-checked={paymentMethod === "transferencia"}
                     onClick={() => setPaymentMethod("transferencia")}
                     className={cn(
-                      "rounded-[11px] px-3 py-3 text-left transition",
+                      "rounded-[10px] px-3 py-3 text-left transition",
                       paymentMethod === "transferencia"
                         ? "border-terracotta/25 bg-gold/15 shadow-[0_6px_18px_rgb(30_23_16_/0.10)] ring-1 ring-terracotta/35"
                         : "hover:bg-white/60",
@@ -379,21 +379,21 @@ export function OrderBuilder() {
                 {paymentMethod === "transferencia" ? (
                   <div className="mt-4">
                     <dl className="mt-1 grid gap-3 sm:grid-cols-2">
-                      <div className="rounded-[12px] border border-ink/10 bg-white px-4 py-3">
+                      <div className="rounded-[10px] border border-ink/10 bg-white px-4 py-3">
                         <dt className="text-xs font-medium uppercase tracking-wide text-clay">Banco</dt>
                         <dd className="mt-1 font-semibold text-ink">{card.bank}</dd>
                       </div>
-                      <div className="rounded-[12px] border border-ink/10 bg-white px-4 py-3">
+                      <div className="rounded-[10px] border border-ink/10 bg-white px-4 py-3">
                         <dt className="text-xs font-medium uppercase tracking-wide text-clay">Titular</dt>
                         <dd className="mt-1 font-semibold text-ink">{card.accountName}</dd>
                       </div>
                       {card.clabe.trim() ? (
-                        <div className="rounded-[12px] border border-ink/10 bg-white px-4 py-3 sm:col-span-2">
+                        <div className="rounded-[10px] border border-ink/10 bg-white px-4 py-3 sm:col-span-2">
                           <dt className="text-xs font-medium uppercase tracking-wide text-clay">CLABE</dt>
                           <dd className="mt-1 font-semibold tabular-nums text-ink">{card.clabe}</dd>
                         </div>
                       ) : null}
-                      <div className="rounded-[12px] border border-ink/10 bg-white px-4 py-3 sm:col-span-2">
+                      <div className="rounded-[10px] border border-ink/10 bg-white px-4 py-3 sm:col-span-2">
                         <dt className="text-xs font-medium uppercase tracking-wide text-clay">Tarjeta</dt>
                         <div className="mt-1 flex items-center justify-between gap-3">
                           <dd className="font-semibold tabular-nums text-ink">{card.cardNumber}</dd>

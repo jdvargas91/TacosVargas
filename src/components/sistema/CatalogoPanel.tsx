@@ -16,8 +16,6 @@ const emptyForm = {
   longDescription: "",
   ingredients: "",
   allergens: "",
-  weightGrams: "",
-  serving: "1 taco",
   price: "",
   priceChica: "22",
   priceGrande: "38",
@@ -115,10 +113,6 @@ export function CatalogoPanel() {
       setError("Escribe un precio válido en pesos.");
       return;
     }
-    if (form.kind === "taco" && !form.serving.trim()) {
-      setError("La porción es obligatoria.");
-      return;
-    }
     setCreating(true);
     const sizesPayload = usingSizes
       ? [
@@ -135,8 +129,6 @@ export function CatalogoPanel() {
         long_description: form.longDescription.trim() || form.description.trim(),
         ingredients: splitList(form.ingredients),
         allergens: splitList(form.allergens),
-        weight_grams: form.weightGrams ? Number(form.weightGrams) : null,
-        serving: usingSizes ? "Agua fresca" : form.serving || null,
         price_cents: priceCents,
         sizes: sizesPayload,
         stock: 100,
@@ -205,12 +197,7 @@ export function CatalogoPanel() {
                   className="mt-2"
                   value={form.kind}
                   onValueChange={(v) => {
-                    const kind = v as ProductKind;
-                    setForm({
-                      ...form,
-                      kind,
-                      serving: kind === "taco" ? "1 taco" : "1 porción",
-                    });
+                    setForm({ ...form, kind: v as ProductKind });
                   }}
                   options={kindOptions}
                   aria-label="Tipo de producto"
@@ -249,17 +236,6 @@ export function CatalogoPanel() {
                       onChange={(e) => setForm({ ...form, allergens: e.target.value })}
                       className={fieldClass}
                       placeholder="Maíz, Gluten…"
-                    />
-                  </Field>
-                  <Field label="Porción" hint="Ej. 1 taco" required>
-                    <input value={form.serving} onChange={(e) => setForm({ ...form, serving: e.target.value })} className={fieldClass} />
-                  </Field>
-                  <Field label="Peso aproximado (gramos)" hint="Opcional">
-                    <input
-                      value={form.weightGrams}
-                      onChange={(e) => setForm({ ...form, weightGrams: e.target.value })}
-                      className={fieldClass}
-                      inputMode="numeric"
                     />
                   </Field>
                 </>
@@ -530,8 +506,6 @@ function ProductEditor({
   const [longDescription, setLongDescription] = useState(product.longDescription);
   const [ingredients, setIngredients] = useState(product.ingredients.join(", "));
   const [allergens, setAllergens] = useState(product.allergens.join(", "));
-  const [serving, setServing] = useState(product.serving);
-  const [weightGrams, setWeightGrams] = useState(String(product.weightGrams || ""));
   const [price, setPrice] = useState(String(product.priceCents / 100));
   const [hasSizes, setHasSizes] = useState(productHasSizes(product));
   const [priceChica, setPriceChica] = useState(
@@ -554,8 +528,6 @@ function ProductEditor({
     setLongDescription(product.longDescription);
     setIngredients(product.ingredients.join(", "));
     setAllergens(product.allergens.join(", "));
-    setServing(product.serving);
-    setWeightGrams(String(product.weightGrams || ""));
     setPrice(String(product.priceCents / 100));
     setHasSizes(productHasSizes(product));
     setPriceChica(
@@ -601,8 +573,6 @@ function ProductEditor({
         long_description: longDescription,
         ingredients: splitList(ingredients),
         allergens: splitList(allergens),
-        serving: usingSizes ? "Agua fresca" : serving || null,
-        weight_grams: weightGrams ? Number(weightGrams) : null,
         price_cents: priceCents,
         sizes: sizesPayload,
         sold_out: soldOut,
@@ -735,16 +705,6 @@ function ProductEditor({
               <input value={price} onChange={(e) => setPrice(e.target.value)} className={fieldClass} inputMode="decimal" />
             </Field>
           )}
-          {product.kind === "taco" ? (
-            <>
-              <Field label="Porción" required>
-                <input value={serving} onChange={(e) => setServing(e.target.value)} className={fieldClass} />
-              </Field>
-              <Field label="Peso (gramos)">
-                <input value={weightGrams} onChange={(e) => setWeightGrams(e.target.value)} className={fieldClass} inputMode="numeric" />
-              </Field>
-            </>
-          ) : null}
           <Field label="Orden en el menú" hint="Más chico = primero" required>
             <input value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} className={fieldClass} inputMode="numeric" />
           </Field>

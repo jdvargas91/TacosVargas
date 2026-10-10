@@ -26,9 +26,9 @@ export function ProductMedia({
     <div
       className={cn(
         "relative overflow-hidden bg-smoke",
-        tone === "card" && "aspect-[4/3] rounded-t-2xl",
-        tone === "detail" && "aspect-[4/3] rounded-2xl",
-        tone === "thumb" && "rounded-xl",
+        tone === "card" && "aspect-[4/3]",
+        tone === "detail" && "aspect-[4/3] rounded-[10px]",
+        tone === "thumb" && "rounded-[10px]",
         className,
       )}
     >

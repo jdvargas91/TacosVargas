@@ -308,18 +308,15 @@ export function productPath(id: string) {
   return `/producto/${id}`;
 }
 
-export function relatedProducts(product: Product, catalog: Product[], limit = 4) {
-  return catalog
-    .filter((item) => item.id !== product.id && item.kind === product.kind)
-    .slice(0, limit);
+export function relatedProducts(product: Product, catalog: Product[]) {
+  return catalog.filter((item) => item.id !== product.id && item.kind === product.kind);
 }
 
-export function companionProducts(product: Product, catalog: Product[], limit = 4) {
+export function companionProducts(product: Product, catalog: Product[]) {
   const want: ProductKind = product.kind === "taco" ? "drink" : "taco";
   return catalog
     .filter((item) => item.kind === want)
-    .sort((a, b) => Number(b.isFeatured) - Number(a.isFeatured) || a.sortOrder - b.sortOrder)
-    .slice(0, limit);
+    .sort((a, b) => Number(b.isFeatured) - Number(a.isFeatured) || a.sortOrder - b.sortOrder);
 }
 
 export function fallbackDetails(product: Pick<Product, "description" | "name" | "kind">): Pick<
