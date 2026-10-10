@@ -1,19 +1,24 @@
 export const about = {
-  headline: "Cómo nació Vargas Tacos",
+  headline: "Vargas Tacos, desde 2016",
   paragraphs: [
-    "Vargas nace en las mañanas de Colima: una plancha, tortillas que echan humo y el ritmo de un mostrador de barrio, no de restaurante con mesas. Abrimos temprano, cerramos a la 1:30 p.m. y nos quedamos en lo que sabemos hacer.",
-    "La especialidad de la casa es el camarón capeado. Junto a él, arrachera, adobada, barbacoa y aguas frescas que se piden por el nombre. El menú impreso es la verdad del local.",
-    "No somos un comedor de reserva. Eres vecino, de paso o con antojo. Encargas, pasas o te lo llevamos, y pagas en persona.",
+    "Somos una taquería para todo público: calidad, rapidez y atención al cliente.",
+    "Iniciamos en 2016 con nuestro fundador Carlos Rubén Pinto. Con esos mismos lineamientos seguimos creciendo, afinando el servicio y la calidad para agradar a quien nos visita.",
   ],
   values: [
     {
-      title: "Sabor de plancha",
-      body: "Camarón capeado, pescado, arrachera y los clásicos de cerdo.",
+      title: "Misión",
+      body: "Ofrecer tacos y alimentos de excelente sabor y calidad, preparados con ingredientes frescos y el auténtico toque mexicano que distingue a Vargas Tacos. Brindamos un servicio amable, rápido y confiable, para que cada visita sea agradable y quieras volver.",
     },
     {
-      title: "Horario de mañana",
-      body: "De 7:30 a.m. a 1:30 p.m., lunes a sábado.",
+      title: "Visión",
+      body: "Ser una taquería reconocida y preferida por su sabor, calidad y buen servicio, consolidando a Vargas Tacos como marca de confianza y tradición. Aspiramos a crecer, llegar a más personas y cuidar siempre la esencia que nos caracteriza.",
     },
   ],
+  pillars: [
+    { title: "Calidad", body: "Ingredientes frescos y sabor de plancha." },
+    { title: "Rapidez", body: "Pedido listo sin perder el trato." },
+    { title: "Atención", body: "Servicio amable para todo público." },
+  ],
+  image: "/products/camaron_capeado.webp",
   placeholder: true,
 } as const;

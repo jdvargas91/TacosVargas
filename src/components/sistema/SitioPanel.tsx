@@ -232,7 +232,7 @@ export function SitioPanel() {
         <h2 className="font-display text-2xl text-ink">Quiénes somos</h2>
         <Field label="Titular" value={aboutDraft.headline} onChange={(v) => setAboutDraft({ ...aboutDraft, headline: v })} />
         <label className="text-sm text-clay">
-          <span className="font-medium text-ink/80">Párrafos (uno por línea)</span>
+          <span className="font-medium text-ink/80">Historia (párrafos separados por línea en blanco)</span>
           <textarea
             value={aboutDraft.paragraphs.join("\n\n")}
             onChange={(e) =>
@@ -241,9 +241,39 @@ export function SitioPanel() {
                 paragraphs: e.target.value.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean),
               })
             }
-            className="mt-2 min-h-40 w-full rounded-[10px] border border-ink/15 bg-white px-3 py-2 text-ink"
+            className="mt-2 min-h-28 w-full rounded-[10px] border border-ink/15 bg-white px-3 py-2 text-ink"
           />
         </label>
+        <div className="grid gap-4 md:grid-cols-2">
+          {(aboutDraft.values.length >= 2
+            ? aboutDraft.values
+            : [
+                { title: "Misión", body: "" },
+                { title: "Visión", body: "" },
+              ]
+          )
+            .slice(0, 2)
+            .map((value, index) => (
+              <label key={index} className="text-sm text-clay">
+                <span className="font-medium text-ink/80">{value.title || (index === 0 ? "Misión" : "Visión")}</span>
+                <textarea
+                  value={value.body}
+                  onChange={(e) => {
+                    const values = [
+                      aboutDraft.values[0] ?? { title: "Misión", body: "" },
+                      aboutDraft.values[1] ?? { title: "Visión", body: "" },
+                    ];
+                    values[index] = {
+                      title: index === 0 ? "Misión" : "Visión",
+                      body: e.target.value,
+                    };
+                    setAboutDraft({ ...aboutDraft, values });
+                  }}
+                  className="mt-2 min-h-28 w-full rounded-[10px] border border-ink/15 bg-white px-3 py-2 text-ink"
+                />
+              </label>
+            ))}
+        </div>
         <MediaUpload
           className="max-w-xs"
           label="Foto Quiénes somos"

@@ -49,6 +49,7 @@ export type AboutContent = {
   headline: string;
   paragraphs: string[];
   values: { title: string; body: string }[];
+  pillars: { title: string; body: string }[];
   image: string;
 };
 
@@ -101,7 +102,8 @@ const defaultAbout: AboutContent = {
   headline: fallbackAbout.headline,
   paragraphs: [...fallbackAbout.paragraphs],
   values: fallbackAbout.values.map((v) => ({ ...v })),
-  image: "/about.jpg",
+  pillars: fallbackAbout.pillars.map((v) => ({ ...v })),
+  image: fallbackAbout.image,
 };
 
 const defaultKitchen: KitchenContent = {
@@ -112,7 +114,7 @@ const defaultKitchen: KitchenContent = {
 
 const defaultGallery: GalleryContent = {
   headline: "El primer bocado",
-  bandImage: "/about.jpg",
+  bandImage: "/hero.webp",
   shots: [
     {
       src: "/gallery/plancha.jpg",
@@ -140,8 +142,8 @@ const defaultGallery: GalleryContent = {
       className: "md:col-start-1 md:row-start-3",
     },
     {
-      src: "/about.jpg",
-      alt: "Tacos al vapor",
+      src: "/products/pescado_empanizado.webp",
+      alt: "Taco de pescado empanizado",
       className: "md:col-start-2 md:col-span-2 md:row-start-3",
     },
   ],
@@ -240,7 +242,30 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
       for (const section of sectionsRes.data) {
         const content = repairDeep(section.content) as object;
         if (section.id === "hero") setHero({ ...defaultHero, ...content });
-        if (section.id === "about") setAbout({ ...defaultAbout, ...content });
+        if (section.id === "about") {
+          const next = content as Partial<AboutContent>;
+          const staleHeadline =
+            typeof next.headline === "string" && next.headline.includes("Cómo nació");
+          const hasMissionVision = Boolean(
+            next.values?.some((item) => /misi[oó]n|visi[oó]n/i.test(item.title)),
+          );
+          const image =
+            next.image && !String(next.image).endsWith("/about.jpg")
+              ? next.image
+              : defaultAbout.image;
+          setAbout({
+            ...defaultAbout,
+            ...next,
+            headline: staleHeadline ? defaultAbout.headline : (next.headline ?? defaultAbout.headline),
+            paragraphs:
+              staleHeadline || !next.paragraphs?.length
+                ? defaultAbout.paragraphs
+                : next.paragraphs,
+            values: hasMissionVision ? (next.values as AboutContent["values"]) : defaultAbout.values,
+            pillars: next.pillars?.length ? next.pillars : defaultAbout.pillars,
+            image,
+          });
+        }
         if (section.id === "kitchen") setKitchen({ ...defaultKitchen, ...content });
         if (section.id === "gallery") setGallery({ ...defaultGallery, ...content });
       }
