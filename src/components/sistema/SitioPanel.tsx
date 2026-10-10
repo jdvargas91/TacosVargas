@@ -10,6 +10,7 @@ import {
   type HeroContent,
   type KitchenContent,
 } from "@/context/SiteContentContext";
+import { useToast } from "@/context/ToastContext";
 
 const shotLayouts = [
   { value: "md:col-start-1 md:row-start-1 md:row-span-2", label: "Alta · columna 1" },
@@ -31,6 +32,7 @@ function layoutClass(value: string) {
 
 export function SitioPanel() {
   const { business, hero, about, kitchen, gallery, saveBusiness, saveSection, uploadSiteMedia } = useSiteContent();
+  const toast = useToast();
   const [biz, setBiz] = useState<BusinessContent>(business);
   const [heroDraft, setHeroDraft] = useState<HeroContent>(hero);
   const [aboutDraft, setAboutDraft] = useState<AboutContent>(about);
@@ -70,8 +72,11 @@ export function SitioPanel() {
       await saveSection("kitchen", kitchenDraft);
       await saveSection("gallery", galleryToSave);
       setMessage("Contenido del sitio guardado.");
+      toast.success("Sitio actualizado", "Los cambios ya se publicaron en la página.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo guardar");
+      const msg = err instanceof Error ? err.message : "No se pudo guardar";
+      setError(msg);
+      toast.error("Sitio no actualizado", msg);
     } finally {
       setSaving(false);
     }
@@ -94,8 +99,11 @@ export function SitioPanel() {
       onUrl(url);
       setMessage("Imagen subida. Guarda para publicar.");
       setError(null);
+      toast.info("Imagen lista", "Guarda el sitio para publicarla.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al subir imagen");
+      const msg = err instanceof Error ? err.message : "Error al subir imagen";
+      setError(msg);
+      toast.error("Imagen no subida", msg);
     }
   }
 

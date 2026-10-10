@@ -4,6 +4,7 @@ import { CartProvider } from "@/context/CartContext";
 import { ProductsProvider } from "@/context/ProductsContext";
 import { ReviewsProvider } from "@/context/ReviewsContext";
 import { SiteContentProvider } from "@/context/SiteContentContext";
+import { ToastProvider } from "@/context/ToastContext";
 import { HashScroll } from "@/components/HashScroll";
 import { Home } from "@/pages/Home";
 import { Pedido } from "@/pages/Pedido";
@@ -20,21 +21,23 @@ export default function App() {
         <ProductsProvider>
           <CartProvider>
             <ReviewsProvider>
-              <BrowserRouter>
-                <HashScroll />
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/producto/:id" element={<ProductDetail />} />
-                  <Route path="/pedido" element={<Pedido />} />
-                  <Route path="/pedir" element={<Navigate to="/pedido" replace />} />
-                  <Route path="/mis-pedidos" element={<MisPedidos />} />
-                  <Route path="/cuenta" element={<Cuenta />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/sistema" element={<Sistema />} />
-                  <Route path="/sistema/:seccion" element={<Sistema />} />
-                  <Route path="/admin" element={<Navigate to="/sistema" replace />} />
-                </Routes>
-              </BrowserRouter>
+              <ToastProvider>
+                <BrowserRouter>
+                  <HashScroll />
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/producto/:id" element={<ProductDetail />} />
+                    <Route path="/pedido" element={<Pedido />} />
+                    <Route path="/pedir" element={<Navigate to="/pedido" replace />} />
+                    <Route path="/mis-pedidos" element={<MisPedidos />} />
+                    <Route path="/cuenta" element={<Cuenta />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/sistema" element={<Sistema />} />
+                    <Route path="/sistema/:seccion" element={<Sistema />} />
+                    <Route path="/admin" element={<Navigate to="/sistema" replace />} />
+                  </Routes>
+                </BrowserRouter>
+              </ToastProvider>
             </ReviewsProvider>
           </CartProvider>
         </ProductsProvider>

@@ -14,6 +14,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { Select } from "@/components/ui/Select";
+import { useToast } from "@/context/ToastContext";
 import { formatMxn, formatOrderCode } from "@/lib/format";
 import { ORDER_STATUS_LABELS, ORDER_STATUS_TONES, ORDER_STATUSES } from "@/lib/orderStatus";
 import { supabase, type OrderRow } from "@/lib/supabase";
@@ -89,6 +90,7 @@ const statusSelectOptions = ORDER_STATUSES.map((status) => ({
 }));
 
 export function PedidosPanel() {
+  const toast = useToast();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [tab, setTab] = useState<TabId>("proceso");
   const [period, setPeriod] = useState<Period>("day");
@@ -157,8 +159,13 @@ export function PedidosPanel() {
   async function updateStatus(id: string, status: OrderRow["status"]) {
     if (!supabase) return;
     const { error: updateError } = await supabase.from("orders").update({ status }).eq("id", id);
-    if (updateError) setError(updateError.message);
-    else setOrders((current) => current.map((item) => (item.id === id ? { ...item, status } : item)));
+    if (updateError) {
+      setError(updateError.message);
+      toast.error("Pedido no actualizado", updateError.message);
+      return;
+    }
+    setOrders((current) => current.map((item) => (item.id === id ? { ...item, status } : item)));
+    toast.success("Pedido actualizado", `Estado: ${ORDER_STATUS_LABELS[status]}.`);
   }
 
   return (

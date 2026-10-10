@@ -1,6 +1,7 @@
 import { type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import useEmblaCarousel from "embla-carousel-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import type { Product } from "@/data/seedProducts";
 import { productPath } from "@/data/seedProducts";
@@ -11,27 +12,38 @@ import { Reveal } from "@/components/Reveal";
 
 export function ProductCard({ product }: { product: Product }) {
   const available = isProductAvailable(product.soldOut, product.stock);
+  const reduce = useReducedMotion();
 
   return (
-    <article className="group card-shadow relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl bg-smoke">
-      <Link to={productPath(product.id)} className="relative block">
-        <ProductMedia
-          src={product.imageUrl}
-          alt={product.name}
-          tone="card"
-          imgClassName={!available ? "grayscale-[0.4]" : undefined}
+    <motion.article
+      className="group card-shadow relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl bg-smoke"
+      whileHover={reduce ? undefined : { y: -4 }}
+      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <Link to={productPath(product.id)} className="relative block overflow-hidden">
+        <motion.div
+          className="h-full w-full"
+          whileHover={reduce ? undefined : { scale: 1.04 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         >
-          {product.isFeatured ? (
-            <span className="absolute left-3 top-3 rounded-sm bg-gold px-2 py-1 text-xs font-bold text-ink">
-              Especialidad de la casa
-            </span>
-          ) : null}
-          {!available ? (
-            <span className="absolute inset-0 grid place-items-center bg-ink/55 font-display text-2xl text-tortilla">
-              Agotado
-            </span>
-          ) : null}
-        </ProductMedia>
+          <ProductMedia
+            src={product.imageUrl}
+            alt={product.name}
+            tone="card"
+            imgClassName={!available ? "grayscale-[0.4]" : undefined}
+          >
+            {product.isFeatured ? (
+              <span className="absolute left-3 top-3 rounded-sm bg-gold px-2 py-1 text-xs font-bold text-ink">
+                Especialidad de la casa
+              </span>
+            ) : null}
+            {!available ? (
+              <span className="absolute inset-0 grid place-items-center bg-ink/55 font-display text-2xl text-tortilla">
+                Agotado
+              </span>
+            ) : null}
+          </ProductMedia>
+        </motion.div>
       </Link>
       <div className="flex flex-1 flex-col gap-3 p-6">
         <div className="flex items-start justify-between gap-3">
@@ -51,7 +63,7 @@ export function ProductCard({ product }: { product: Product }) {
           </Link>
         </div>
       </div>
-    </article>
+    </motion.article>
   );
 }
 
@@ -67,6 +79,7 @@ function ProductCarousel({
   nextLabel: string;
 }) {
   const [emblaRef, embla] = useEmblaCarousel({ align: "start", skipSnaps: false });
+  const reduce = useReducedMotion();
 
   return (
     <>
@@ -92,10 +105,17 @@ function ProductCarousel({
       <div className="mt-3 md:mt-4">
         <div className="-mx-2 overflow-hidden px-3 pb-6 pt-1 sm:-mx-3 sm:px-5 sm:pb-8 sm:pt-2" ref={emblaRef}>
           <div className="flex gap-5">
-            {products.map((product) => (
-              <div key={product.id} className="min-w-0 flex-[0_0_86%] sm:flex-[0_0_46%] lg:flex-[0_0_32%]">
+            {products.map((product, index) => (
+              <motion.div
+                key={product.id}
+                className="min-w-0 flex-[0_0_86%] sm:flex-[0_0_46%] lg:flex-[0_0_32%]"
+                initial={reduce ? false : { opacity: 0, y: 16 }}
+                whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-8%" }}
+                transition={{ duration: 0.5, delay: Math.min(index * 0.06, 0.36), ease: [0.22, 1, 0.36, 1] }}
+              >
                 <ProductCard product={product} />
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>

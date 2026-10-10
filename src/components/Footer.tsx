@@ -1,5 +1,6 @@
 import { Facebook, Instagram } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { Reveal } from "@/components/Reveal";
 import { useSiteContent } from "@/context/SiteContentContext";
 
 function TikTokIcon() {
@@ -20,7 +21,7 @@ export function Footer() {
 
   return (
     <footer className="border-t border-ink/10 bg-smoke px-4 py-12 md:px-6">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 md:flex-row md:items-start md:justify-between">
+      <Reveal className="mx-auto flex max-w-6xl flex-col gap-8 md:flex-row md:items-start md:justify-between">
         <div>
           <BrandLogo />
           <p className="mt-3 max-w-sm text-sm text-clay">{business.slogan}</p>
@@ -54,7 +55,7 @@ export function Footer() {
             ))}
           </ul>
         </div>
-      </div>
+      </Reveal>
     </footer>
   );
 }

@@ -5,6 +5,7 @@ import { Select } from "@/components/ui/Select";
 import { Switch } from "@/components/ui/Switch";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { useProducts } from "@/context/ProductsContext";
+import { useToast } from "@/context/ToastContext";
 import { AGUA_SIZES, type Product, type ProductKind } from "@/data/seedProducts";
 import { productHasSizes, productPriceLabel } from "@/lib/productPricing";
 import { supabase } from "@/lib/supabase";
@@ -36,6 +37,7 @@ const kindOptions = [
 
 export function CatalogoPanel() {
   const { products, refresh } = useProducts();
+  const toast = useToast();
   const [mode, setMode] = useState<"list" | "create" | "edit">("list");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -45,7 +47,6 @@ export function CatalogoPanel() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
 
   const editing = products.find((p) => p.id === editingId) ?? null;
 
@@ -74,7 +75,6 @@ export function CatalogoPanel() {
 
   function openCreate() {
     setError(null);
-    setMessage(null);
     setForm(emptyForm);
     setImageFile(null);
     if (imagePreview) URL.revokeObjectURL(imagePreview);
@@ -85,7 +85,6 @@ export function CatalogoPanel() {
 
   function openEdit(product: Product) {
     setError(null);
-    setMessage(null);
     setEditingId(product.id);
     setMode("edit");
   }
@@ -103,25 +102,28 @@ export function CatalogoPanel() {
   async function createProduct() {
     if (!supabase) return;
     setError(null);
-    setMessage(null);
     const usingSizes = form.kind === "drink" && form.hasSizes;
     const chicaCents = Math.round(Number(form.priceChica) * 100);
     const grandeCents = Math.round(Number(form.priceGrande) * 100);
     const priceCents = usingSizes ? chicaCents : Math.round(Number(form.price) * 100);
     if (!form.name.trim()) {
+      toast.error("No se pudo crear", "El nombre es obligatorio.");
       setError("El nombre es obligatorio.");
       return;
     }
     if (!form.description.trim()) {
+      toast.error("No se pudo crear", "La descripción corta es obligatoria.");
       setError("La descripción corta es obligatoria.");
       return;
     }
     if (usingSizes) {
       if (Number.isNaN(chicaCents) || chicaCents < 0 || Number.isNaN(grandeCents) || grandeCents < 0) {
+        toast.error("No se pudo crear", "Escribe precios válidos para chica y grande.");
         setError("Escribe precios válidos para chica y grande.");
         return;
       }
     } else if (Number.isNaN(priceCents) || priceCents < 0) {
+      toast.error("No se pudo crear", "Escribe un precio válido en pesos.");
       setError("Escribe un precio válido en pesos.");
       return;
     }
@@ -156,7 +158,9 @@ export function CatalogoPanel() {
 
     if (insertError || !data) {
       setCreating(false);
-      setError(insertError?.message ?? "No se pudo crear el producto.");
+      const msg = insertError?.message ?? "No se pudo crear el producto.";
+      setError(msg);
+      toast.error("Producto no creado", msg);
       return;
     }
 
@@ -168,11 +172,13 @@ export function CatalogoPanel() {
       if (!uploadError) {
         const { data: pub } = supabase.storage.from("product-images").getPublicUrl(path);
         await supabase.from("products").update({ image_url: pub.publicUrl }).eq("id", data.id);
+      } else {
+        toast.info("Producto creado", "La foto no se pudo subir; puedes editarla después.");
       }
     }
 
     setCreating(false);
-    setMessage("Producto agregado al menú.");
+    toast.success("Producto creado", `"${form.name.trim()}" ya está en el menú.`);
     cancelForm();
     void refresh();
   }
@@ -360,7 +366,7 @@ export function CatalogoPanel() {
           onSaved={async () => {
             await refresh();
             cancelForm();
-            setMessage("Cambios guardados.");
+            toast.success("Producto actualizado", "Los cambios ya se ven en el menú.");
           }}
           onCancel={cancelForm}
         />
@@ -378,7 +384,6 @@ export function CatalogoPanel() {
       {error ? (
         <p className="rounded-[10px] border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm text-terracotta">{error}</p>
       ) : null}
-      {message ? <p className="rounded-[10px] border border-ink/10 bg-paper px-4 py-3 text-sm text-clay">{message}</p> : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <label className="relative block min-w-0 flex-1 py-1 sm:max-w-sm">
@@ -454,7 +459,14 @@ export function CatalogoPanel() {
                         <Pencil size={14} aria-hidden />
                         Editar
                       </button>
-                      <DeleteProductButton product={product} onDone={() => void refresh()} />
+                      <DeleteProductButton
+                        product={product}
+                        onDone={() => {
+                          toast.success("Producto eliminado", `"${product.name}" ya no aparece en el menú.`);
+                          void refresh();
+                        }}
+                        onError={(msg) => toast.error("No se pudo eliminar", msg)}
+                      />
                     </div>
                   </article>
                 </li>
@@ -499,7 +511,15 @@ export function CatalogoPanel() {
   );
 }
 
-function DeleteProductButton({ product, onDone }: { product: Product; onDone: () => void }) {
+function DeleteProductButton({
+  product,
+  onDone,
+  onError,
+}: {
+  product: Product;
+  onDone: () => void;
+  onError: (message: string) => void;
+}) {
   const [busy, setBusy] = useState(false);
 
   async function remove() {
@@ -514,7 +534,7 @@ function DeleteProductButton({ product, onDone }: { product: Product; onDone: ()
     setBusy(true);
     const { error } = await supabase.from("products").update({ archived: true }).eq("id", product.id);
     setBusy(false);
-    if (error) alert(error.message);
+    if (error) onError(error.message);
     else onDone();
   }
 
@@ -559,6 +579,7 @@ function ProductEditor({
   const [isFeatured, setIsFeatured] = useState(product.isFeatured);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     setName(product.name);
@@ -587,12 +608,16 @@ function ProductEditor({
     const grandeCents = Math.round(Number(priceGrande) * 100);
     const priceCents = usingSizes ? chicaCents : Math.round(Number(price) * 100);
     if (!name.trim() || Number.isNaN(priceCents) || priceCents < 0) {
-      setMessage("El nombre y el precio son obligatorios.");
+      const msg = "El nombre y el precio son obligatorios.";
+      setMessage(msg);
+      toast.error("No se pudo guardar", msg);
       setSaving(false);
       return;
     }
     if (usingSizes && (Number.isNaN(grandeCents) || grandeCents < 0)) {
-      setMessage("Escribe precios válidos para chica y grande.");
+      const msg = "Escribe precios válidos para chica y grande.";
+      setMessage(msg);
+      toast.error("No se pudo guardar", msg);
       setSaving(false);
       return;
     }
@@ -619,8 +644,10 @@ function ProductEditor({
       })
       .eq("id", product.id);
     setSaving(false);
-    if (error) setMessage(error.message);
-    else await onSaved();
+    if (error) {
+      setMessage(error.message);
+      toast.error("Producto no actualizado", error.message);
+    } else await onSaved();
   }
 
   async function upload(file: File) {
@@ -629,11 +656,13 @@ function ProductEditor({
     const { error } = await supabase.storage.from("product-images").upload(path, file, { upsert: true });
     if (error) {
       setMessage(error.message);
+      toast.error("Foto no actualizada", error.message);
       return;
     }
     const { data } = supabase.storage.from("product-images").getPublicUrl(path);
     await supabase.from("products").update({ image_url: data.publicUrl }).eq("id", product.id);
     setMessage("Foto actualizada.");
+    toast.success("Foto actualizada", "La imagen del producto ya se ve en el menú.");
     onRefresh();
   }
 

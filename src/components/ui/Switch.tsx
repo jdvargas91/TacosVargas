@@ -5,20 +5,26 @@ type SwitchProps = {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
   label?: string;
+  /** Accesible cuando no hay label visible. */
+  ariaLabel?: string;
   description?: string;
   disabled?: boolean;
   id?: string;
   className?: string;
+  /** Color del switch encendido. `success` = verde (disponible). */
+  tone?: "accent" | "success";
 };
 
 export function Switch({
   checked,
   onCheckedChange,
   label,
+  ariaLabel,
   description,
   disabled = false,
   id,
   className,
+  tone = "accent",
 }: SwitchProps) {
   const autoId = useId();
   const switchId = id ?? autoId;
@@ -29,12 +35,12 @@ export function Switch({
       type="button"
       role="switch"
       aria-checked={checked}
-      aria-label={label}
+      aria-label={ariaLabel ?? label}
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
         "relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200",
-        checked ? "bg-terracotta" : "bg-ink/20",
+        checked ? (tone === "success" ? "bg-emerald-500" : "bg-terracotta") : "bg-ink/20",
         disabled && "cursor-not-allowed opacity-50",
       )}
     >

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Ban, UserPlus } from "lucide-react";
 import { Select } from "@/components/ui/Select";
-import { supabase } from "@/lib/supabase";
 import type { UserRole } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
+import { supabase } from "@/lib/supabase";
 
 type Invite = {
   id: string;
@@ -43,6 +44,7 @@ const memberRoleOptions = [
 ];
 
 export function EquipoPanel() {
+  const toast = useToast();
   const [invites, setInvites] = useState<Invite[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [email, setEmail] = useState("");
@@ -73,6 +75,7 @@ export function EquipoPanel() {
     const trimmed = email.trim().toLowerCase();
     if (!trimmed.includes("@")) {
       setError("Escribe un email válido.");
+      toast.error("Invitación no enviada", "Escribe un email válido.");
       return;
     }
     const { data: session } = await supabase.auth.getSession();
@@ -84,16 +87,24 @@ export function EquipoPanel() {
     });
     if (insertError) {
       setError(insertError.message);
+      toast.error("Invitación no enviada", insertError.message);
       return;
     }
     setEmail("");
-    setMessage(`Invitación enviada a ${trimmed}. Debe entrar con Google (botón del sitio o /login) usando ese correo.`);
+    const ok = `Invitación enviada a ${trimmed}. Debe entrar con Google usando ese correo.`;
+    setMessage(ok);
+    toast.success("Invitación creada", ok);
     void refresh();
   }
 
   async function revoke(id: string) {
     if (!supabase) return;
-    await supabase.from("team_invites").update({ status: "revoked" }).eq("id", id);
+    const { error: revokeError } = await supabase.from("team_invites").update({ status: "revoked" }).eq("id", id);
+    if (revokeError) {
+      toast.error("Invitación no revocada", revokeError.message);
+      return;
+    }
+    toast.info("Invitación revocada", "Ya no podrá usarse para unirse al equipo.");
     void refresh();
   }
 
@@ -103,8 +114,13 @@ export function EquipoPanel() {
       .from("profiles")
       .update({ role: next, updated_at: new Date().toISOString() })
       .eq("user_id", userId);
-    if (updateError) setError(updateError.message);
-    else void refresh();
+    if (updateError) {
+      setError(updateError.message);
+      toast.error("Rol no actualizado", updateError.message);
+    } else {
+      toast.success("Rol actualizado", `Nuevo rol: ${next}.`);
+      void refresh();
+    }
   }
 
   return (

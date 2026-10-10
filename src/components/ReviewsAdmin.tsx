@@ -5,6 +5,7 @@ import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Select } from "@/components/ui/Select";
 import { Switch } from "@/components/ui/Switch";
 import { useReviews } from "@/context/ReviewsContext";
+import { useToast } from "@/context/ToastContext";
 import type { Review } from "@/data/reviews";
 
 function emptyReview(): Review {
@@ -25,6 +26,7 @@ const ratingOptions = [5, 4, 3, 2, 1].map((n) => ({
 
 export function ReviewsAdmin() {
   const { reviews, upsert, remove } = useReviews();
+  const toast = useToast();
   const [draft, setDraft] = useState<Review>(emptyReview());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -40,8 +42,12 @@ export function ReviewsAdmin() {
   }
 
   async function submit() {
-    if (!draft.author.trim() || !draft.text.trim()) return;
+    if (!draft.author.trim() || !draft.text.trim()) {
+      toast.error("Revisa la opinión", "Autor y texto son obligatorios.");
+      return;
+    }
     setError(null);
+    const wasEdit = Boolean(editingId);
     try {
       await upsert({
         ...draft,
@@ -49,9 +55,15 @@ export function ReviewsAdmin() {
         text: draft.text.trim(),
         rating: Math.min(5, Math.max(1, Number(draft.rating) || 5)),
       });
+      toast.success(
+        wasEdit ? "Opinión actualizada" : "Opinión creada",
+        wasEdit ? "Los cambios ya están guardados." : "La opinión se agregó correctamente.",
+      );
       reset();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo guardar");
+      const msg = err instanceof Error ? err.message : "No se pudo guardar";
+      setError(msg);
+      toast.error(wasEdit ? "Opinión no actualizada" : "Opinión no creada", msg);
     }
   }
 
@@ -160,7 +172,19 @@ export function ReviewsAdmin() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => void remove(review.id)}
+                  onClick={() => {
+                    void (async () => {
+                      try {
+                        await remove(review.id);
+                        toast.success("Opinión eliminada", `Se quitó la opinión de ${review.author}.`);
+                      } catch (err) {
+                        toast.error(
+                          "Opinión no eliminada",
+                          err instanceof Error ? err.message : "No se pudo borrar",
+                        );
+                      }
+                    })();
+                  }}
                   className="inline-flex h-11 items-center gap-2 rounded-[10px] border border-terracotta/35 px-4 text-sm font-medium text-terracotta"
                 >
                   <Trash2 size={16} aria-hidden />

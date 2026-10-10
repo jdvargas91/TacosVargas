@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import useEmblaCarousel from "embla-carousel-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, ShoppingBag, UtensilsCrossed } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -88,13 +89,19 @@ export function ProductDetail() {
   const unitPrice = productUnitPrice(product, hasSizes ? size : null);
   const tagsLabel = isTaco ? "Ingredientes" : "Sabores";
   const showTags = product.ingredients.length > 0;
+  const reduce = useReducedMotion();
 
   return (
     <>
       <Seo title={`${product.name} · ${business.name}`} description={product.description} />
       <Header />
       <main id="contenido" className="px-4 pb-20 pt-28 md:px-6">
-        <div className="mx-auto max-w-6xl">
+        <motion.div
+          className="mx-auto max-w-6xl"
+          initial={reduce ? false : { opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+        >
           <p className="text-sm text-clay">
             <Link to="/#menu" className="hover:text-ember">
               Menú
@@ -104,6 +111,11 @@ export function ProductDetail() {
           </p>
 
           <div className="mt-8 grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
+            <motion.div
+              initial={reduce ? false : { opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            >
             <ProductMedia
               src={product.imageUrl}
               alt={product.name}
@@ -122,8 +134,13 @@ export function ProductDetail() {
                 </span>
               ) : null}
             </ProductMedia>
+            </motion.div>
 
-            <div>
+            <motion.div
+              initial={reduce ? false : { opacity: 0, x: 16 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.55, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+            >
               <h1 className="font-display text-4xl text-ink md:text-5xl">{product.name}</h1>
               <p className="mt-3 text-3xl font-semibold text-ink">{formatMxn(unitPrice)}</p>
               <p className="mt-5 max-w-prose text-clay">{product.longDescription}</p>
@@ -186,13 +203,13 @@ export function ProductDetail() {
                   Listo. Puedes seguir armando o ir al pedido.
                 </p>
               ) : null}
-            </div>
+            </motion.div>
           </div>
 
           <CompanionPicks current={product} items={companions} />
 
           {related.length > 0 ? <RelatedPicks productKind={product.kind} items={related} /> : null}
-        </div>
+        </motion.div>
       </main>
       <Footer />
     </>
@@ -242,23 +259,30 @@ function RelatedPicks({
       </div>
       <div className="mt-8">
         <div className="-mx-1 overflow-hidden px-2 pb-6 pt-1 sm:px-3 sm:pb-8" ref={emblaRef}>
-          <ul className="flex gap-5">
-            {items.map((item) => (
-              <li key={item.id} className="min-w-0 flex-[0_0_78%] sm:flex-[0_0_46%] lg:flex-[0_0_31%]">
-                <Link to={productPath(item.id)} className="card-shadow group block overflow-hidden rounded-2xl bg-smoke">
-                  <ProductMedia src={item.imageUrl} alt={item.name} tone="card" />
-                  <div className="p-4">
-                    <p className="font-semibold text-ink group-hover:text-ember">{item.name}</p>
-                    <p className="mt-1 text-sm text-ink">
-                      {item.sizes?.length
-                        ? `Desde ${formatMxn(Math.min(...item.sizes.map((s) => s.priceCents)))}`
-                        : formatMxn(item.priceCents)}
-                    </p>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
+        <ul className="flex gap-5">
+          {items.map((item, index) => (
+            <motion.li
+              key={item.id}
+              className="min-w-0 flex-[0_0_78%] sm:flex-[0_0_46%] lg:flex-[0_0_31%]"
+              initial={{ opacity: 0, y: 14 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-6%" }}
+              transition={{ duration: 0.45, delay: Math.min(index * 0.05, 0.3), ease: [0.22, 1, 0.36, 1] }}
+            >
+              <Link to={productPath(item.id)} className="card-shadow group block overflow-hidden rounded-2xl bg-smoke">
+                <ProductMedia src={item.imageUrl} alt={item.name} tone="card" />
+                <div className="p-4">
+                  <p className="font-semibold text-ink group-hover:text-ember">{item.name}</p>
+                  <p className="mt-1 text-sm text-ink">
+                    {item.sizes?.length
+                      ? `Desde ${formatMxn(Math.min(...item.sizes.map((s) => s.priceCents)))}`
+                      : formatMxn(item.priceCents)}
+                  </p>
+                </div>
+              </Link>
+            </motion.li>
+          ))}
+        </ul>
         </div>
       </div>
     </section>

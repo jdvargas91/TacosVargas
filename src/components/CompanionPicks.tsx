@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import useEmblaCarousel from "embla-carousel-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Product } from "@/data/seedProducts";
 import { productPath } from "@/data/seedProducts";
@@ -9,6 +10,7 @@ import { productPriceLabel } from "@/lib/productPricing";
 export function CompanionPicks({ current, items }: { current: Product; items: Product[] }) {
   const pairingDrinks = current.kind === "taco";
   const [emblaRef, embla] = useEmblaCarousel({ align: "start", containScroll: "trimSnaps" });
+  const reduce = useReducedMotion();
 
   if (items.length === 0) return null;
 
@@ -50,8 +52,15 @@ export function CompanionPicks({ current, items }: { current: Product; items: Pr
       <div className="mt-8">
         <div className="-mx-1 overflow-hidden px-2 pb-6 pt-1 sm:px-3 sm:pb-8" ref={emblaRef}>
           <ul className="flex gap-5">
-            {items.map((item) => (
-              <li key={item.id} className="min-w-0 flex-[0_0_78%] sm:flex-[0_0_46%] lg:flex-[0_0_31%]">
+            {items.map((item, index) => (
+              <motion.li
+                key={item.id}
+                className="min-w-0 flex-[0_0_78%] sm:flex-[0_0_46%] lg:flex-[0_0_31%]"
+                initial={reduce ? false : { opacity: 0, y: 14 }}
+                whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-6%" }}
+                transition={{ duration: 0.45, delay: Math.min(index * 0.05, 0.3), ease: [0.22, 1, 0.36, 1] }}
+              >
                 <Link to={productPath(item.id)} className="card-shadow group block overflow-hidden rounded-2xl bg-smoke">
                   <ProductMedia src={item.imageUrl} alt={item.name} tone="card" />
                   <div className="p-4">
@@ -59,7 +68,7 @@ export function CompanionPicks({ current, items }: { current: Product; items: Pr
                     <p className="mt-1 text-sm text-ink">{productPriceLabel(item)}</p>
                   </div>
                 </Link>
-              </li>
+              </motion.li>
             ))}
           </ul>
         </div>

@@ -1,8 +1,10 @@
+import { motion, useReducedMotion } from "framer-motion";
 import { Reveal } from "@/components/Reveal";
 import { useSiteContent } from "@/context/SiteContentContext";
 
 export function KitchenCrew() {
   const { kitchen } = useSiteContent();
+  const reduce = useReducedMotion();
 
   return (
     <section id="cocina" className="kitchen-heat text-tortilla">
@@ -20,16 +22,18 @@ export function KitchenCrew() {
 
             return (
               <li key={person.name}>
-                <Reveal delay={0.05}>
+                <Reveal delay={0.05 * index}>
                   <article
                     className={`grid items-start gap-6 lg:items-center lg:gap-14 ${
                       featured ? "lg:grid-cols-[1.25fr_0.75fr]" : "lg:grid-cols-[0.92fr_1.08fr]"
                     }`}
                   >
-                    <figure
+                    <motion.figure
                       className={`kitchen-frame ${reverse ? "lg:order-2" : ""} ${
                         featured ? "aspect-[5/4]" : "aspect-[4/5] max-lg:aspect-[5/4]"
                       }`}
+                      whileHover={reduce ? undefined : { scale: 1.015 }}
+                      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                     >
                       <img
                         src={person.image}
@@ -37,7 +41,7 @@ export function KitchenCrew() {
                         loading="lazy"
                         className="h-full w-full object-cover"
                       />
-                    </figure>
+                    </motion.figure>
                     <div className={reverse ? "lg:order-1" : ""}>
                       <h3
                         className={`font-display leading-[1.05] ${

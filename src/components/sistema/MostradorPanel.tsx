@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/Switch";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { SizePicker } from "@/components/SizePicker";
 import { useProducts } from "@/context/ProductsContext";
+import { useToast } from "@/context/ToastContext";
 import type { DrinkSizeId, Product, ProductKind } from "@/data/seedProducts";
 import { cartLineKey, parseCartLineKey } from "@/lib/cart";
 import { formatMxn, formatOrderCode } from "@/lib/format";
@@ -71,6 +72,7 @@ export function MostradorPanel() {
   const [searchParams, setSearchParams] = useSearchParams();
   const editParam = searchParams.get("edit");
   const { products, refresh } = useProducts();
+  const toast = useToast();
   const [kindTab, setKindTab] = useState<ProductKind>("taco");
   const [cart, setCart] = useState<Record<string, number>>({});
   /** Cantidades ya reservadas en el pedido (para no bloquear por stock al editar). */
@@ -252,14 +254,16 @@ export function MostradorPanel() {
     setSoldOutBusy(false);
     setSoldOutTarget(null);
     if (rpcError) {
-      setError(rpcError.message ?? "No se pudo cambiar la disponibilidad");
+      const msg = rpcError.message ?? "No se pudo cambiar la disponibilidad";
+      setError(msg);
+      toast.error("Disponibilidad no actualizada", msg);
       return;
     }
-    setMessage(
-      next
-        ? `${product.name} marcado como agotado`
-        : `${product.name} vuelve a estar disponible`,
-    );
+    const okMsg = next
+      ? `${product.name} marcado como agotado`
+      : `${product.name} vuelve a estar disponible`;
+    setMessage(okMsg);
+    toast.success(next ? "Producto agotado" : "Producto disponible", okMsg);
     void refresh();
   }
 
@@ -272,15 +276,18 @@ export function MostradorPanel() {
     if (nameErr) {
       setNameError(nameErr);
       setError(nameErr);
+      toast.error("Revisa el ticket", nameErr);
       return;
     }
     const name = customerName.trim();
     if (selected.length < 1) {
       setError("Elige al menos un producto.");
+      toast.error("Revisa el ticket", "Elige al menos un producto.");
       return;
     }
     if (!supabase) {
       setError("Supabase no está configurado.");
+      toast.error("Sin conexión", "Supabase no está configurado.");
       return;
     }
 
@@ -300,13 +307,17 @@ export function MostradorPanel() {
       setSubmitting(false);
 
       if (rpcError || !data || typeof data !== "object" || !("id" in data)) {
-        setError(rpcError?.message ?? "No se pudo guardar el pedido");
+        const msg = rpcError?.message ?? "No se pudo guardar el pedido";
+        setError(msg);
+        toast.error("Pedido no actualizado", msg);
         return;
       }
 
       const payload = data as RpcOrderPayload;
       const folio = formatOrderCode(payload.order_number, String(payload.id));
-      setMessage(`${folio} actualizado · ${formatMxn(payload.total_cents ?? totalCents)}`);
+      const okMsg = `${folio} actualizado · ${formatMxn(payload.total_cents ?? totalCents)}`;
+      setMessage(okMsg);
+      toast.success("Pedido actualizado", okMsg);
       setBaselineQty({ ...cart });
       void refresh();
       void loadOpenOrders();
@@ -320,13 +331,17 @@ export function MostradorPanel() {
     setSubmitting(false);
 
     if (rpcError || !data || typeof data !== "object" || !("id" in data)) {
-      setError(rpcError?.message ?? "No se pudo abrir el pedido");
+      const msg = rpcError?.message ?? "No se pudo abrir el pedido";
+      setError(msg);
+      toast.error("Pedido no creado", msg);
       return;
     }
 
     const payload = data as RpcOrderPayload;
     const folio = formatOrderCode(payload.order_number, String(payload.id));
-    setMessage(`Pedido ${folio} abierto · puedes seguir editándolo`);
+    const okMsg = `Pedido ${folio} abierto · puedes seguir editándolo`;
+    setMessage(okMsg);
+    toast.success("Pedido creado", okMsg);
     const createdId = String(payload.id);
     setEditingOrderId(createdId);
     setBaselineQty({ ...cart });
@@ -498,8 +513,12 @@ export function MostradorPanel() {
                         {product.soldOut ? "Agotado" : "Disponible"}
                       </span>
                       <Switch
-                        checked={product.soldOut}
-                        onCheckedChange={(next) => setSoldOutTarget({ product, next })}
+                        tone="success"
+                        checked={!product.soldOut}
+                        ariaLabel={product.soldOut ? "Marcar como disponible" : "Marcar como agotado"}
+                        onCheckedChange={(available) =>
+                          setSoldOutTarget({ product, next: !available })
+                        }
                       />
                     </div>
                   </div>
