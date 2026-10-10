@@ -256,37 +256,55 @@ export function SitioPanel() {
           />
         </label>
         {kitchenDraft.people.map((person, index) => (
-          <div key={index} className="rounded-[10px] border border-ink/10 bg-paper/50 p-4">
-            <Field
-              label="Nombre"
-              value={person.name}
-              onChange={(v) => {
-                const people = [...kitchenDraft.people];
-                people[index] = { ...people[index], name: v };
-                setKitchenDraft({ ...kitchenDraft, people });
-              }}
-            />
-            <Field
-              label="Rol"
-              value={person.role}
-              onChange={(v) => {
-                const people = [...kitchenDraft.people];
-                people[index] = { ...people[index], role: v };
-                setKitchenDraft({ ...kitchenDraft, people });
-              }}
-            />
-            <label className="mt-2 block text-sm text-clay">
-              <span className="font-medium text-ink/80">Estación</span>
-              <textarea
-                value={person.station}
-                onChange={(e) => {
+          <div key={index} className="grid gap-4 rounded-[10px] border border-ink/10 bg-paper/50 p-4 md:grid-cols-[140px_1fr]">
+            <MediaUpload
+              label="Foto de perfil"
+              hint="JPG o PNG · se muestra en Cocina"
+              value={person.image}
+              onChange={(file) =>
+                upload(file, (url) => {
                   const people = [...kitchenDraft.people];
-                  people[index] = { ...people[index], station: e.target.value };
+                  people[index] = {
+                    ...people[index],
+                    image: url,
+                    imageAlt: people[index].imageAlt || `Foto de ${people[index].name}`,
+                  };
+                  setKitchenDraft({ ...kitchenDraft, people });
+                })
+              }
+            />
+            <div className="grid gap-2">
+              <Field
+                label="Nombre"
+                value={person.name}
+                onChange={(v) => {
+                  const people = [...kitchenDraft.people];
+                  people[index] = { ...people[index], name: v };
                   setKitchenDraft({ ...kitchenDraft, people });
                 }}
-                className="mt-2 min-h-16 w-full rounded-[10px] border border-ink/15 bg-white px-3 py-2 text-ink"
               />
-            </label>
+              <Field
+                label="Rol"
+                value={person.role}
+                onChange={(v) => {
+                  const people = [...kitchenDraft.people];
+                  people[index] = { ...people[index], role: v };
+                  setKitchenDraft({ ...kitchenDraft, people });
+                }}
+              />
+              <label className="mt-2 block text-sm text-clay">
+                <span className="font-medium text-ink/80">Estación</span>
+                <textarea
+                  value={person.station}
+                  onChange={(e) => {
+                    const people = [...kitchenDraft.people];
+                    people[index] = { ...people[index], station: e.target.value };
+                    setKitchenDraft({ ...kitchenDraft, people });
+                  }}
+                  className="mt-2 min-h-16 w-full rounded-[10px] border border-ink/15 bg-white px-3 py-2 text-ink"
+                />
+              </label>
+            </div>
           </div>
         ))}
       </section>

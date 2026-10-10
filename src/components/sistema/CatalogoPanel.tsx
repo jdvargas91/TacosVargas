@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { PackageMinus, PackagePlus, Pencil, Save, Search, Warehouse, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, PackageMinus, PackagePlus, Pencil, Save, Search, X } from "lucide-react";
 import { MediaUpload } from "@/components/ui/MediaUpload";
 import { Select } from "@/components/ui/Select";
 import { Switch } from "@/components/ui/Switch";
@@ -8,6 +8,8 @@ import { useProducts } from "@/context/ProductsContext";
 import { AGUA_SIZES, type Product, type ProductKind } from "@/data/seedProducts";
 import { productHasSizes, productPriceLabel } from "@/lib/productPricing";
 import { supabase } from "@/lib/supabase";
+
+const PAGE_SIZE = 5;
 
 const emptyForm = {
   kind: "taco" as ProductKind,
@@ -20,10 +22,8 @@ const emptyForm = {
   priceChica: "22",
   priceGrande: "38",
   hasSizes: false,
-  stock: "100",
   soldOut: false,
   isFeatured: false,
-  sortOrder: "100",
 };
 
 const fieldClass = "mt-2 h-11 w-full rounded-[10px] border border-ink/15 bg-white px-3 text-ink";
@@ -39,6 +39,7 @@ export function CatalogoPanel() {
   const [mode, setMode] = useState<"list" | "create" | "edit">("list");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -53,6 +54,17 @@ export function CatalogoPanel() {
     if (!q) return products;
     return products.filter((p) => p.name.toLowerCase().includes(q));
   }, [products, query]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageItems = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, currentPage]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query]);
 
   useEffect(() => {
     return () => {
@@ -120,6 +132,8 @@ export function CatalogoPanel() {
           { id: "grande", label: "Grande", priceCents: grandeCents },
         ]
       : null;
+    const nextSort =
+      products.reduce((max, product) => Math.max(max, product.sortOrder || 0), 0) + 10;
     const { data, error: insertError } = await supabase
       .from("products")
       .insert({
@@ -128,13 +142,13 @@ export function CatalogoPanel() {
         description: form.description.trim(),
         long_description: form.longDescription.trim() || form.description.trim(),
         ingredients: splitList(form.ingredients),
-        allergens: splitList(form.allergens),
+        allergens: form.kind === "taco" ? splitList(form.allergens) : [],
         price_cents: priceCents,
         sizes: sizesPayload,
         stock: 100,
         sold_out: false,
         is_featured: form.isFeatured,
-        sort_order: Number(form.sortOrder) || 100,
+        sort_order: nextSort,
         archived: false,
       })
       .select("id")
@@ -265,16 +279,7 @@ export function CatalogoPanel() {
                         placeholder="Ej. Chía"
                       />
                     </Field>
-                  ) : (
-                    <Field label="Contiene" hint="Opcional. Sepáralos con coma" className="md:col-span-2">
-                      <input
-                        value={form.allergens}
-                        onChange={(e) => setForm({ ...form, allergens: e.target.value })}
-                        className={fieldClass}
-                        placeholder="Opcional…"
-                      />
-                    </Field>
-                  )}
+                  ) : null}
                 </>
               )}
               {form.kind === "drink" && form.hasSizes ? (
@@ -306,14 +311,6 @@ export function CatalogoPanel() {
                   />
                 </Field>
               )}
-              <Field label="Orden en el menú" hint="Número más chico = aparece primero" required>
-                <input
-                  value={form.sortOrder}
-                  onChange={(e) => setForm({ ...form, sortOrder: e.target.value })}
-                  className={fieldClass}
-                  inputMode="numeric"
-                />
-              </Field>
               <div className="md:col-span-2">
                 <Switch
                   checked={form.isFeatured}
@@ -357,7 +354,16 @@ export function CatalogoPanel() {
           <h2 className="font-display text-2xl text-ink">Editar producto</h2>
           <p className="mt-1 text-sm text-clay">{editing.name}</p>
         </div>
-        <ProductEditor product={editing} onSaved={() => void refresh()} onCancel={cancelForm} />
+        <ProductEditor
+          product={editing}
+          onRefresh={() => void refresh()}
+          onSaved={async () => {
+            await refresh();
+            cancelForm();
+            setMessage("Cambios guardados.");
+          }}
+          onCancel={cancelForm}
+        />
       </div>
     );
   }
@@ -365,8 +371,8 @@ export function CatalogoPanel() {
   return (
     <div className="space-y-6">
       <p className="max-w-2xl text-sm text-clay">
-        Aquí armas el menú que ve el cliente en la página. Puedes dar de alta tacos o bebidas, subir foto, marcar si ya
-        no hay y sumar o restar piezas del almacén.
+        Aquí armas el menú que ve el cliente en la página. Puedes dar de alta tacos o bebidas, subir foto y marcar si
+        ya no hay por hoy.
       </p>
 
       {error ? (
@@ -393,6 +399,7 @@ export function CatalogoPanel() {
 
       <p className="text-sm text-clay">
         {filtered.length} de {products.length} producto{products.length === 1 ? "" : "s"}
+        {filtered.length > PAGE_SIZE ? ` · página ${currentPage} de ${totalPages}` : null}
       </p>
 
       {filtered.length === 0 ? (
@@ -400,61 +407,93 @@ export function CatalogoPanel() {
           <p className="text-clay">{query.trim() ? "Ningún producto coincide con la búsqueda." : "Aún no hay productos."}</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-[10px] border border-ink/10 bg-smoke">
-          <ul className="divide-y divide-ink/10">
-            {filtered.map((product) => (
-              <li key={product.id}>
-                <article className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:gap-4 sm:px-4 sm:py-3">
-                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-[8px] bg-paper sm:h-[4.5rem] sm:w-[4.5rem]">
-                    {product.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt=""
-                        width={72}
-                        height={72}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="grid h-full place-items-center text-[10px] text-clay">Sin foto</div>
-                    )}
-                  </div>
+        <>
+          <div className="overflow-hidden rounded-[10px] border border-ink/10 bg-smoke">
+            <ul className="divide-y divide-ink/10">
+              {pageItems.map((product) => (
+                <li key={product.id}>
+                  <article className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:gap-4 sm:px-4 sm:py-3">
+                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-[8px] bg-paper sm:h-[4.5rem] sm:w-[4.5rem]">
+                      {product.imageUrl ? (
+                        <img
+                          src={product.imageUrl}
+                          alt=""
+                          width={72}
+                          height={72}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="grid h-full place-items-center text-[10px] text-clay">Sin foto</div>
+                      )}
+                    </div>
 
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                      <p className="truncate font-medium text-ink">{product.name}</p>
-                      <p className="shrink-0 text-sm font-semibold tabular-nums text-ink">
-                        {productPriceLabel(product)}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                        <p className="truncate font-medium text-ink">{product.name}</p>
+                        <p className="shrink-0 text-sm font-semibold tabular-nums text-ink">
+                          {productPriceLabel(product)}
+                        </p>
+                      </div>
+                      <p className="mt-0.5 text-xs text-clay sm:text-sm">
+                        {product.kind === "drink" ? (productHasSizes(product) ? "Agua fresca" : "Bebida") : "Taco"}
+                        {product.soldOut ? (
+                          <>
+                            <span className="mx-1.5 text-ink/25">·</span>
+                            <span className="text-terracotta">Agotado</span>
+                          </>
+                        ) : null}
                       </p>
                     </div>
-                    <p className="mt-0.5 text-xs text-clay sm:text-sm">
-                      {product.kind === "drink" ? (productHasSizes(product) ? "Agua fresca" : "Bebida") : "Taco"}
-                      <span className="mx-1.5 text-ink/25">·</span>
-                      {product.stock} en existencia
-                      {product.soldOut ? (
-                        <>
-                          <span className="mx-1.5 text-ink/25">·</span>
-                          <span className="text-terracotta">Agotado</span>
-                        </>
-                      ) : null}
-                    </p>
-                  </div>
 
-                  <div className="grid shrink-0 grid-cols-2 gap-2 sm:w-auto sm:grid-cols-[7.5rem_7.5rem]">
-                    <button
-                      type="button"
-                      onClick={() => openEdit(product)}
-                      className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-[10px] border border-ink/15 bg-white px-3 text-sm font-medium text-ink"
-                    >
-                      <Pencil size={14} aria-hidden />
-                      Editar
-                    </button>
-                    <DeleteProductButton product={product} onDone={() => void refresh()} />
-                  </div>
-                </article>
-              </li>
-            ))}
-          </ul>
-        </div>
+                    <div className="grid shrink-0 grid-cols-2 gap-2 sm:w-auto sm:grid-cols-[7.5rem_7.5rem]">
+                      <button
+                        type="button"
+                        onClick={() => openEdit(product)}
+                        className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-[10px] border border-ink/15 bg-white px-3 text-sm font-medium text-ink"
+                      >
+                        <Pencil size={14} aria-hidden />
+                        Editar
+                      </button>
+                      <DeleteProductButton product={product} onDone={() => void refresh()} />
+                    </div>
+                  </article>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {totalPages > 1 ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-clay">
+                Mostrando {(currentPage - 1) * PAGE_SIZE + 1}–
+                {Math.min(currentPage * PAGE_SIZE, filtered.length)} de {filtered.length}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={currentPage <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="inline-flex h-10 items-center gap-1.5 rounded-[10px] border border-ink/15 bg-white px-3 text-sm font-medium text-ink disabled:opacity-40"
+                >
+                  <ChevronLeft size={16} aria-hidden />
+                  Anterior
+                </button>
+                <span className="min-w-16 text-center text-sm tabular-nums text-ink">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className="inline-flex h-10 items-center gap-1.5 rounded-[10px] border border-ink/15 bg-white px-3 text-sm font-medium text-ink disabled:opacity-40"
+                >
+                  Siguiente
+                  <ChevronRight size={16} aria-hidden />
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </>
       )}
     </div>
   );
@@ -494,11 +533,13 @@ function DeleteProductButton({ product, onDone }: { product: Product; onDone: ()
 
 function ProductEditor({
   product,
+  onRefresh,
   onSaved,
   onCancel,
 }: {
   product: Product;
-  onSaved: () => void;
+  onRefresh: () => void;
+  onSaved: () => void | Promise<void>;
   onCancel: () => void;
 }) {
   const [name, setName] = useState(product.name);
@@ -514,11 +555,8 @@ function ProductEditor({
   const [priceGrande, setPriceGrande] = useState(
     String((product.sizes?.find((s) => s.id === "grande")?.priceCents ?? AGUA_SIZES[1].priceCents) / 100),
   );
-  const [stockDelta, setStockDelta] = useState("");
-  const [stockReason, setStockReason] = useState("");
   const [soldOut, setSoldOut] = useState(product.soldOut);
   const [isFeatured, setIsFeatured] = useState(product.isFeatured);
-  const [sortOrder, setSortOrder] = useState(String(product.sortOrder));
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -538,7 +576,6 @@ function ProductEditor({
     );
     setSoldOut(product.soldOut);
     setIsFeatured(product.isFeatured);
-    setSortOrder(String(product.sortOrder));
   }, [product]);
 
   async function save() {
@@ -572,47 +609,18 @@ function ProductEditor({
         description,
         long_description: longDescription,
         ingredients: splitList(ingredients),
-        allergens: splitList(allergens),
+        allergens: product.kind === "taco" ? splitList(allergens) : [],
         price_cents: priceCents,
         sizes: sizesPayload,
         sold_out: soldOut,
         is_featured: isFeatured,
-        sort_order: Number(sortOrder) || 0,
+        sort_order: product.sortOrder,
         updated_at: new Date().toISOString(),
       })
       .eq("id", product.id);
     setSaving(false);
     if (error) setMessage(error.message);
-    else {
-      setMessage("Cambios guardados.");
-      onSaved();
-    }
-  }
-
-  async function adjustStock() {
-    if (!supabase) return;
-    const delta = Number(stockDelta);
-    if (!delta || Number.isNaN(delta)) {
-      setMessage("Escribe cuántas piezas sumar (+) o restar (−). Ejemplo: 10 o -5.");
-      return;
-    }
-    const { error } = await supabase.rpc("adjust_product_stock", {
-      p_product_id: product.id,
-      p_delta: delta,
-      p_reason: stockReason.trim() || null,
-      p_sold_out: soldOut,
-    });
-    if (error) setMessage(error.message);
-    else {
-      setMessage(
-        delta > 0
-          ? `Se sumaron ${delta} piezas. Ahora hay ${product.stock + delta} en existencia.`
-          : `Se restaron ${Math.abs(delta)} piezas. Ahora hay ${Math.max(0, product.stock + delta)} en existencia.`,
-      );
-      setStockDelta("");
-      setStockReason("");
-      onSaved();
-    }
+    else await onSaved();
   }
 
   async function upload(file: File) {
@@ -626,7 +634,7 @@ function ProductEditor({
     const { data } = supabase.storage.from("product-images").getPublicUrl(path);
     await supabase.from("products").update({ image_url: data.publicUrl }).eq("id", product.id);
     setMessage("Foto actualizada.");
-    onSaved();
+    onRefresh();
   }
 
   return (
@@ -634,14 +642,6 @@ function ProductEditor({
       <MediaUpload value={product.imageUrl} label="Foto del producto" onChange={(file) => void upload(file)} />
 
       <div className="grid gap-3">
-        <div>
-          <p className="text-sm text-clay">
-            En existencia: <span className="font-semibold text-ink">{product.stock}</span> ·{" "}
-            {productPriceLabel(product)}
-          </p>
-          <p className="mt-0.5 text-xs text-clay">Lo que ve el cliente en el menú público</p>
-        </div>
-
         <Field label="Nombre" required>
           <input value={name} onChange={(e) => setName(e.target.value)} className={fieldClass} />
         </Field>
@@ -672,15 +672,11 @@ function ProductEditor({
               <Field label="Sabores / notas" hint="Opcional. No pongas agua ni azúcar">
                 <input value={ingredients} onChange={(e) => setIngredients(e.target.value)} className={fieldClass} />
               </Field>
-            ) : (
-              <Field label="Contiene" hint="Opcional. Sepáralos con coma">
-                <input value={allergens} onChange={(e) => setAllergens(e.target.value)} className={fieldClass} />
-              </Field>
-            )}
+            ) : null}
           </>
         )}
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2">
           {product.kind === "drink" && hasSizes ? (
             <>
               <Field label="Precio chica (MXN)" required>
@@ -705,9 +701,6 @@ function ProductEditor({
               <input value={price} onChange={(e) => setPrice(e.target.value)} className={fieldClass} inputMode="decimal" />
             </Field>
           )}
-          <Field label="Orden en el menú" hint="Más chico = primero" required>
-            <input value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} className={fieldClass} inputMode="numeric" />
-          </Field>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -723,40 +716,6 @@ function ProductEditor({
             label="Destacar en el menú"
             description="Resalta este producto como especialidad o recomendación."
           />
-        </div>
-
-        <div className="rounded-[10px] border border-dashed border-ink/20 bg-paper/70 p-4">
-          <p className="font-medium text-ink">Actualizar existencias (almacén)</p>
-          <p className="mt-1 text-sm text-clay">
-            Aquí no escribes el total nuevo: escribes cuánto <strong className="font-medium text-ink">sumar o restar</strong>.
-            Ejemplo: llegó mercancía → escribe <code className="rounded bg-smoke px-1">10</code>. Se echó a perder o se
-            usó → escribe <code className="rounded bg-smoke px-1">-5</code>.
-          </p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-[8rem_1fr_auto]">
-            <Field label="Cantidad (±)">
-              <input
-                value={stockDelta}
-                onChange={(e) => setStockDelta(e.target.value)}
-                className={fieldClass}
-                placeholder="10 o -5"
-                inputMode="numeric"
-              />
-            </Field>
-            <Field label="Motivo" hint="Ej. llegada de proveedor, merma, conteo">
-              <input
-                value={stockReason}
-                onChange={(e) => setStockReason(e.target.value)}
-                className={fieldClass}
-                placeholder="Llegada de proveedor"
-              />
-            </Field>
-            <div className="flex items-end">
-              <button type="button" onClick={() => void adjustStock()} className="btn-secondary h-11 w-full px-4 text-sm sm:w-auto">
-                <Warehouse size={16} aria-hidden />
-                Aplicar cambio
-              </button>
-            </div>
-          </div>
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-3">
