@@ -4,7 +4,9 @@ import { ShoppingBag } from "lucide-react";
 import type { Product } from "@/data/seedProducts";
 import { productPath } from "@/data/seedProducts";
 import { useCart } from "@/context/CartContext";
-import { formatMxn, isProductAvailable } from "@/lib/format";
+import { ProductMedia } from "@/components/ProductMedia";
+import { isProductAvailable } from "@/lib/format";
+import { productPriceLabel } from "@/lib/productPricing";
 
 export function CompanionPicks({ current, items }: { current: Product; items: Product[] }) {
   const { qtyForProduct, addQty } = useCart();
@@ -35,13 +37,9 @@ export function CompanionPicks({ current, items }: { current: Product; items: Pr
           const canAdd = remaining > 0;
 
           return (
-            <li key={item.id} className="card-shadow flex flex-col rounded-2xl bg-smoke">
-              <Link to={productPath(item.id)} className="group block overflow-hidden rounded-t-2xl">
-                <img
-                  src={item.imageUrl}
-                  alt={item.name}
-                  className="aspect-square w-full object-cover transition duration-500 ease-out group-hover:scale-[1.06]"
-                />
+            <li key={item.id} className="card-shadow flex flex-col overflow-hidden rounded-2xl bg-smoke">
+              <Link to={productPath(item.id)} className="block">
+                <ProductMedia src={item.imageUrl} alt={item.name} tone="card" />
               </Link>
               <div className="flex flex-1 flex-col gap-3 p-4">
                 <div>
@@ -50,7 +48,7 @@ export function CompanionPicks({ current, items }: { current: Product; items: Pr
                       {item.name}
                     </Link>
                   </p>
-                  <p className="mt-1 text-sm text-ink">{formatMxn(item.priceCents)}</p>
+                  <p className="mt-1 text-sm text-ink">{productPriceLabel(item)}</p>
                   {inCart > 0 ? (
                     <p className="mt-1 text-sm text-clay">En el pedido: {inCart}</p>
                   ) : null}

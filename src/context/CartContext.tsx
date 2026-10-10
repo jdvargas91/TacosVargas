@@ -6,19 +6,35 @@ import {
   parseCartLineKey,
   readCart,
   writeCart,
+  type CartLineOpts,
   type CartMap,
   type Tortillas,
 } from "@/lib/cart";
+import type { DrinkSizeId } from "@/data/seedProducts";
+import { productHasSizes } from "@/lib/productPricing";
 import { isProductAvailable } from "@/lib/format";
 import { useProducts } from "@/context/ProductsContext";
+
+function lineOptsForProduct(
+  product: { id: string; kind: string; sizes?: { id: DrinkSizeId; label: string; priceCents: number }[] } | undefined,
+  opts?: Tortillas | CartLineOpts,
+): CartLineOpts | undefined {
+  if (!product) return undefined;
+  if (opts === 1 || opts === 2) return { tortillas: opts };
+  if (opts && typeof opts === "object") return opts;
+  if (product.kind === "taco") return { tortillas: 2 };
+  if (productHasSizes(product)) return { size: "chica" };
+  return undefined;
+}
 
 type CartContextValue = {
   cart: CartMap;
   totalItems: number;
   qtyForProduct: (productId: string) => number;
-  setQty: (productId: string, qty: number, tortillas?: Tortillas) => void;
-  addQty: (productId: string, delta?: number, tortillas?: Tortillas) => void;
+  setQty: (productId: string, qty: number, opts?: Tortillas | CartLineOpts) => void;
+  addQty: (productId: string, delta?: number, opts?: Tortillas | CartLineOpts) => void;
   setLineTortillas: (productId: string, from: Tortillas, to: Tortillas) => void;
+  setLineSize: (productId: string, from: DrinkSizeId, to: DrinkSizeId) => void;
   clear: () => void;
 };
 
@@ -46,7 +62,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (!total) continue;
         const max = isProductAvailable(product.soldOut, product.stock) ? product.stock : 0;
         if (total > max) {
-          // Recorta líneas del producto si supera stock
           let remaining = max;
           for (const key of Object.keys(next)) {
             const parsed = parseCartLineKey(key);
@@ -72,11 +87,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [products]);
 
   const setQty = useCallback(
-    (productId: string, qty: number, tortillas?: Tortillas) => {
+    (productId: string, qty: number, opts?: Tortillas | CartLineOpts) => {
       setCart((current) => {
         const product = products.find((item) => item.id === productId);
         const max = product && isProductAvailable(product.soldOut, product.stock) ? product.stock : 0;
-        const key = cartLineKey(productId, product?.kind === "taco" ? tortillas ?? 2 : undefined);
+        const key = cartLineKey(productId, lineOptsForProduct(product, opts));
         const others = cartQtyForProduct(current, productId) - (current[key] ?? 0);
         const nextQty = Math.max(0, Math.min(qty, Math.max(0, max - others)));
         const next = { ...current };
@@ -90,11 +105,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 
   const addQty = useCallback(
-    (productId: string, delta = 1, tortillas?: Tortillas) => {
+    (productId: string, delta = 1, opts?: Tortillas | CartLineOpts) => {
       setCart((current) => {
         const product = products.find((item) => item.id === productId);
         const max = product && isProductAvailable(product.soldOut, product.stock) ? product.stock : 0;
-        const key = cartLineKey(productId, product?.kind === "taco" ? tortillas ?? 2 : undefined);
+        const key = cartLineKey(productId, lineOptsForProduct(product, opts));
         const others = cartQtyForProduct(current, productId) - (current[key] ?? 0);
         const nextQty = Math.max(0, Math.min((current[key] ?? 0) + delta, Math.max(0, max - others)));
         const next = { ...current };
@@ -107,17 +122,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
     [products],
   );
 
-  /**
-   * Cambia las tortillas de una línea de taco conservando su posición en el carrito.
-   * Si ya existe una línea con las tortillas destino, fusiona las cantidades (sin duplicar).
-   */
   const setLineTortillas = useCallback((productId: string, from: Tortillas, to: Tortillas) => {
     if (from === to) return;
     setCart((current) => {
-      const fromKey = cartLineKey(productId, from);
+      const fromKey = cartLineKey(productId, { tortillas: from });
       if (!current[fromKey]) return current;
-      const toKey = cartLineKey(productId, to);
-      // Reconstruimos en el mismo orden; fromKey se mapea a toKey y se suma donde toque.
+      const toKey = cartLineKey(productId, { tortillas: to });
+      const next: CartMap = {};
+      for (const [key, qty] of Object.entries(current)) {
+        const finalKey = key === fromKey ? toKey : key;
+        next[finalKey] = (next[finalKey] ?? 0) + qty;
+      }
+      writeCart(next);
+      return next;
+    });
+  }, []);
+
+  const setLineSize = useCallback((productId: string, from: DrinkSizeId, to: DrinkSizeId) => {
+    if (from === to) return;
+    setCart((current) => {
+      const fromKey = cartLineKey(productId, { size: from });
+      if (!current[fromKey]) return current;
+      const toKey = cartLineKey(productId, { size: to });
       const next: CartMap = {};
       for (const [key, qty] of Object.entries(current)) {
         const finalKey = key === fromKey ? toKey : key;
@@ -136,8 +162,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const qtyForProduct = useCallback((productId: string) => cartQtyForProduct(cart, productId), [cart]);
 
   const value = useMemo(
-    () => ({ cart, totalItems: cartQty(cart), qtyForProduct, setQty, addQty, setLineTortillas, clear }),
-    [cart, clear, setQty, addQty, setLineTortillas, qtyForProduct],
+    () => ({
+      cart,
+      totalItems: cartQty(cart),
+      qtyForProduct,
+      setQty,
+      addQty,
+      setLineTortillas,
+      setLineSize,
+      clear,
+    }),
+    [cart, clear, setQty, addQty, setLineTortillas, setLineSize, qtyForProduct],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

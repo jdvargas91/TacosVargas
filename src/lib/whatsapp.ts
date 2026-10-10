@@ -5,6 +5,7 @@ export type WhatsAppOrderItem = {
   qty: number;
   unitPriceCents: number;
   tortillas?: 1 | 2;
+  size?: string;
 };
 
 export type WhatsAppOrder = {

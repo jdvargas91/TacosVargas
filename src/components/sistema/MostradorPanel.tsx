@@ -16,20 +16,32 @@ import {
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { Switch } from "@/components/ui/Switch";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { SizePicker } from "@/components/SizePicker";
 import { useProducts } from "@/context/ProductsContext";
-import type { Product, ProductKind } from "@/data/seedProducts";
+import type { DrinkSizeId, Product, ProductKind } from "@/data/seedProducts";
+import { cartLineKey, parseCartLineKey } from "@/lib/cart";
 import { formatMxn, formatOrderCode } from "@/lib/format";
+import { productHasSizes, productPriceLabel, productUnitPrice } from "@/lib/productPricing";
 import { supabase, type OrderItemPayload } from "@/lib/supabase";
 import { personNameError } from "@/lib/validation";
 import { cn } from "@/lib/cn";
 
-function cartFromQtyMap(items: { id: string; qty: number }[]): Record<string, number> {
+function cartFromOrderItems(items: OrderItemPayload[]): Record<string, number> {
   const cart: Record<string, number> = {};
   for (const item of items) {
     if (!item?.id || !item.qty) continue;
-    cart[item.id] = (cart[item.id] ?? 0) + item.qty;
+    const key = item.size
+      ? cartLineKey(item.id, { size: item.size === "grande" ? "grande" : "chica" })
+      : item.id;
+    cart[key] = (cart[key] ?? 0) + item.qty;
   }
   return cart;
+}
+
+function productQtyInCart(cart: Record<string, number>, productId: string) {
+  return Object.entries(cart).reduce((sum, [key, qty]) => {
+    return parseCartLineKey(key).productId === productId ? sum + qty : sum;
+  }, 0);
 }
 
 const kindTabs: { id: ProductKind; label: string; icon: typeof UtensilsCrossed }[] = [
@@ -73,12 +85,13 @@ export function MostradorPanel() {
   const [error, setError] = useState<string | null>(null);
   const [soldOutTarget, setSoldOutTarget] = useState<{ product: Product; next: boolean } | null>(null);
   const [soldOutBusy, setSoldOutBusy] = useState(false);
+  const [sizePick, setSizePick] = useState<Record<string, DrinkSizeId>>({});
 
   const catalog = useMemo(
     () =>
       products.map((product) => {
-        const qty = cart[product.id] ?? 0;
-        const reserved = baselineQty[product.id] ?? 0;
+        const qty = productQtyInCart(cart, product.id);
+        const reserved = productQtyInCart(baselineQty, product.id);
         const effectiveStock = product.stock + reserved;
         const available =
           qty > 0 || (!product.soldOut && effectiveStock > 0) || reserved > 0;
@@ -88,8 +101,25 @@ export function MostradorPanel() {
   );
 
   const visible = catalog.filter((line) => line.product.kind === kindTab);
-  const selected = catalog.filter((line) => line.qty > 0);
-  const totalCents = selected.reduce((sum, line) => sum + line.product.priceCents * line.qty, 0);
+  const selected = useMemo(() => {
+    return Object.entries(cart)
+      .filter(([, qty]) => qty > 0)
+      .map(([key, qty]) => {
+        const { productId, size } = parseCartLineKey(key);
+        const product = products.find((item) => item.id === productId);
+        if (!product) return null;
+        const drinkSize = productHasSizes(product) ? size ?? "chica" : undefined;
+        return {
+          key,
+          product,
+          qty,
+          size: drinkSize,
+          unitPrice: productUnitPrice(product, drinkSize),
+        };
+      })
+      .filter((line): line is NonNullable<typeof line> => line !== null);
+  }, [cart, products]);
+  const totalCents = selected.reduce((sum, line) => sum + line.unitPrice * line.qty, 0);
   const totalItems = selected.reduce((sum, line) => sum + line.qty, 0);
 
   const editingOrder = useMemo(
@@ -132,7 +162,7 @@ export function MostradorPanel() {
   }, [loadOpenOrders]);
 
   const applyOrderToTicket = useCallback((order: OpenCounterOrder) => {
-    const nextCart = cartFromQtyMap(order.items);
+    const nextCart = cartFromOrderItems(order.items);
     setEditingOrderId(order.id);
     setCustomerName(order.customer_name?.trim() ?? "");
     setNameError(personNameError(order.customer_name?.trim() ?? ""));
@@ -153,13 +183,29 @@ export function MostradorPanel() {
     setError("Ese pedido no está abierto en mostrador (ya se entregó o no existe).");
   }, [applyOrderToTicket, editParam, editingOrderId, loadingOrders, openOrders]);
 
-  function setQty(id: string, qty: number) {
+  function lineKeyForProduct(product: Product) {
+    if (!productHasSizes(product)) return product.id;
+    const size = sizePick[product.id] ?? "chica";
+    return cartLineKey(product.id, { size });
+  }
+
+  function setQty(product: Product, qty: number, size?: DrinkSizeId) {
+    const key =
+      productHasSizes(product)
+        ? cartLineKey(product.id, { size: size ?? sizePick[product.id] ?? "chica" })
+        : product.id;
     setCart((current) => {
       const next = { ...current };
-      if (qty <= 0) delete next[id];
-      else next[id] = qty;
+      if (qty <= 0) delete next[key];
+      else next[key] = qty;
       return next;
     });
+  }
+
+  function bumpQty(product: Product, delta: number) {
+    const key = lineKeyForProduct(product);
+    const currentQty = cart[key] ?? 0;
+    setQty(product, currentQty + delta);
   }
 
   function clearCart() {
@@ -238,7 +284,11 @@ export function MostradorPanel() {
       return;
     }
 
-    const items = selected.map((line) => ({ id: line.product.id, qty: line.qty }));
+    const items = selected.map((line) => ({
+      id: line.product.id,
+      qty: line.qty,
+      ...(line.size ? { size: line.size } : {}),
+    }));
     setSubmitting(true);
 
     if (editingOrderId) {
@@ -257,7 +307,7 @@ export function MostradorPanel() {
       const payload = data as RpcOrderPayload;
       const folio = formatOrderCode(payload.order_number, String(payload.id));
       setMessage(`${folio} actualizado · ${formatMxn(payload.total_cents ?? totalCents)}`);
-      setBaselineQty(cartFromQtyMap(items));
+      setBaselineQty({ ...cart });
       void refresh();
       void loadOpenOrders();
       return;
@@ -279,7 +329,7 @@ export function MostradorPanel() {
     setMessage(`Pedido ${folio} abierto · puedes seguir editándolo`);
     const createdId = String(payload.id);
     setEditingOrderId(createdId);
-    setBaselineQty(cartFromQtyMap(items));
+    setBaselineQty({ ...cart });
     setSearchParams({ edit: createdId }, { replace: true });
     void refresh();
     void loadOpenOrders();
@@ -373,19 +423,30 @@ export function MostradorPanel() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold leading-snug text-ink">{product.name}</p>
                     <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                      <p className="text-sm font-semibold text-ember">{formatMxn(product.priceCents)}</p>
+                      <p className="text-sm font-semibold text-ember">{productPriceLabel(product)}</p>
                       <p className="text-xs text-clay">
                         {locked ? "Agotado" : `${product.stock} en stock`}
-                        {baselineQty[product.id] ? ` · ${baselineQty[product.id]} en pedido` : ""}
+                        {productQtyInCart(baselineQty, product.id)
+                          ? ` · ${productQtyInCart(baselineQty, product.id)} en pedido`
+                          : ""}
                       </p>
                     </div>
+
+                    {product.sizes?.length ? (
+                      <SizePicker
+                        className="mt-2.5"
+                        sizes={product.sizes}
+                        value={sizePick[product.id] ?? "chica"}
+                        onChange={(next) => setSizePick((current) => ({ ...current, [product.id]: next }))}
+                      />
+                    ) : null}
 
                     <div className="mt-2.5 flex items-center gap-1.5">
                       <button
                         type="button"
                         aria-label={`Quitar ${product.name}`}
-                        disabled={locked || qty <= 0}
-                        onClick={() => setQty(product.id, qty - 1)}
+                        disabled={locked || (cart[lineKeyForProduct(product)] ?? 0) <= 0}
+                        onClick={() => bumpQty(product, -1)}
                         className={cn(
                           "grid h-10 w-10 place-items-center rounded-[10px] border text-ink transition disabled:opacity-35",
                           active
@@ -402,13 +463,13 @@ export function MostradorPanel() {
                         )}
                         aria-live="polite"
                       >
-                        {qty}
+                        {cart[lineKeyForProduct(product)] ?? 0}
                       </span>
                       <button
                         type="button"
                         aria-label={`Agregar ${product.name}`}
                         disabled={locked || qty >= max}
-                        onClick={() => setQty(product.id, qty + 1)}
+                        onClick={() => bumpQty(product, 1)}
                         className={cn(
                           "grid h-10 w-10 place-items-center rounded-[10px] border text-ink transition disabled:opacity-35",
                           active
@@ -551,25 +612,26 @@ export function MostradorPanel() {
               </p>
             ) : (
               <ul className="space-y-2 pr-1">
-                {selected.map(({ product, qty }) => (
+                {selected.map(({ key, product, qty, size, unitPrice }) => (
                   <li
-                    key={product.id}
+                    key={key}
                     className="flex items-start justify-between gap-3 rounded-[8px] border border-ink/8 bg-paper/70 px-3 py-2.5"
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-ink">{product.name}</p>
                       <p className="text-xs text-clay">
-                        {qty} × {formatMxn(product.priceCents)}
+                        {qty} × {formatMxn(unitPrice)}
+                        {size ? ` · ${size === "grande" ? "Grande" : "Chica"}` : ""}
                       </p>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
-                      <p className="text-sm font-semibold text-ink">{formatMxn(product.priceCents * qty)}</p>
+                      <p className="text-sm font-semibold text-ink">{formatMxn(unitPrice * qty)}</p>
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
                           aria-label={`Quitar uno de ${product.name}`}
                           className="grid h-8 w-8 place-items-center rounded-[8px] border border-ink/15 text-ink"
-                          onClick={() => setQty(product.id, qty - 1)}
+                          onClick={() => setQty(product, qty - 1, size)}
                         >
                           <Minus size={14} />
                         </button>
@@ -577,7 +639,7 @@ export function MostradorPanel() {
                           type="button"
                           aria-label={`Agregar uno de ${product.name}`}
                           className="grid h-8 w-8 place-items-center rounded-[8px] border border-ink/15 text-ink"
-                          onClick={() => setQty(product.id, qty + 1)}
+                          onClick={() => setQty(product, qty + 1, size)}
                         >
                           <Plus size={14} />
                         </button>

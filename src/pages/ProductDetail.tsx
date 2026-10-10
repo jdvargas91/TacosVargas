@@ -5,14 +5,17 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { QtyStepper } from "@/components/QtyStepper";
 import { TortillaPicker } from "@/components/TortillaPicker";
+import { SizePicker } from "@/components/SizePicker";
+import { ProductMedia } from "@/components/ProductMedia";
 import { Seo } from "@/components/Seo";
 import { useCart } from "@/context/CartContext";
 import { useProducts } from "@/context/ProductsContext";
 import { CompanionPicks } from "@/components/CompanionPicks";
-import { companionProducts, productPath, relatedProducts } from "@/data/seedProducts";
+import { companionProducts, productPath, relatedProducts, type DrinkSizeId } from "@/data/seedProducts";
 import { useSiteContent } from "@/context/SiteContentContext";
 import type { Tortillas } from "@/lib/cart";
 import { formatMxn, isProductAvailable } from "@/lib/format";
+import { productHasSizes, productUnitPrice } from "@/lib/productPricing";
 
 export function ProductDetail() {
   const { id } = useParams();
@@ -22,11 +25,13 @@ export function ProductDetail() {
   const product = products.find((item) => item.id === id);
   const [pick, setPick] = useState(1);
   const [tortillas, setTortillas] = useState<Tortillas>(2);
+  const [size, setSize] = useState<DrinkSizeId>("chica");
   const [added, setAdded] = useState(false);
 
   useEffect(() => {
     setPick(1);
     setTortillas(2);
+    setSize("chica");
     setAdded(false);
     window.scrollTo(0, 0);
   }, [id]);
@@ -49,7 +54,7 @@ export function ProductDetail() {
         <Seo title={`Producto · ${business.name}`} description="Este producto no está en el menú." noindex />
         <Header />
         <main id="contenido" className="mx-auto min-h-svh max-w-6xl px-4 pb-20 pt-28">
-          <h1 className="font-display text-4xl text-ink">No encontramos este taco</h1>
+          <h1 className="font-display text-4xl text-ink">No encontramos este producto</h1>
           <p className="mt-4 text-clay">Puede que ya no esté en el menú o que el enlace esté viejo.</p>
           <Link to="/#menu" className="btn-accent mt-8">
             <UtensilsCrossed size={18} aria-hidden />
@@ -78,13 +83,14 @@ export function ProductDetail() {
   const companions = companionProducts(product, products);
   const inCart = qtyForProduct(product.id);
   const isTaco = product.kind === "taco";
+  const hasSizes = productHasSizes(product);
+  const unitPrice = productUnitPrice(product, hasSizes ? size : null);
+  const tagsLabel = isTaco ? "Ingredientes" : "Sabores";
+  const showTags = product.ingredients.length > 0;
 
   return (
     <>
-      <Seo
-        title={`${product.name} · ${business.name}`}
-        description={product.description}
-      />
+      <Seo title={`${product.name} · ${business.name}`} description={product.description} />
       <Header />
       <main id="contenido" className="px-4 pb-20 pt-28 md:px-6">
         <div className="mx-auto max-w-6xl">
@@ -97,12 +103,13 @@ export function ProductDetail() {
           </p>
 
           <div className="mt-8 grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
-            <div className="relative overflow-hidden rounded-2xl">
-              <img
-                src={product.imageUrl}
-                alt={product.name}
-                className={`aspect-[4/3] w-full object-cover ${available ? "" : "grayscale-[0.4]"}`}
-              />
+            <ProductMedia
+              src={product.imageUrl}
+              alt={product.name}
+              tone="detail"
+              loading="eager"
+              imgClassName={!available ? "grayscale-[0.4]" : undefined}
+            >
               {product.isFeatured ? (
                 <span className="absolute left-4 top-4 rounded-sm bg-gold px-2 py-1 text-xs font-bold text-ink">
                   Especialidad de la casa
@@ -113,11 +120,11 @@ export function ProductDetail() {
                   Agotado
                 </span>
               ) : null}
-            </div>
+            </ProductMedia>
 
             <div>
               <h1 className="font-display text-4xl text-ink md:text-5xl">{product.name}</h1>
-              <p className="mt-3 text-3xl font-semibold text-ink">{formatMxn(product.priceCents)}</p>
+              <p className="mt-3 text-3xl font-semibold text-ink">{formatMxn(unitPrice)}</p>
               <p className="mt-5 max-w-prose text-clay">{product.longDescription}</p>
 
               {isTaco ? (
@@ -135,9 +142,9 @@ export function ProductDetail() {
                 </dl>
               ) : null}
 
-              {product.ingredients.length > 0 ? (
+              {showTags ? (
                 <>
-                  <h2 className="mt-8 font-display text-2xl text-ink">Ingredientes</h2>
+                  <h2 className="mt-8 font-display text-2xl text-ink">{tagsLabel}</h2>
                   <ul className="mt-3 flex flex-wrap gap-2">
                     {product.ingredients.map((ingredient) => (
                       <li key={ingredient} className="rounded-full bg-gold/25 px-3 py-1 text-sm text-ink">
@@ -153,6 +160,9 @@ export function ProductDetail() {
               ) : null}
 
               {isTaco ? <TortillaPicker className="mt-8" value={tortillas} onChange={setTortillas} /> : null}
+              {hasSizes && product.sizes ? (
+                <SizePicker className="mt-8" sizes={product.sizes} value={size} onChange={setSize} />
+              ) : null}
 
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 <QtyStepper
@@ -166,7 +176,9 @@ export function ProductDetail() {
                   type="button"
                   disabled={!available || pick < 1}
                   onClick={() => {
-                    addQty(product.id, pick, isTaco ? tortillas : undefined);
+                    if (isTaco) addQty(product.id, pick, { tortillas });
+                    else if (hasSizes) addQty(product.id, pick, { size });
+                    else addQty(product.id, pick);
                     setAdded(true);
                   }}
                   className="btn-accent disabled:opacity-50"
@@ -204,20 +216,15 @@ export function ProductDetail() {
               <ul className="mt-8 grid grid-cols-2 gap-5 py-4 md:grid-cols-4">
                 {related.map((item) => (
                   <li key={item.id}>
-                    <Link
-                      to={productPath(item.id)}
-                      className="card-shadow group block rounded-2xl bg-smoke"
-                    >
-                      <span className="block overflow-hidden rounded-t-2xl">
-                        <img
-                          src={item.imageUrl}
-                          alt={item.name}
-                          className="aspect-square w-full object-cover transition duration-500 ease-out group-hover:scale-[1.06]"
-                        />
-                      </span>
+                    <Link to={productPath(item.id)} className="card-shadow group block rounded-2xl bg-smoke">
+                      <ProductMedia src={item.imageUrl} alt={item.name} tone="card" />
                       <div className="p-4">
                         <p className="font-semibold text-ink">{item.name}</p>
-                        <p className="mt-1 text-sm text-ink">{formatMxn(item.priceCents)}</p>
+                        <p className="mt-1 text-sm text-ink">
+                          {item.sizes?.length
+                            ? `Desde ${formatMxn(Math.min(...item.sizes.map((s) => s.priceCents)))}`
+                            : formatMxn(item.priceCents)}
+                        </p>
                       </div>
                     </Link>
                   </li>

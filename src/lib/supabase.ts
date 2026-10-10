@@ -1,5 +1,12 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { fallbackDetails, seedProducts, type Product } from "@/data/seedProducts";
+import {
+  AGUA_SIZES,
+  fallbackDetails,
+  seedProducts,
+  type DrinkSize,
+  type DrinkSizeId,
+  type Product,
+} from "@/data/seedProducts";
 import { repairMojibake } from "@/lib/text";
 
 const url = import.meta.env.VITE_SUPABASE_URL;
@@ -35,6 +42,7 @@ export type ProductRow = {
   is_featured: boolean;
   sort_order: number;
   archived?: boolean | null;
+  sizes?: DrinkSize[] | null;
 };
 
 export type Fulfillment = "pickup" | "delivery";
@@ -54,6 +62,7 @@ export type OrderItemPayload = {
   qty: number;
   unitPrice: number;
   tortillas?: 1 | 2 | null;
+  size?: DrinkSizeId | null;
 };
 
 export type OrderRow = {
@@ -75,12 +84,27 @@ export type OrderRow = {
   created_at: string;
 };
 
+function mapSizes(row: ProductRow, seed?: Product): DrinkSize[] | undefined {
+  if (Array.isArray(row.sizes) && row.sizes.length > 0) {
+    return row.sizes
+      .map((item) => ({
+        id: item.id === "grande" ? ("grande" as const) : ("chica" as const),
+        label: repairMojibake(item.label || (item.id === "grande" ? "Grande" : "Chica")),
+        priceCents: Number(item.priceCents ?? (item as { price_cents?: number }).price_cents ?? 0),
+      }))
+      .filter((item) => item.priceCents > 0);
+  }
+  if (seed?.sizes?.length) return seed.sizes;
+  return undefined;
+}
+
 export function mapProduct(row: ProductRow): Product {
   const seed = seedProducts.find((item) => item.id === row.id);
   const details = seed ?? fallbackDetails(row);
   const name = repairMojibake(row.name);
   const description = repairMojibake(row.description);
   const longFromDb = repairMojibake(row.long_description || "");
+  const sizes = mapSizes(row, seed);
   return {
     id: row.id,
     kind: row.kind,
@@ -91,14 +115,17 @@ export function mapProduct(row: ProductRow): Product {
     weightGrams: row.weight_grams ?? details.weightGrams,
     serving: repairMojibake(row.serving || "") || details.serving,
     allergens: row.allergens?.length ? row.allergens.map(repairMojibake) : details.allergens,
-    priceCents: row.price_cents,
-    imageUrl: row.image_url || "/products/camaron_capeado.webp",
+    priceCents: sizes?.length ? Math.min(...sizes.map((s) => s.priceCents)) : row.price_cents,
+    imageUrl: row.image_url || seed?.imageUrl || "/products/camaron_capeado.webp",
     stock: row.stock,
     soldOut: row.sold_out,
     isFeatured: row.is_featured,
     sortOrder: row.sort_order,
+    sizes,
   };
 }
+
+export { AGUA_SIZES };
 
 export function formatAddress(address: AddressPayload) {
   return [address.street, address.colonia, address.references, address.city]

@@ -399,6 +399,12 @@ export function PedidosPanel() {
                               · {item.tortillas} tortilla{item.tortillas === 1 ? "" : "s"}
                             </span>
                           ) : null}
+                          {item.size ? (
+                            <span className="text-clay">
+                              {" "}
+                              · {item.size === "grande" ? "Grande" : "Chica"}
+                            </span>
+                          ) : null}
                         </span>
                       </li>
                     ))}

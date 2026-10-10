@@ -4,31 +4,34 @@ import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import type { Product } from "@/data/seedProducts";
 import { productPath } from "@/data/seedProducts";
-import { formatMxn, isProductAvailable } from "@/lib/format";
+import { isProductAvailable } from "@/lib/format";
+import { productPriceLabel } from "@/lib/productPricing";
+import { ProductMedia } from "@/components/ProductMedia";
 import { Reveal } from "@/components/Reveal";
 
 export function ProductCard({ product }: { product: Product }) {
   const available = isProductAvailable(product.soldOut, product.stock);
 
   return (
-    <article className="group card-shadow relative flex h-full min-w-0 flex-col rounded-2xl bg-smoke">
-      <Link to={productPath(product.id)} className="relative aspect-[4/3] overflow-hidden rounded-t-2xl">
-        <img
+    <article className="group card-shadow relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl bg-smoke">
+      <Link to={productPath(product.id)} className="relative block">
+        <ProductMedia
           src={product.imageUrl}
           alt={product.name}
-          loading="lazy"
-          className={`h-full w-full object-cover transition duration-500 ease-out group-hover:scale-[1.06] ${available ? "" : "grayscale-[0.4]"}`}
-        />
-        {product.isFeatured ? (
-          <span className="absolute left-3 top-3 rounded-sm bg-gold px-2 py-1 text-xs font-bold text-ink">
-            Especialidad de la casa
-          </span>
-        ) : null}
-        {!available ? (
-          <span className="absolute inset-0 grid place-items-center bg-ink/55 font-display text-2xl text-tortilla">
-            Agotado
-          </span>
-        ) : null}
+          tone="card"
+          imgClassName={!available ? "grayscale-[0.4]" : undefined}
+        >
+          {product.isFeatured ? (
+            <span className="absolute left-3 top-3 rounded-sm bg-gold px-2 py-1 text-xs font-bold text-ink">
+              Especialidad de la casa
+            </span>
+          ) : null}
+          {!available ? (
+            <span className="absolute inset-0 grid place-items-center bg-ink/55 font-display text-2xl text-tortilla">
+              Agotado
+            </span>
+          ) : null}
+        </ProductMedia>
       </Link>
       <div className="flex flex-1 flex-col gap-3 p-6">
         <div className="flex items-start justify-between gap-3">
@@ -37,7 +40,7 @@ export function ProductCard({ product }: { product: Product }) {
               {product.name}
             </Link>
           </h3>
-          <p className="shrink-0 text-sm font-semibold tabular-nums text-ink">{formatMxn(product.priceCents)}</p>
+          <p className="shrink-0 text-sm font-semibold tabular-nums text-ink">{productPriceLabel(product)}</p>
         </div>
         <p className="flex-1 text-sm text-clay">{product.description}</p>
         <div className="mt-auto flex items-center justify-between gap-3">

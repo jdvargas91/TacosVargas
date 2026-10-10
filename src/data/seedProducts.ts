@@ -1,5 +1,19 @@
 export type ProductKind = "taco" | "drink";
 
+export type DrinkSizeId = "chica" | "grande";
+
+export type DrinkSize = {
+  id: DrinkSizeId;
+  label: string;
+  priceCents: number;
+};
+
+/** Tamaños y precios fijos de las aguas frescas. */
+export const AGUA_SIZES: DrinkSize[] = [
+  { id: "chica", label: "Chica", priceCents: 2200 },
+  { id: "grande", label: "Grande", priceCents: 3800 },
+];
+
 export type Product = {
   id: string;
   kind: ProductKind;
@@ -16,6 +30,8 @@ export type Product = {
   soldOut: boolean;
   isFeatured: boolean;
   sortOrder: number;
+  /** Si existe, la bebida se pide eligiendo tamaño (chica/grande). */
+  sizes?: DrinkSize[];
 };
 
 const tacoBase = {
@@ -158,74 +174,133 @@ export const seedProducts: Product[] = [
   {
     id: "a1a1a1a1-0001-4000-8000-000000000010",
     kind: "drink",
-    name: "Agua fresca chica",
-    description: "Jamaica, limón o piña. Escribe el sabor en las notas del pedido.",
+    name: "Jamaica",
+    description: "Roja, ácida y bien fría. La que pide el taco de adobada.",
     longDescription:
-      "Agua fresca del día en tamaño chico: jamaica, limón o piña. Indica el sabor en las notas del pedido o por WhatsApp. Se sirve fría.",
-    ingredients: ["Agua", "Fruta o flor del día (jamaica, limón o piña)", "Azúcar"],
-    weightGrams: 350,
-    serving: "Vaso chico ~350 ml",
-    allergens: ["Puede contener azúcar"],
+      "Flor de jamaica macerada hasta quedar profunda y con ese ácido que limpia el paladar. Ideal entre tacos picantes o cuando el calor de Manzanillo ya aprieta. Elige vaso chico o grande.",
+    ingredients: [],
+    weightGrams: 0,
+    serving: "Agua fresca",
+    allergens: [],
     priceCents: 2200,
-    imageUrl: "/products/agua-chica.jpg",
+    imageUrl: "/products/jamaica.webp",
     stock: 50,
     soldOut: false,
     isFeatured: false,
     sortOrder: 10,
+    sizes: AGUA_SIZES,
   },
   {
     id: "a1a1a1a1-0001-4000-8000-000000000011",
     kind: "drink",
-    name: "Agua fresca grande",
-    description: "La misma jarra de jamaica, limón o piña, en tamaño grande.",
+    name: "Piña",
+    description: "Dulce tropical, jugosa, para acompañar camarón o pescado.",
     longDescription:
-      "La misma agua fresca, en grande. Para acompañar varios tacos o para el calor. Elige jamaica, limón o piña en las notas.",
-    ingredients: ["Agua", "Fruta o flor del día (jamaica, limón o piña)", "Azúcar"],
-    weightGrams: 600,
-    serving: "Vaso grande ~600 ml",
-    allergens: ["Puede contener azúcar"],
-    priceCents: 3800,
-    imageUrl: "/products/agua-grande.jpg",
+      "Piña madura licuada, con cuerpo y un dulzor natural que no se siente empalagoso. Combina de maravilla con los tacos capeados. Elige vaso chico o grande.",
+    ingredients: [],
+    weightGrams: 0,
+    serving: "Agua fresca",
+    allergens: [],
+    priceCents: 2200,
+    imageUrl: "/products/pina.webp",
     stock: 50,
     soldOut: false,
     isFeatured: false,
     sortOrder: 11,
+    sizes: AGUA_SIZES,
   },
   {
-    id: "a1a1a1a1-0001-4000-8000-000000000012",
+    id: "a1a1a1a1-0001-4000-8000-000000000014",
     kind: "drink",
-    name: "Coca-Cola 500 ml",
-    description: "Envase de vidrio. Helada, para cortar el picor.",
+    name: "Limón con chía",
+    description: "Cítrica, ligera y con la semilla que refresca de verdad.",
     longDescription:
-      "Coca-Cola en envase de vidrio de 500 ml. Helada. El clásico para cortar el picor de la adobada o el camarón.",
-    ingredients: ["Refresco de cola"],
-    weightGrams: 500,
-    serving: "Botella de vidrio 500 ml",
+      "Limón recién exprimido con chía hidratada: ácida, limpia y con textura. Es el vaso que se pide cuando quieres algo más vivo que un refresco. Elige tamaño chico o grande.",
+    ingredients: ["Chía"],
+    weightGrams: 0,
+    serving: "Agua fresca",
     allergens: [],
-    priceCents: 2700,
-    imageUrl: "/products/coca-500.jpg",
+    priceCents: 2200,
+    imageUrl: "/products/limon_chia.webp",
     stock: 50,
     soldOut: false,
     isFeatured: false,
     sortOrder: 12,
+    sizes: AGUA_SIZES,
   },
   {
-    id: "a1a1a1a1-0001-4000-8000-000000000013",
+    id: "a1a1a1a1-0001-4000-8000-000000000015",
     kind: "drink",
-    name: "Coca-Cola 600 ml",
-    description: "Envase desechable de 600 ml.",
+    name: "Pepino limón",
+    description: "Verde, fresca y con un toque cítrico que quita la sed.",
     longDescription:
-      "Coca-Cola en envase desechable de 600 ml. Para llevar o para la mesa. Mismo sabor, un poco más de vaso.",
-    ingredients: ["Refresco de cola"],
-    weightGrams: 600,
-    serving: "Botella 600 ml",
+      "Pepino con limón: suave, aromática y muy fría. Perfecta a media mañana, entre un taco de arrachera y el siguiente. Elige vaso chico o grande.",
+    ingredients: [],
+    weightGrams: 0,
+    serving: "Agua fresca",
     allergens: [],
-    priceCents: 3300,
-    imageUrl: "/products/coca-600.jpg",
+    priceCents: 2200,
+    imageUrl: "/products/pepino_limon.webp",
     stock: 50,
     soldOut: false,
     isFeatured: false,
     sortOrder: 13,
+    sizes: AGUA_SIZES,
+  },
+  {
+    id: "a1a1a1a1-0001-4000-8000-000000000016",
+    kind: "drink",
+    name: "Carambola limón",
+    description: "Exótica, ligeramente ácida, con el toque del limón local.",
+    longDescription:
+      "Carambola (fruta estrella) con limón: un sabor distinto al de siempre, fresco y un poco floral. Para quien quiere cambiar de la jamaica sin irse al refresco. Elige chica o grande.",
+    ingredients: [],
+    weightGrams: 0,
+    serving: "Agua fresca",
+    allergens: [],
+    priceCents: 2200,
+    imageUrl: "/products/carambola_limon.webp",
+    stock: 50,
+    soldOut: false,
+    isFeatured: false,
+    sortOrder: 14,
+    sizes: AGUA_SIZES,
+  },
+  {
+    id: "a1a1a1a1-0001-4000-8000-000000000012",
+    kind: "drink",
+    name: "Coca-Cola de vidrio",
+    description: "Envase de vidrio. Helada, para cortar el picor.",
+    longDescription:
+      "Coca-Cola en envase de vidrio. Helada. El clásico para cortar el picor de la adobada o el camarón.",
+    ingredients: [],
+    weightGrams: 500,
+    serving: "Botella de vidrio",
+    allergens: [],
+    priceCents: 2700,
+    imageUrl: "/products/coca_cola_vidrio.webp",
+    stock: 50,
+    soldOut: false,
+    isFeatured: false,
+    sortOrder: 20,
+  },
+  {
+    id: "a1a1a1a1-0001-4000-8000-000000000013",
+    kind: "drink",
+    name: "Coca-Cola",
+    description: "Envase desechable. Para la mesa o para llevar.",
+    longDescription:
+      "Coca-Cola en envase desechable. Para llevar o para la mesa. Mismo sabor de siempre, lista para acompañar el pedido.",
+    ingredients: [],
+    weightGrams: 600,
+    serving: "Botella",
+    allergens: [],
+    priceCents: 3300,
+    imageUrl: "/products/coca_cola.webp",
+    stock: 50,
+    soldOut: false,
+    isFeatured: false,
+    sortOrder: 21,
   },
 ];
 

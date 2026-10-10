@@ -1,3 +1,5 @@
+import type { DrinkSizeId } from "@/data/seedProducts";
+
 const PENDING_KEY = "vargas_pending_checkout";
 
 export type PendingCheckoutItem = {
@@ -7,6 +9,7 @@ export type PendingCheckoutItem = {
   unitPriceCents: number;
   kind: "taco" | "drink";
   tortillas?: 1 | 2;
+  size?: DrinkSizeId;
 };
 
 export type PaymentMethod = "presencial" | "transferencia";

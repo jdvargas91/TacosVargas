@@ -162,6 +162,7 @@ export function MisPedidos() {
           id: item.id,
           qty: item.qty,
           tortillas: item.tortillas,
+          size: item.size,
         })),
         p_notes: pending.notes,
         p_payment_proof_url: proofUrl,

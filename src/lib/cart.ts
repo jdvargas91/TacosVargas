@@ -1,17 +1,34 @@
+import type { DrinkSizeId } from "@/data/seedProducts";
+
 const KEY = "tv-cart-v2";
 const LEGACY_KEY = "tv-cart-v1";
 
-/** Cantidad por línea. Clave: productId o productId::t1 / productId::t2 para tacos. */
+/** Cantidad por línea. Clave: productId, productId::t1/t2 (tacos) o productId::sz-chica/grande (aguas). */
 export type CartMap = Record<string, number>;
 
 export type Tortillas = 1 | 2;
 
-export function cartLineKey(productId: string, tortillas?: Tortillas) {
-  if (tortillas === 1 || tortillas === 2) return `${productId}::t${tortillas}`;
+export type CartLineOpts = {
+  tortillas?: Tortillas;
+  size?: DrinkSizeId;
+};
+
+export function cartLineKey(productId: string, opts?: Tortillas | CartLineOpts) {
+  if (opts === 1 || opts === 2) return `${productId}::t${opts}`;
+  if (opts && typeof opts === "object") {
+    if (opts.tortillas === 1 || opts.tortillas === 2) return `${productId}::t${opts.tortillas}`;
+    if (opts.size === "chica" || opts.size === "grande") return `${productId}::sz-${opts.size}`;
+  }
   return productId;
 }
 
-export function parseCartLineKey(key: string): { productId: string; tortillas?: Tortillas } {
+export function parseCartLineKey(key: string): {
+  productId: string;
+  tortillas?: Tortillas;
+  size?: DrinkSizeId;
+} {
+  const sizeMatch = key.match(/^(.*)::sz-(chica|grande)$/);
+  if (sizeMatch) return { productId: sizeMatch[1], size: sizeMatch[2] as DrinkSizeId };
   const match = key.match(/^(.*)::t([12])$/);
   if (match) return { productId: match[1], tortillas: Number(match[2]) as Tortillas };
   return { productId: key };
@@ -23,7 +40,6 @@ export function readCart(): CartMap {
     if (!raw) return {};
     const parsed = JSON.parse(raw) as CartMap;
     if (!parsed || typeof parsed !== "object") return {};
-    // Migrar carrito v1 (solo ids) a claves con 2 tortillas por defecto para tacos se hace al agregar.
     return parsed;
   } catch {
     return {};

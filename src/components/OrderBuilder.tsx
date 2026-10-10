@@ -7,12 +7,16 @@ import { useProducts } from "@/context/ProductsContext";
 import { useSiteContent } from "@/context/SiteContentContext";
 import { formatMxn, isProductAvailable, isWithinServiceHours } from "@/lib/format";
 import { parseCartLineKey, type Tortillas } from "@/lib/cart";
+import type { DrinkSizeId } from "@/data/seedProducts";
 import { savePendingCheckout, type PaymentMethod, type PendingCheckoutItem } from "@/lib/pendingCheckout";
 import { GoogleGateModal } from "@/components/GoogleGateModal";
 import { QtyStepper } from "@/components/QtyStepper";
 import { TortillaPicker } from "@/components/TortillaPicker";
+import { SizePicker } from "@/components/SizePicker";
+import { ProductMedia } from "@/components/ProductMedia";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { personNameError } from "@/lib/validation";
+import { productHasSizes, productUnitPrice, resolveSize } from "@/lib/productPricing";
 import { cn } from "@/lib/cn";
 
 function tortillaLineLabel(tortillas?: Tortillas) {
@@ -31,7 +35,7 @@ export function OrderBuilder() {
   const navigate = useNavigate();
   const { products } = useProducts();
   const { business } = useSiteContent();
-  const { cart, setQty, setLineTortillas, clear, totalItems } = useCart();
+  const { cart, setQty, setLineTortillas, setLineSize, clear, totalItems } = useCart();
   const { user, configured, signInGoogle, loading: authLoading } = useAuth();
 
   const [name, setName] = useState("");
@@ -52,16 +56,19 @@ export function OrderBuilder() {
     return Object.entries(cart)
       .filter(([, qty]) => qty > 0)
       .map(([cartKey, qty]) => {
-        const { productId } = parseCartLineKey(cartKey);
+        const { productId, size } = parseCartLineKey(cartKey);
         const product = products.find((item) => item.id === productId);
         if (!product) return null;
         const tortillas = effectiveTortillas(cartKey, product.kind);
-        return { cartKey, product, qty, tortillas };
+        const drinkSize = productHasSizes(product) ? size ?? "chica" : undefined;
+        const unitPrice = productUnitPrice(product, drinkSize);
+        const sizeMeta = resolveSize(product, drinkSize);
+        return { cartKey, product, qty, tortillas, size: drinkSize, unitPrice, sizeMeta };
       })
       .filter((line): line is NonNullable<typeof line> => line !== null);
   }, [cart, products]);
 
-  const totalCents = lines.reduce((sum, line) => sum + line.product.priceCents * line.qty, 0);
+  const totalCents = lines.reduce((sum, line) => sum + line.unitPrice * line.qty, 0);
   const outsideHours = !isWithinServiceHours(new Date(), business.hours);
 
   useEffect(() => {
@@ -111,13 +118,14 @@ export function OrderBuilder() {
   }
 
   function buildPendingItems(): PendingCheckoutItem[] {
-    return lines.map(({ product, qty, tortillas }) => ({
+    return lines.map(({ product, qty, tortillas, size, unitPrice, sizeMeta }) => ({
       id: product.id,
-      name: product.name,
+      name: sizeMeta ? `${product.name} · ${sizeMeta.label}` : product.name,
       qty,
-      unitPriceCents: product.priceCents,
+      unitPriceCents: unitPrice,
       kind: product.kind,
       ...(product.kind === "taco" ? { tortillas: tortillas ?? 2 } : {}),
+      ...(size ? { size } : {}),
     }));
   }
 
@@ -134,12 +142,14 @@ export function OrderBuilder() {
   }
 
   function setLineQty(cartKey: string, nextQty: number) {
-    const { productId } = parseCartLineKey(cartKey);
+    const { productId, size } = parseCartLineKey(cartKey);
     const product = products.find((item) => item.id === productId);
     if (!product) return;
     if (product.kind === "taco") {
       const t = effectiveTortillas(cartKey, "taco") ?? 2;
-      setQty(productId, nextQty, t);
+      setQty(productId, nextQty, { tortillas: t });
+    } else if (productHasSizes(product)) {
+      setQty(productId, nextQty, { size: size ?? "chica" });
     } else {
       setQty(productId, nextQty);
     }
@@ -151,6 +161,13 @@ export function OrderBuilder() {
     if (!product || product.kind !== "taco") return;
     const from = effectiveTortillas(cartKey, "taco") ?? 2;
     setLineTortillas(productId, from, next);
+  }
+
+  function changeLineSize(cartKey: string, next: DrinkSizeId) {
+    const { productId, size } = parseCartLineKey(cartKey);
+    const product = products.find((item) => item.id === productId);
+    if (!product || !productHasSizes(product)) return;
+    setLineSize(productId, size ?? "chica", next);
   }
 
   async function handleLogin() {
@@ -247,32 +264,30 @@ export function OrderBuilder() {
         ) : (
           <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)] lg:items-start">
             <ul className="space-y-3">
-              {lines.map(({ cartKey, product, qty, tortillas }) => {
+              {lines.map(({ cartKey, product, qty, tortillas, size, unitPrice, sizeMeta }) => {
                 const available = isProductAvailable(product.soldOut, product.stock);
                 const tortillaLabel = product.kind === "taco" ? tortillaLineLabel(tortillas ?? 2) : null;
                 const pickerValue = (tortillas ?? 2) as Tortillas;
 
                 return (
                   <li key={cartKey} className="flex gap-4 rounded-2xl bg-smoke p-3 sm:p-4 card-shadow">
-                    <img
+                    <ProductMedia
                       src={product.imageUrl}
                       alt={product.name}
-                      width={88}
-                      height={88}
-                      className="h-[72px] w-[72px] shrink-0 rounded-xl object-cover sm:h-[88px] sm:w-[88px]"
+                      tone="thumb"
+                      className="h-[72px] w-[72px] shrink-0 sm:h-[88px] sm:w-[88px]"
                     />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="font-medium text-ink">{product.name}</p>
                           <p className="text-sm text-clay">
-                            {formatMxn(product.priceCents)} c/u
-                            {tortillaLabel ? (
-                              <span className="text-clay"> · {tortillaLabel}</span>
-                            ) : null}
+                            {formatMxn(unitPrice)} c/u
+                            {tortillaLabel ? <span className="text-clay"> · {tortillaLabel}</span> : null}
+                            {sizeMeta ? <span className="text-clay"> · {sizeMeta.label}</span> : null}
                           </p>
                         </div>
-                        <p className="tabular-nums font-semibold text-ink">{formatMxn(product.priceCents * qty)}</p>
+                        <p className="tabular-nums font-semibold text-ink">{formatMxn(unitPrice * qty)}</p>
                       </div>
 
                       {product.kind === "taco" ? (
@@ -280,6 +295,14 @@ export function OrderBuilder() {
                           className="mt-3"
                           value={pickerValue}
                           onChange={(next) => changeLineTortillas(cartKey, next)}
+                        />
+                      ) : null}
+                      {product.sizes?.length && size ? (
+                        <SizePicker
+                          className="mt-3"
+                          sizes={product.sizes}
+                          value={size}
+                          onChange={(next) => changeLineSize(cartKey, next)}
                         />
                       ) : null}
 

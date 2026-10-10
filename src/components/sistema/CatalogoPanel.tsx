@@ -5,8 +5,8 @@ import { Select } from "@/components/ui/Select";
 import { Switch } from "@/components/ui/Switch";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { useProducts } from "@/context/ProductsContext";
-import type { Product, ProductKind } from "@/data/seedProducts";
-import { formatMxn } from "@/lib/format";
+import { AGUA_SIZES, type Product, type ProductKind } from "@/data/seedProducts";
+import { productHasSizes, productPriceLabel } from "@/lib/productPricing";
 import { supabase } from "@/lib/supabase";
 
 const emptyForm = {
@@ -19,6 +19,9 @@ const emptyForm = {
   weightGrams: "",
   serving: "1 taco",
   price: "",
+  priceChica: "22",
+  priceGrande: "38",
+  hasSizes: false,
   stock: "100",
   soldOut: false,
   isFeatured: false,
@@ -91,7 +94,10 @@ export function CatalogoPanel() {
     if (!supabase) return;
     setError(null);
     setMessage(null);
-    const priceCents = Math.round(Number(form.price) * 100);
+    const usingSizes = form.kind === "drink" && form.hasSizes;
+    const chicaCents = Math.round(Number(form.priceChica) * 100);
+    const grandeCents = Math.round(Number(form.priceGrande) * 100);
+    const priceCents = usingSizes ? chicaCents : Math.round(Number(form.price) * 100);
     if (!form.name.trim()) {
       setError("El nombre es obligatorio.");
       return;
@@ -100,7 +106,12 @@ export function CatalogoPanel() {
       setError("La descripción corta es obligatoria.");
       return;
     }
-    if (Number.isNaN(priceCents) || priceCents < 0) {
+    if (usingSizes) {
+      if (Number.isNaN(chicaCents) || chicaCents < 0 || Number.isNaN(grandeCents) || grandeCents < 0) {
+        setError("Escribe precios válidos para chica y grande.");
+        return;
+      }
+    } else if (Number.isNaN(priceCents) || priceCents < 0) {
       setError("Escribe un precio válido en pesos.");
       return;
     }
@@ -109,6 +120,12 @@ export function CatalogoPanel() {
       return;
     }
     setCreating(true);
+    const sizesPayload = usingSizes
+      ? [
+          { id: "chica", label: "Chica", priceCents: chicaCents },
+          { id: "grande", label: "Grande", priceCents: grandeCents },
+        ]
+      : null;
     const { data, error: insertError } = await supabase
       .from("products")
       .insert({
@@ -119,8 +136,9 @@ export function CatalogoPanel() {
         ingredients: splitList(form.ingredients),
         allergens: splitList(form.allergens),
         weight_grams: form.weightGrams ? Number(form.weightGrams) : null,
-        serving: form.serving || null,
+        serving: usingSizes ? "Agua fresca" : form.serving || null,
         price_cents: priceCents,
+        sizes: sizesPayload,
         stock: 100,
         sold_out: false,
         is_featured: form.isFeatured,
@@ -246,23 +264,72 @@ export function CatalogoPanel() {
                   </Field>
                 </>
               ) : (
-                <Field label="Contiene" hint="Opcional. Sepáralos con coma" className="md:col-span-2">
+                <>
+                  <div className="md:col-span-2">
+                    <Switch
+                      checked={form.hasSizes}
+                      onCheckedChange={(hasSizes) =>
+                        setForm({
+                          ...form,
+                          hasSizes,
+                          priceChica: hasSizes ? form.priceChica || "22" : form.priceChica,
+                          priceGrande: hasSizes ? form.priceGrande || "38" : form.priceGrande,
+                        })
+                      }
+                      label="Agua con tamaños (chica / grande)"
+                      description="El cliente elige el tamaño en la ficha. Chica $22 y grande $38 por defecto."
+                    />
+                  </div>
+                  {form.hasSizes ? (
+                    <Field label="Sabores / notas" hint="Opcional. No pongas agua ni azúcar. Sepáralos con coma" className="md:col-span-2">
+                      <input
+                        value={form.ingredients}
+                        onChange={(e) => setForm({ ...form, ingredients: e.target.value })}
+                        className={fieldClass}
+                        placeholder="Ej. Chía"
+                      />
+                    </Field>
+                  ) : (
+                    <Field label="Contiene" hint="Opcional. Sepáralos con coma" className="md:col-span-2">
+                      <input
+                        value={form.allergens}
+                        onChange={(e) => setForm({ ...form, allergens: e.target.value })}
+                        className={fieldClass}
+                        placeholder="Opcional…"
+                      />
+                    </Field>
+                  )}
+                </>
+              )}
+              {form.kind === "drink" && form.hasSizes ? (
+                <>
+                  <Field label="Precio chica (MXN)" hint="Ej. 22" required>
+                    <input
+                      value={form.priceChica}
+                      onChange={(e) => setForm({ ...form, priceChica: e.target.value })}
+                      className={fieldClass}
+                      inputMode="decimal"
+                    />
+                  </Field>
+                  <Field label="Precio grande (MXN)" hint="Ej. 38" required>
+                    <input
+                      value={form.priceGrande}
+                      onChange={(e) => setForm({ ...form, priceGrande: e.target.value })}
+                      className={fieldClass}
+                      inputMode="decimal"
+                    />
+                  </Field>
+                </>
+              ) : (
+                <Field label="Precio (pesos MXN)" hint="Sin el signo de pesos" required>
                   <input
-                    value={form.allergens}
-                    onChange={(e) => setForm({ ...form, allergens: e.target.value })}
+                    value={form.price}
+                    onChange={(e) => setForm({ ...form, price: e.target.value })}
                     className={fieldClass}
-                    placeholder="Puede contener azúcar…"
+                    inputMode="decimal"
                   />
                 </Field>
               )}
-              <Field label="Precio (pesos MXN)" hint="Sin el signo de pesos" required>
-                <input
-                  value={form.price}
-                  onChange={(e) => setForm({ ...form, price: e.target.value })}
-                  className={fieldClass}
-                  inputMode="decimal"
-                />
-              </Field>
               <Field label="Orden en el menú" hint="Número más chico = aparece primero" required>
                 <input
                   value={form.sortOrder}
@@ -380,11 +447,11 @@ export function CatalogoPanel() {
                     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                       <p className="truncate font-medium text-ink">{product.name}</p>
                       <p className="shrink-0 text-sm font-semibold tabular-nums text-ink">
-                        {formatMxn(product.priceCents)}
+                        {productPriceLabel(product)}
                       </p>
                     </div>
                     <p className="mt-0.5 text-xs text-clay sm:text-sm">
-                      {product.kind === "drink" ? "Bebida" : "Taco"}
+                      {product.kind === "drink" ? (productHasSizes(product) ? "Agua fresca" : "Bebida") : "Taco"}
                       <span className="mx-1.5 text-ink/25">·</span>
                       {product.stock} en existencia
                       {product.soldOut ? (
@@ -466,6 +533,13 @@ function ProductEditor({
   const [serving, setServing] = useState(product.serving);
   const [weightGrams, setWeightGrams] = useState(String(product.weightGrams || ""));
   const [price, setPrice] = useState(String(product.priceCents / 100));
+  const [hasSizes, setHasSizes] = useState(productHasSizes(product));
+  const [priceChica, setPriceChica] = useState(
+    String((product.sizes?.find((s) => s.id === "chica")?.priceCents ?? AGUA_SIZES[0].priceCents) / 100),
+  );
+  const [priceGrande, setPriceGrande] = useState(
+    String((product.sizes?.find((s) => s.id === "grande")?.priceCents ?? AGUA_SIZES[1].priceCents) / 100),
+  );
   const [stockDelta, setStockDelta] = useState("");
   const [stockReason, setStockReason] = useState("");
   const [soldOut, setSoldOut] = useState(product.soldOut);
@@ -483,6 +557,13 @@ function ProductEditor({
     setServing(product.serving);
     setWeightGrams(String(product.weightGrams || ""));
     setPrice(String(product.priceCents / 100));
+    setHasSizes(productHasSizes(product));
+    setPriceChica(
+      String((product.sizes?.find((s) => s.id === "chica")?.priceCents ?? AGUA_SIZES[0].priceCents) / 100),
+    );
+    setPriceGrande(
+      String((product.sizes?.find((s) => s.id === "grande")?.priceCents ?? AGUA_SIZES[1].priceCents) / 100),
+    );
     setSoldOut(product.soldOut);
     setIsFeatured(product.isFeatured);
     setSortOrder(String(product.sortOrder));
@@ -492,12 +573,26 @@ function ProductEditor({
     if (!supabase) return;
     setSaving(true);
     setMessage(null);
-    const priceCents = Math.round(Number(price) * 100);
-    if (!name.trim() || Number.isNaN(priceCents)) {
+    const usingSizes = product.kind === "drink" && hasSizes;
+    const chicaCents = Math.round(Number(priceChica) * 100);
+    const grandeCents = Math.round(Number(priceGrande) * 100);
+    const priceCents = usingSizes ? chicaCents : Math.round(Number(price) * 100);
+    if (!name.trim() || Number.isNaN(priceCents) || priceCents < 0) {
       setMessage("El nombre y el precio son obligatorios.");
       setSaving(false);
       return;
     }
+    if (usingSizes && (Number.isNaN(grandeCents) || grandeCents < 0)) {
+      setMessage("Escribe precios válidos para chica y grande.");
+      setSaving(false);
+      return;
+    }
+    const sizesPayload = usingSizes
+      ? [
+          { id: "chica", label: "Chica", priceCents: chicaCents },
+          { id: "grande", label: "Grande", priceCents: grandeCents },
+        ]
+      : null;
     const { error } = await supabase
       .from("products")
       .update({
@@ -506,9 +601,10 @@ function ProductEditor({
         long_description: longDescription,
         ingredients: splitList(ingredients),
         allergens: splitList(allergens),
-        serving: serving || null,
+        serving: usingSizes ? "Agua fresca" : serving || null,
         weight_grams: weightGrams ? Number(weightGrams) : null,
         price_cents: priceCents,
+        sizes: sizesPayload,
         sold_out: soldOut,
         is_featured: isFeatured,
         sort_order: Number(sortOrder) || 0,
@@ -570,7 +666,8 @@ function ProductEditor({
       <div className="grid gap-3">
         <div>
           <p className="text-sm text-clay">
-            En existencia: <span className="font-semibold text-ink">{product.stock}</span> · {formatMxn(product.priceCents)}
+            En existencia: <span className="font-semibold text-ink">{product.stock}</span> ·{" "}
+            {productPriceLabel(product)}
           </p>
           <p className="mt-0.5 text-xs text-clay">Lo que ve el cliente en el menú público</p>
         </div>
@@ -594,15 +691,50 @@ function ProductEditor({
             </Field>
           </>
         ) : (
-          <Field label="Contiene" hint="Opcional. Sepáralos con coma">
-            <input value={allergens} onChange={(e) => setAllergens(e.target.value)} className={fieldClass} />
-          </Field>
+          <>
+            <Switch
+              checked={hasSizes}
+              onCheckedChange={setHasSizes}
+              label="Agua con tamaños (chica / grande)"
+              description="Actívalo para jamaica, piña y demás aguas frescas. El cliente elige el tamaño."
+            />
+            {hasSizes ? (
+              <Field label="Sabores / notas" hint="Opcional. No pongas agua ni azúcar">
+                <input value={ingredients} onChange={(e) => setIngredients(e.target.value)} className={fieldClass} />
+              </Field>
+            ) : (
+              <Field label="Contiene" hint="Opcional. Sepáralos con coma">
+                <input value={allergens} onChange={(e) => setAllergens(e.target.value)} className={fieldClass} />
+              </Field>
+            )}
+          </>
         )}
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Precio (pesos MXN)" required>
-            <input value={price} onChange={(e) => setPrice(e.target.value)} className={fieldClass} inputMode="decimal" />
-          </Field>
+          {product.kind === "drink" && hasSizes ? (
+            <>
+              <Field label="Precio chica (MXN)" required>
+                <input
+                  value={priceChica}
+                  onChange={(e) => setPriceChica(e.target.value)}
+                  className={fieldClass}
+                  inputMode="decimal"
+                />
+              </Field>
+              <Field label="Precio grande (MXN)" required>
+                <input
+                  value={priceGrande}
+                  onChange={(e) => setPriceGrande(e.target.value)}
+                  className={fieldClass}
+                  inputMode="decimal"
+                />
+              </Field>
+            </>
+          ) : (
+            <Field label="Precio (pesos MXN)" required>
+              <input value={price} onChange={(e) => setPrice(e.target.value)} className={fieldClass} inputMode="decimal" />
+            </Field>
+          )}
           {product.kind === "taco" ? (
             <>
               <Field label="Porción" required>
