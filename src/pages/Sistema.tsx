@@ -224,7 +224,7 @@ function SistemaShell() {
 
             <div
               className={
-                tab === "mostrador"
+                tab === "mostrador" || tab === "sitio"
                   ? "min-h-0 min-w-0 flex-1 overflow-hidden"
                   : "min-h-0 min-w-0 flex-1 overflow-y-auto"
               }

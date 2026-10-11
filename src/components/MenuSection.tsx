@@ -21,29 +21,18 @@ export function ProductCard({ product }: { product: Product }) {
       transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
     >
       <Link to={productPath(product.id)} className="relative block overflow-hidden">
-        <motion.div
-          className="h-full w-full"
-          whileHover={reduce ? undefined : { scale: 1.04 }}
-          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <ProductMedia
-            src={product.imageUrl}
-            alt={product.name}
-            tone="card"
-            imgClassName={!available ? "grayscale-[0.4]" : undefined}
-          >
-            {product.isFeatured ? (
-              <span className="absolute left-3 top-3 rounded-sm bg-gold px-2 py-1 text-xs font-bold text-ink">
-                Especialidad de la casa
-              </span>
-            ) : null}
-            {!available ? (
-              <span className="absolute inset-0 grid place-items-center bg-ink/55 font-display text-2xl text-tortilla">
-                Agotado
-              </span>
-            ) : null}
-          </ProductMedia>
-        </motion.div>
+        <ProductMedia src={product.imageUrl} alt={product.name} tone="card" muted={!available}>
+          {product.isFeatured ? (
+            <span className="absolute left-3 top-3 rounded-sm bg-gold px-2 py-1 text-xs font-bold text-ink">
+              Especialidad de la casa
+            </span>
+          ) : null}
+          {!available ? (
+            <span className="absolute inset-0 grid place-items-center bg-ink/55 font-display text-2xl text-tortilla">
+              Agotado
+            </span>
+          ) : null}
+        </ProductMedia>
       </Link>
       <div className="flex flex-1 flex-col gap-3 p-6">
         <div className="flex items-start justify-between gap-3">
@@ -149,7 +138,7 @@ export function MenuSection({ tacos, drinks }: { tacos: Product[]; drinks: Produ
             nextLabel="Bebidas siguientes"
             heading={
               <div>
-                <h3 className="font-display text-3xl text-ink md:text-4xl">Aguas y refrescos</h3>
+                <h3 className="font-display text-4xl text-ink md:text-5xl">Aguas y refrescos</h3>
                 <span className="mark" aria-hidden />
               </div>
             }

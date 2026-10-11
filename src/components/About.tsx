@@ -9,7 +9,7 @@ export function About() {
       <div className="mx-auto max-w-6xl">
         <div className="grid gap-14 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           <Reveal>
-            <h2 className="font-display max-w-xl text-4xl text-ink md:text-5xl">{about.headline}</h2>
+            <h2 className="font-display text-4xl text-ink md:text-5xl">{about.headline}</h2>
             <span className="mark" aria-hidden />
             <div className="mt-6 max-w-[65ch] space-y-4 text-clay">
               {about.paragraphs.map((paragraph) => (
@@ -19,11 +19,14 @@ export function About() {
           </Reveal>
 
           <Reveal delay={0.12}>
-            <figure className="about-diamond mx-auto">
-              <div className="about-diamond__back" aria-hidden />
-              <div className="about-diamond__front">
-                <img src={about.image} alt="Especialidad de Vargas Tacos" />
-              </div>
+            <figure className="about-portrait mx-auto">
+              <svg className="about-portrait__blob" viewBox="0 0 640 520" aria-hidden>
+                <path
+                  fill="#f8a92942"
+                  d="M300 150C190 70 80 120 120 220C150 290 230 260 290 230C390 160 510 140 580 230C650 310 590 390 500 360C430 430 320 480 230 430C130 380 80 290 160 230C200 190 250 175 300 150Z"
+                />
+              </svg>
+              <img className="about-portrait__photo" src={about.image} alt="Especialidad de Vargas Tacos" />
             </figure>
           </Reveal>
         </div>
@@ -34,18 +37,6 @@ export function About() {
               <li key={pillar.title} className="max-w-[28ch]">
                 <p className="font-display text-2xl text-ink">{pillar.title}</p>
                 <p className="mt-2 text-sm text-clay">{pillar.body}</p>
-              </li>
-            ))}
-          </ul>
-        </Reveal>
-
-        <Reveal delay={0.1} className="mt-14 md:mt-16">
-          <ul className="grid gap-12 md:grid-cols-2 md:gap-16">
-            {about.values.map((value) => (
-              <li key={value.title} className="max-w-[54ch]">
-                <h3 className="font-display text-3xl text-ink">{value.title}</h3>
-                <span className="mark" aria-hidden />
-                <p className="mt-4 text-clay">{value.body}</p>
               </li>
             ))}
           </ul>

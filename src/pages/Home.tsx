@@ -8,6 +8,7 @@ import { Gallery } from "@/components/Gallery";
 import { ReviewsSection } from "@/components/ReviewsSection";
 import { Footer } from "@/components/Footer";
 import { BackToTop } from "@/components/BackToTop";
+import { MarqueeBand } from "@/components/MarqueeBand";
 import { Seo } from "@/components/Seo";
 import { useProducts } from "@/context/ProductsContext";
 import { useSiteContent } from "@/context/SiteContentContext";
@@ -31,6 +32,7 @@ export function Home() {
       <Header />
       <main id="contenido">
         <Hero />
+        <MarqueeBand items={products.map((product) => product.name)} />
         <About />
         <KitchenCrew />
         <MenuSection tacos={tacos} drinks={drinks} />

@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { MediaUpload } from "@/components/ui/MediaUpload";
-import { Select } from "@/components/ui/Select";
 import {
   useSiteContent,
   type AboutContent,
@@ -11,24 +10,19 @@ import {
   type KitchenContent,
 } from "@/context/SiteContentContext";
 import { useToast } from "@/context/ToastContext";
+import { cn } from "@/lib/cn";
 
-const shotLayouts = [
-  { value: "md:col-start-1 md:row-start-1 md:row-span-2", label: "Alta · columna 1" },
-  { value: "md:col-start-2 md:col-span-2 md:row-start-1", label: "Ancha · fila superior" },
-  { value: "md:col-start-2 md:row-start-2", label: "Cuadrada · centro" },
-  { value: "md:col-start-3 md:row-start-2", label: "Cuadrada · derecha" },
-  { value: "md:col-start-1 md:row-start-3", label: "Cuadrada · abajo izq." },
-  { value: "md:col-start-2 md:col-span-2 md:row-start-3", label: "Ancha · fila inferior" },
-  { value: "auto", label: "Automática (flujo)" },
-];
+const GALLERY_LIMIT = 6;
 
-function layoutValue(className: string) {
-  return className || "auto";
-}
+const siteTabs = [
+  { id: "negocio", label: "Negocio" },
+  { id: "hero", label: "Hero" },
+  { id: "about", label: "Quiénes somos" },
+  { id: "cocina", label: "Cocina" },
+  { id: "galeria", label: "Galería" },
+] as const;
 
-function layoutClass(value: string) {
-  return value === "auto" ? "" : value;
-}
+type SiteTab = (typeof siteTabs)[number]["id"];
 
 export function SitioPanel() {
   const { business, hero, about, kitchen, gallery, saveBusiness, saveSection, uploadSiteMedia } = useSiteContent();
@@ -41,6 +35,7 @@ export function SitioPanel() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [tab, setTab] = useState<SiteTab>("negocio");
 
   useEffect(() => {
     setBiz(business);
@@ -61,14 +56,14 @@ export function SitioPanel() {
       };
       const galleryToSave = {
         ...galleryDraft,
-        shots: galleryDraft.shots.map((shot, index) => ({
+        shots: galleryDraft.shots.slice(0, GALLERY_LIMIT).map((shot, index) => ({
           ...shot,
           alt: shot.alt?.trim() || `Foto ${index + 1} · ${biz.name}`,
         })),
       };
       await saveBusiness(biz);
       await saveSection("hero", heroToSave);
-      await saveSection("about", aboutDraft);
+      await saveSection("about", { ...aboutDraft, values: [] });
       await saveSection("kitchen", kitchenDraft);
       await saveSection("gallery", galleryToSave);
       setMessage("Contenido del sitio guardado.");
@@ -113,6 +108,7 @@ export function SitioPanel() {
   }
 
   function addShot() {
+    if (galleryDraft.shots.length >= GALLERY_LIMIT) return;
     setGalleryDraft({
       ...galleryDraft,
       shots: [
@@ -129,12 +125,58 @@ export function SitioPanel() {
     });
   }
 
-  return (
-    <div className="mt-2 space-y-8">
-      {error ? <p className="rounded-[10px] border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm text-terracotta">{error}</p> : null}
-      {message ? <p className="rounded-[10px] border border-ink/10 bg-paper px-4 py-3 text-sm text-clay">{message}</p> : null}
+  function onTabKey(event: KeyboardEvent<HTMLDivElement>) {
+    const index = siteTabs.findIndex((item) => item.id === tab);
+    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft" && event.key !== "Home" && event.key !== "End") return;
+    event.preventDefault();
+    const next =
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? siteTabs.length - 1
+          : (index + (event.key === "ArrowRight" ? 1 : -1) + siteTabs.length) % siteTabs.length;
+    setTab(siteTabs[next].id);
+    document.getElementById(`sitio-tab-${siteTabs[next].id}`)?.focus();
+  }
 
-      <section className="card-shadow space-y-4 rounded-[10px] border border-ink/8 bg-smoke p-5 md:p-6">
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-4">
+      <div
+        role="tablist"
+        aria-label="Secciones del sitio"
+        className="flex shrink-0 gap-1 overflow-x-auto rounded-[10px] border border-ink/10 bg-paper/80 p-1"
+        onKeyDown={onTabKey}
+      >
+        {siteTabs.map((item) => {
+          const selected = tab === item.id;
+          return (
+            <button
+              key={item.id}
+              id={`sitio-tab-${item.id}`}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              aria-controls={`sitio-panel-${item.id}`}
+              tabIndex={selected ? 0 : -1}
+              onClick={() => setTab(item.id)}
+              className={cn(
+                "inline-flex h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-[9px] px-3 text-sm font-semibold transition sm:min-w-0 sm:flex-1",
+                selected ? "bg-terracotta text-white shadow-sm" : "text-clay hover:bg-ink/5 hover:text-ink",
+              )}
+            >
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {error ? <p className="shrink-0 rounded-[10px] border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm text-terracotta">{error}</p> : null}
+      {message ? <p className="shrink-0 rounded-[10px] border border-ink/10 bg-paper px-4 py-3 text-sm text-clay">{message}</p> : null}
+
+      <div className="card-shadow flex min-h-0 flex-1 flex-col rounded-[10px] border border-ink/8 bg-smoke">
+        <div className="min-h-0 flex-1 overflow-y-auto p-5 md:p-6">
+      {tab === "negocio" ? (
+      <section id="sitio-panel-negocio" role="tabpanel" aria-labelledby="sitio-tab-negocio" className="space-y-4">
         <h2 className="font-display text-2xl text-ink">Negocio y contacto</h2>
         <div className="grid gap-3 md:grid-cols-2">
           <Field label="Nombre" value={biz.name} onChange={(v) => setBiz({ ...biz, name: v })} />
@@ -208,7 +250,10 @@ export function SitioPanel() {
         </div>
       </section>
 
-      <section className="card-shadow space-y-4 rounded-[10px] border border-ink/8 bg-smoke p-5 md:p-6">
+      ) : null}
+
+      {tab === "hero" ? (
+      <section id="sitio-panel-hero" role="tabpanel" aria-labelledby="sitio-tab-hero" className="space-y-4">
         <h2 className="font-display text-2xl text-ink">Hero</h2>
         <div className="grid gap-5 md:grid-cols-2">
           <MediaUpload
@@ -228,7 +273,10 @@ export function SitioPanel() {
         </div>
       </section>
 
-      <section className="card-shadow space-y-4 rounded-[10px] border border-ink/8 bg-smoke p-5 md:p-6">
+      ) : null}
+
+      {tab === "about" ? (
+      <section id="sitio-panel-about" role="tabpanel" aria-labelledby="sitio-tab-about" className="space-y-4">
         <h2 className="font-display text-2xl text-ink">Quiénes somos</h2>
         <Field label="Titular" value={aboutDraft.headline} onChange={(v) => setAboutDraft({ ...aboutDraft, headline: v })} />
         <label className="text-sm text-clay">
@@ -244,36 +292,6 @@ export function SitioPanel() {
             className="mt-2 min-h-28 w-full rounded-[10px] border border-ink/15 bg-white px-3 py-2 text-ink"
           />
         </label>
-        <div className="grid gap-4 md:grid-cols-2">
-          {(aboutDraft.values.length >= 2
-            ? aboutDraft.values
-            : [
-                { title: "Misión", body: "" },
-                { title: "Visión", body: "" },
-              ]
-          )
-            .slice(0, 2)
-            .map((value, index) => (
-              <label key={index} className="text-sm text-clay">
-                <span className="font-medium text-ink/80">{value.title || (index === 0 ? "Misión" : "Visión")}</span>
-                <textarea
-                  value={value.body}
-                  onChange={(e) => {
-                    const values = [
-                      aboutDraft.values[0] ?? { title: "Misión", body: "" },
-                      aboutDraft.values[1] ?? { title: "Visión", body: "" },
-                    ];
-                    values[index] = {
-                      title: index === 0 ? "Misión" : "Visión",
-                      body: e.target.value,
-                    };
-                    setAboutDraft({ ...aboutDraft, values });
-                  }}
-                  className="mt-2 min-h-28 w-full rounded-[10px] border border-ink/15 bg-white px-3 py-2 text-ink"
-                />
-              </label>
-            ))}
-        </div>
         <MediaUpload
           className="max-w-xs"
           label="Foto Quiénes somos"
@@ -282,7 +300,10 @@ export function SitioPanel() {
         />
       </section>
 
-      <section className="card-shadow space-y-4 rounded-[10px] border border-ink/8 bg-smoke p-5 md:p-6">
+      ) : null}
+
+      {tab === "cocina" ? (
+      <section id="sitio-panel-cocina" role="tabpanel" aria-labelledby="sitio-tab-cocina" className="space-y-4">
         <h2 className="font-display text-2xl text-ink">Cocina</h2>
         <Field label="Titular" value={kitchenDraft.headline} onChange={(v) => setKitchenDraft({ ...kitchenDraft, headline: v })} />
         <label className="text-sm text-clay">
@@ -347,84 +368,70 @@ export function SitioPanel() {
         ))}
       </section>
 
-      <section className="card-shadow space-y-4 rounded-[10px] border border-ink/8 bg-smoke p-5 md:p-6">
+      ) : null}
+
+      {tab === "galeria" ? (
+      <section id="sitio-panel-galeria" role="tabpanel" aria-labelledby="sitio-tab-galeria" className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="font-display text-2xl text-ink">Galería</h2>
-            <p className="mt-1 text-sm text-clay">Titular, banda y fotos del mosaico. Sube y ordena cada imagen.</p>
+            <p className="mt-1 text-sm text-clay">
+              Hasta {GALLERY_LIMIT} fotos. El orden de la lista es el orden de las tarjetas.
+              {galleryDraft.shots.length > GALLERY_LIMIT
+                ? " Hay fotos de más: al guardar se conservan solo las primeras 6."
+                : ""}
+            </p>
           </div>
-          <button type="button" onClick={addShot} className="btn-secondary h-11 px-4 text-sm">
-            <Plus size={16} aria-hidden />
-            Agregar foto
-          </button>
+          {galleryDraft.shots.length < GALLERY_LIMIT ? (
+            <button type="button" onClick={addShot} className="btn-secondary h-11 px-4 text-sm">
+              <Plus size={16} aria-hidden />
+              Agregar foto
+            </button>
+          ) : (
+            <p className="text-sm font-medium text-clay">Máximo {GALLERY_LIMIT} fotos</p>
+          )}
         </div>
 
         <Field label="Titular" value={galleryDraft.headline} onChange={(v) => setGalleryDraft({ ...galleryDraft, headline: v })} />
 
-        <div>
-          <p className="mb-2 text-sm font-medium text-ink/80">Imagen de banda (parallax)</p>
-          <MediaUpload
-            className="max-w-md"
-            label="Banda de galería"
-            aspect="wide"
-            value={galleryDraft.bandImage}
-            onChange={(file) => upload(file, (url) => setGalleryDraft({ ...galleryDraft, bandImage: url }))}
-          />
-        </div>
-
-        <div className="space-y-4">
-          {galleryDraft.shots.map((shot, index) => (
-            <div key={index} className="grid gap-4 rounded-[10px] border border-ink/10 bg-paper/40 p-4 md:grid-cols-[140px_1fr]">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {galleryDraft.shots.slice(0, GALLERY_LIMIT).map((shot, index) => (
+            <div key={index} className="flex flex-col gap-3 rounded-[10px] border border-ink/10 bg-paper/40 p-3">
               <MediaUpload
                 label={`Foto ${index + 1}`}
                 value={shot.src || null}
-                hint="Sube la imagen del mosaico"
-                onChange={(file) =>
-                  upload(file, (url) => updateShot(index, { src: url }))
-                }
+                hint="Sube la foto de la tarjeta"
+                onChange={(file) => upload(file, (url) => updateShot(index, { src: url }))}
               />
-              <div className="grid gap-3">
-                <label className="text-sm text-clay">
-                  <span className="font-medium text-ink/80">Posición en el mosaico</span>
-                  <Select
-                    className="mt-2"
-                    value={layoutValue(shot.className)}
-                    onValueChange={(v) => updateShot(index, { className: layoutClass(v) })}
-                    options={
-                      shotLayouts.some((opt) => opt.value === layoutValue(shot.className))
-                        ? shotLayouts
-                        : [...shotLayouts, { value: shot.className, label: "Personalizada" }]
-                    }
-                    aria-label={`Posición de foto ${index + 1}`}
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={() => removeShot(index)}
-                  className="inline-flex h-11 w-fit items-center gap-2 rounded-[10px] border border-terracotta/35 px-4 text-sm font-medium text-terracotta"
-                >
-                  <Trash2 size={16} aria-hidden />
-                  Quitar foto
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => removeShot(index)}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-[10px] border border-terracotta/35 px-4 text-sm font-medium text-terracotta"
+              >
+                <Trash2 size={16} aria-hidden />
+                Quitar foto
+              </button>
             </div>
           ))}
-          {galleryDraft.shots.length === 0 ? (
-            <p className="rounded-[10px] border border-dashed border-ink/15 px-4 py-8 text-center text-sm text-clay">
-              No hay fotos. Agrega al menos una para el mosaico.
-            </p>
-          ) : null}
         </div>
+        {galleryDraft.shots.length === 0 ? (
+          <p className="rounded-[10px] border border-dashed border-ink/15 px-4 py-8 text-center text-sm text-clay">
+            No hay fotos. Agrega al menos una para el tendedero.
+          </p>
+        ) : null}
       </section>
+      ) : null}
+        </div>
 
-      <div className="flex flex-wrap items-center justify-end gap-3">
-        <button type="button" disabled={saving} onClick={cancelAll} className="btn-secondary h-12 px-6">
-          Cancelar
-        </button>
-        <button type="button" disabled={saving} onClick={() => void saveAll()} className="btn-accent h-12 px-6">
-          <Save size={16} aria-hidden />
-          {saving ? "Guardando…" : "Guardar sitio"}
-        </button>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 border-t border-ink/10 px-5 py-4 md:px-6">
+          <button type="button" disabled={saving} onClick={cancelAll} className="btn-secondary h-12 px-6">
+            Cancelar
+          </button>
+          <button type="button" disabled={saving} onClick={() => void saveAll()} className="btn-accent h-12 px-6">
+            <Save size={16} aria-hidden />
+            {saving ? "Guardando…" : "Guardar sitio"}
+          </button>
+        </div>
       </div>
     </div>
   );

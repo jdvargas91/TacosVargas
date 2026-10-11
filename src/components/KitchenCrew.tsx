@@ -8,9 +8,10 @@ export function KitchenCrew() {
 
   return (
     <section id="cocina" className="kitchen-heat text-tortilla">
-      <div className="mx-auto max-w-6xl px-4 py-24 md:px-6 md:py-28">
+      <img className="section-wave" src="/team-wave-top.svg" alt="" />
+      <div className="mx-auto max-w-6xl px-4 pb-16 pt-8 md:px-6 md:pb-20 md:pt-12">
         <Reveal>
-          <h2 className="font-display max-w-xl text-4xl leading-[1.05] md:text-5xl">{kitchen.headline}</h2>
+          <h2 className="font-display text-4xl md:text-5xl">{kitchen.headline}</h2>
           <span className="mark" aria-hidden />
           <p className="mt-5 max-w-[65ch] text-lg text-tortilla/90">{kitchen.lede}</p>
         </Reveal>
@@ -24,14 +25,12 @@ export function KitchenCrew() {
               <li key={person.name}>
                 <Reveal delay={0.05 * index}>
                   <article
-                    className={`grid items-start gap-6 lg:items-center lg:gap-14 ${
-                      featured ? "lg:grid-cols-[1.25fr_0.75fr]" : "lg:grid-cols-[0.92fr_1.08fr]"
+                    className={`flex flex-col items-start gap-6 lg:items-center lg:gap-14 ${
+                      reverse ? "lg:flex-row-reverse" : "lg:flex-row"
                     }`}
                   >
                     <motion.figure
-                      className={`kitchen-frame ${reverse ? "lg:order-2" : ""} ${
-                        featured ? "aspect-[5/4]" : "aspect-[4/5] max-lg:aspect-[5/4]"
-                      }`}
+                      className="kitchen-frame shrink-0"
                       whileHover={reduce ? undefined : { scale: 1.015 }}
                       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                     >
@@ -42,7 +41,7 @@ export function KitchenCrew() {
                         className="h-full w-full object-cover"
                       />
                     </motion.figure>
-                    <div className={reverse ? "lg:order-1" : ""}>
+                    <div>
                       <h3
                         className={`font-display leading-[1.05] ${
                           featured ? "text-4xl md:text-5xl" : "text-3xl md:text-4xl"
@@ -60,6 +59,7 @@ export function KitchenCrew() {
           })}
         </ul>
       </div>
+      <img className="section-wave" src="/team-wave-bottom.svg" alt="" />
     </section>
   );
 }

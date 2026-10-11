@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { ExternalLink } from "lucide-react";
@@ -14,30 +14,43 @@ const pin = L.divIcon({
 
 export function LocationMap() {
   const { business } = useSiteContent();
-  const mapRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const locationRef = useRef(business.location);
+  locationRef.current = business.location;
 
-  useEffect(() => {
-    if (!mapRef.current) return;
-    const map = L.map(mapRef.current, { scrollWheelZoom: false }).setView(
-      [business.location.lat, business.location.lng],
+  const containerRef = useCallback((node: HTMLDivElement | null) => {
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+    }
+    if (!node) return;
+
+    const location = locationRef.current;
+    const map = L.map(node, { scrollWheelZoom: false }).setView(
+      [location.lat, location.lng],
       16,
     );
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "&copy; OpenStreetMap",
     }).addTo(map);
-    L.marker([business.location.lat, business.location.lng], { icon: pin })
-      .addTo(map)
-      .bindPopup(business.location.label);
-    return () => {
-      map.remove();
-    };
-  }, [business.location.lat, business.location.lng, business.location.label]);
+    L.marker([location.lat, location.lng], { icon: pin }).addTo(map).bindPopup(location.label);
+    mapRef.current = map;
+    requestAnimationFrame(() => map.invalidateSize());
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.setView([business.location.lat, business.location.lng], map.getZoom());
+  }, [business.location.lat, business.location.lng]);
 
   return (
-    <section id="ubicacion" className="px-4 py-24 md:px-6">
-      <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-2">
+    <section id="ubicacion" className="location-section px-4 py-24 md:px-6">
+      <img className="location-section__photo" src="/ubicacion.webp" alt="" />
+      <div className="location-section__wash" aria-hidden />
+      <div className="relative z-10 mx-auto grid max-w-6xl gap-8 lg:grid-cols-2">
         <Reveal>
-          <h2 className="font-display text-4xl leading-[1.05] text-ink md:text-5xl">Dónde estamos</h2>
+          <h2 className="font-display text-4xl text-ink md:text-5xl">Dónde estamos</h2>
           <span className="mark" aria-hidden />
           <p className="mt-4 text-clay">{business.location.label}</p>
           {business.location.landmark ? (
@@ -58,9 +71,7 @@ export function LocationMap() {
             </a>
           ) : null}
         </Reveal>
-        <Reveal delay={0.1}>
-          <div ref={mapRef} className="h-[360px] overflow-hidden rounded-2xl" />
-        </Reveal>
+        <div ref={containerRef} className="location-map" />
       </div>
     </section>
   );

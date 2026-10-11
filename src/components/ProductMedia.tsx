@@ -8,6 +8,8 @@ type ProductMediaProps = {
   tone?: "card" | "detail" | "thumb";
   className?: string;
   imgClassName?: string;
+  /** Foto agotada: mantiene el gris y aun así responde al hover. */
+  muted?: boolean;
   loading?: "lazy" | "eager";
   children?: ReactNode;
 };
@@ -19,13 +21,14 @@ export function ProductMedia({
   tone = "card",
   className,
   imgClassName,
+  muted = false,
   loading = "lazy",
   children,
 }: ProductMediaProps) {
   return (
     <div
       className={cn(
-        "relative overflow-hidden bg-smoke",
+        "product-photo-frame relative overflow-hidden bg-smoke",
         tone === "card" && "aspect-[4/3]",
         tone === "detail" && "aspect-[4/3] rounded-[10px]",
         tone === "thumb" && "rounded-[10px]",
@@ -37,8 +40,9 @@ export function ProductMedia({
         alt={alt}
         loading={loading}
         className={cn(
-          "h-full w-full object-cover object-center",
+          "product-photo h-full w-full object-cover object-center",
           tone === "thumb" && "aspect-square",
+          muted && "product-photo--muted",
           imgClassName,
         )}
       />

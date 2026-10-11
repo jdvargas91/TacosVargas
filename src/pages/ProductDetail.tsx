@@ -121,7 +121,7 @@ export function ProductDetail() {
               alt={product.name}
               tone="detail"
               loading="eager"
-              imgClassName={!available ? "grayscale-[0.4]" : undefined}
+              muted={!available}
             >
               {product.isFeatured ? (
                 <span className="absolute left-4 top-4 rounded-sm bg-gold px-2 py-1 text-xs font-bold text-ink">

@@ -38,7 +38,7 @@ export function ReviewsSection() {
       : visibleReviews.reduce((sum, review) => sum + review.rating, 0) / visibleReviews.length;
 
   return (
-    <section id="resenas" className="px-4 py-24 md:px-6">
+    <section id="resenas" className="bg-paper px-4 py-24 md:px-6">
       <div className="mx-auto max-w-6xl">
         <Reveal>
           <div className="flex flex-wrap items-end justify-between gap-4">

@@ -101,7 +101,7 @@ const defaultHero: HeroContent = {
 const defaultAbout: AboutContent = {
   headline: fallbackAbout.headline,
   paragraphs: [...fallbackAbout.paragraphs],
-  values: fallbackAbout.values.map((v) => ({ ...v })),
+  values: [],
   pillars: fallbackAbout.pillars.map((v) => ({ ...v })),
   image: fallbackAbout.image,
 };
@@ -246,9 +246,6 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
           const next = content as Partial<AboutContent>;
           const staleHeadline =
             typeof next.headline === "string" && next.headline.includes("Cómo nació");
-          const hasMissionVision = Boolean(
-            next.values?.some((item) => /misi[oó]n|visi[oó]n/i.test(item.title)),
-          );
           const image =
             next.image && !String(next.image).endsWith("/about.jpg")
               ? next.image
@@ -261,7 +258,7 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
               staleHeadline || !next.paragraphs?.length
                 ? defaultAbout.paragraphs
                 : next.paragraphs,
-            values: hasMissionVision ? (next.values as AboutContent["values"]) : defaultAbout.values,
+            values: [],
             pillars: next.pillars?.length ? next.pillars : defaultAbout.pillars,
             image,
           });
