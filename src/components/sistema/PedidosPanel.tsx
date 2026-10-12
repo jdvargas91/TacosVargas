@@ -1,38 +1,67 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  Ban,
+  Calendar,
   CheckCircle2,
   ChefHat,
   Clock,
+  Inbox,
+  MapPin,
   Maximize2,
   Package,
   Pencil,
   Receipt,
+  Replace,
   Search,
+  ShoppingBag,
   Store,
+  Truck,
+  Upload,
+  User,
   X,
-  XCircle,
+  type LucideIcon,
 } from "lucide-react";
 import { Select } from "@/components/ui/Select";
+import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { formatMxn, formatOrderCode } from "@/lib/format";
-import { ORDER_STATUS_LABELS, ORDER_STATUS_TONES, ORDER_STATUSES } from "@/lib/orderStatus";
+import {
+  ORDER_STATUS_LABELS,
+  ORDER_STATUS_MARK,
+  ORDER_STATUS_RAIL,
+  ORDER_STATUS_TONES,
+  orderStatusChoices,
+  type OrderStatus,
+} from "@/lib/orderStatus";
 import { supabase, type OrderRow } from "@/lib/supabase";
 import { cn } from "@/lib/cn";
 
 type SourceFilter = "todos" | "web" | "mostrador";
 type Period = "day" | "week" | "month" | "all";
-type TabId = "proceso" | "entregado" | "cancelado";
+type TabId = "proceso" | "entregado";
 
 const OPEN_COUNTER = new Set(["recibido", "en_preparacion"]);
+
+const STATUS_ICONS: Record<OrderStatus, LucideIcon> = {
+  recibido: Inbox,
+  en_preparacion: Clock,
+  en_camino: Truck,
+  entregado: ShoppingBag,
+  cancelado: Ban,
+};
+
+function needsPaymentProof(order: OrderRow) {
+  return order.source === "mostrador" && !order.payment_proof_url;
+}
 
 const TZ = "America/Mexico_City";
 /** Colima/Manzanillo usan UTC-6 fijo (México ya no aplica horario de verano). */
 const MX_OFFSET = "-06:00";
 
-function groupOf(status: OrderRow["status"]): TabId {
-  if (status === "entregado") return "entregado";
-  if (status === "cancelado") return "cancelado";
+function groupOf(order: OrderRow): TabId {
+  if (needsPaymentProof(order)) return "proceso";
+  if (order.status === "entregado") return "entregado";
   return "proceso";
 }
 
@@ -81,16 +110,11 @@ const periodOptions: { id: Period; label: string }[] = [
 const tabMeta: { id: TabId; label: string; icon: typeof ChefHat }[] = [
   { id: "proceso", label: "En proceso", icon: ChefHat },
   { id: "entregado", label: "Entregados", icon: CheckCircle2 },
-  { id: "cancelado", label: "Cancelados", icon: XCircle },
 ];
-
-const statusSelectOptions = ORDER_STATUSES.map((status) => ({
-  value: status,
-  label: ORDER_STATUS_LABELS[status],
-}));
 
 export function PedidosPanel() {
   const toast = useToast();
+  const { user } = useAuth();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [tab, setTab] = useState<TabId>("proceso");
   const [period, setPeriod] = useState<Period>("day");
@@ -98,6 +122,7 @@ export function PedidosPanel() {
   const [nameQuery, setNameQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!supabase) return;
@@ -126,6 +151,7 @@ export function PedidosPanel() {
   const base = useMemo(
     () =>
       orders.filter((order) => {
+        if (order.status === "cancelado") return false;
         const bySource = sourceFilter === "todos" || (order.source ?? "web") === sourceFilter;
         const byName =
           !nameNeedle || (order.customer_name ?? "").toLowerCase().includes(nameNeedle);
@@ -134,15 +160,15 @@ export function PedidosPanel() {
     [orders, sourceFilter, nameNeedle],
   );
 
-  // El filtro de período solo aplica a pedidos históricos (entregados/cancelados).
+  // El filtro de período solo aplica a pedidos entregados.
   // Los pedidos en proceso son "en vivo" y se muestran siempre.
   const start = useMemo(() => periodStart(period), [period]);
   const inPeriod = (order: OrderRow) => !start || new Date(order.created_at) >= start;
 
   const counts = useMemo(() => {
-    const acc: Record<TabId, number> = { proceso: 0, entregado: 0, cancelado: 0 };
+    const acc: Record<TabId, number> = { proceso: 0, entregado: 0 };
     for (const order of base) {
-      const g = groupOf(order.status);
+      const g = groupOf(order);
       if (g !== "proceso" && !inPeriod(order)) continue;
       acc[g] += 1;
     }
@@ -150,11 +176,13 @@ export function PedidosPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [base, start]);
 
-  const visible = base.filter((order) => {
-    if (groupOf(order.status) !== tab) return false;
-    if (tab !== "proceso" && !inPeriod(order)) return false;
-    return true;
-  });
+  const visible = base
+    .filter((order) => {
+      if (groupOf(order) !== tab) return false;
+      if (tab !== "proceso" && !inPeriod(order)) return false;
+      return true;
+    })
+    .sort((a, b) => Number(needsPaymentProof(b)) - Number(needsPaymentProof(a)));
 
   async function updateStatus(id: string, status: OrderRow["status"]) {
     if (!supabase) return;
@@ -166,6 +194,46 @@ export function PedidosPanel() {
     }
     setOrders((current) => current.map((item) => (item.id === id ? { ...item, status } : item)));
     toast.success("Pedido actualizado", `Estado: ${ORDER_STATUS_LABELS[status]}.`);
+  }
+
+  async function uploadProof(orderId: string, file: File, replacing = false) {
+    if (!supabase || !user) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error(replacing ? "Comprobante no cambiado" : "Comprobante no subido", "Usa una imagen JPG o PNG.");
+      return;
+    }
+    setUploadingId(orderId);
+    setError(null);
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const path = `${user.id}/${orderId}-${Date.now()}.${ext}`;
+    const { error: upError } = await supabase.storage.from("payment-proofs").upload(path, file, {
+      contentType: file.type || "image/jpeg",
+    });
+    if (upError) {
+      setError(upError.message);
+      toast.error(replacing ? "Comprobante no cambiado" : "Comprobante no subido", upError.message);
+      setUploadingId(null);
+      return;
+    }
+    const { data: pub } = supabase.storage.from("payment-proofs").getPublicUrl(path);
+    const { error: updateError } = await supabase
+      .from("orders")
+      .update({ payment_proof_url: pub.publicUrl })
+      .eq("id", orderId);
+    if (updateError) {
+      setError(updateError.message);
+      toast.error(replacing ? "Comprobante no cambiado" : "Comprobante no guardado", updateError.message);
+      setUploadingId(null);
+      return;
+    }
+    setOrders((current) =>
+      current.map((item) => (item.id === orderId ? { ...item, payment_proof_url: pub.publicUrl } : item)),
+    );
+    toast.success(
+      replacing ? "Comprobante actualizado" : "Comprobante guardado",
+      replacing ? "La foto anterior quedó reemplazada." : "El pedido ya tiene su comprobante de pago.",
+    );
+    setUploadingId(null);
   }
 
   return (
@@ -243,7 +311,7 @@ export function PedidosPanel() {
       {tab !== "proceso" ? (
         <div className="flex flex-wrap items-center gap-3">
           <div
-            className="inline-flex gap-1 rounded-[10px] border border-ink/10 bg-paper/80 p-1"
+            className="flex flex-wrap gap-1 rounded-[10px] border border-ink/10 bg-paper/80 p-1"
             role="group"
             aria-label="Filtrar por período"
           >
@@ -256,7 +324,7 @@ export function PedidosPanel() {
                   aria-pressed={active}
                   onClick={() => setPeriod(opt.id)}
                   className={cn(
-                    "h-9 rounded-[7px] px-3 text-sm font-semibold transition",
+                    "h-11 rounded-[7px] px-3 text-sm font-semibold transition",
                     active ? "bg-ink text-paper shadow-sm" : "text-clay hover:bg-ink/5 hover:text-ink",
                   )}
                 >
@@ -293,17 +361,39 @@ export function PedidosPanel() {
           const code = formatOrderCode(order.order_number, order.id);
           const customerName = order.customer_name?.trim() || "Sin nombre";
           const hasProof = Boolean(order.payment_proof_url);
+          const pendingProof = needsPaymentProof(order);
+          const flow = orderStatusChoices(order.source);
+          const statusValues =
+            flow.includes(order.status) || order.status === "en_camino" || order.status === "cancelado"
+              ? flow
+              : [order.status, ...flow];
+          const statusOptions = statusValues.map((status) => ({
+            value: status,
+            label: ORDER_STATUS_LABELS[status],
+          }));
+          const StatusIcon = STATUS_ICONS[order.status];
 
           return (
             <article
               key={order.id}
-              className={cn(
-                "card-shadow overflow-hidden rounded-[10px] border bg-smoke",
-                hasProof ? "border-amber-500/40" : isCounter ? "border-ember/20" : "border-ink/8",
-              )}
+              className="@container card-shadow relative overflow-hidden rounded-[10px] border border-ink/10 bg-smoke"
             >
-              <div className="relative z-10 flex flex-wrap items-start justify-between gap-4 border-b border-ink/8 bg-paper/50 px-5 py-4">
-                <div className="min-w-0 flex-1">
+              <span
+                className={cn("absolute inset-y-0 left-0 w-1", ORDER_STATUS_RAIL[order.status])}
+                aria-hidden
+              />
+              <div className="relative z-10 flex flex-col gap-3 border-b border-ink/8 bg-paper/50 px-4 py-4 @min-[36rem]:flex-row @min-[36rem]:items-start @min-[36rem]:justify-between @min-[36rem]:px-5">
+                <div className="flex min-w-0 flex-1 items-start gap-3">
+                  <span
+                    className={cn(
+                      "grid h-10 w-10 shrink-0 place-items-center rounded-[10px]",
+                      ORDER_STATUS_MARK[order.status],
+                    )}
+                    aria-hidden
+                  >
+                    <StatusIcon size={18} strokeWidth={2} />
+                  </span>
+                  <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="font-display text-2xl tracking-wide text-ink">{code}</p>
                     <span
@@ -327,34 +417,74 @@ export function PedidosPanel() {
                     </span>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <p className="text-sm font-medium text-ink">{customerName}</p>
-                    <p className="inline-flex items-center gap-1 text-xs text-clay">
-                      <Clock size={12} aria-hidden />
+                    <p className="inline-flex items-center gap-1.5 text-sm font-medium text-ink">
+                      <User size={14} className="text-clay" aria-hidden />
+                      {customerName}
+                    </p>
+                    <p className="inline-flex items-center gap-1.5 text-xs text-clay">
+                      <Calendar size={14} aria-hidden />
                       {new Date(order.created_at).toLocaleString("es-MX", {
                         dateStyle: "medium",
                         timeStyle: "short",
                       })}
                     </p>
                   </div>
+                  </div>
                 </div>
-                <div className="w-full min-w-[12rem] sm:w-56">
+                <div className="w-full @min-[36rem]:w-56">
                   <p className="mb-1.5 text-xs font-medium text-clay">Cambiar estado</p>
                   <Select
-                    value={order.status}
+                    value={statusValues.includes(order.status) ? order.status : statusValues[0]}
                     onValueChange={(v) => void updateStatus(order.id, v as OrderRow["status"])}
-                    options={statusSelectOptions}
+                    options={statusOptions}
                     aria-label={`Estado del pedido ${code}`}
                   />
                 </div>
               </div>
 
+              {pendingProof ? (
+                <div className="flex flex-col gap-3 border-b border-ember/15 bg-ember/10 px-4 py-4 @min-[36rem]:flex-row @min-[36rem]:items-center @min-[36rem]:justify-between @min-[36rem]:px-5">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] bg-paper text-ember" aria-hidden>
+                      <Receipt size={20} />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-base font-bold leading-tight text-ink">Sube el comprobante</p>
+                      <p className="mt-1 text-sm leading-snug text-clay">
+                        Sin esta foto el pedido sigue en proceso y no pasa a Entregados.
+                      </p>
+                    </div>
+                  </div>
+                  <label
+                    className={cn(
+                      "btn-accent h-11 w-full shrink-0 cursor-pointer px-4 text-sm @min-[36rem]:w-auto",
+                      uploadingId === order.id && "pointer-events-none opacity-60",
+                    )}
+                  >
+                    <Upload size={16} aria-hidden />
+                    {uploadingId === order.id ? "Subiendo…" : "Subir comprobante"}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="sr-only"
+                      disabled={uploadingId === order.id}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        event.target.value = "";
+                        if (file) void uploadProof(order.id, file);
+                      }}
+                    />
+                  </label>
+                </div>
+              ) : null}
+
               {/* Comprobante destacado */}
               {hasProof ? (
-                <div className="flex items-center gap-3 border-b border-amber-500/30 bg-amber-500/10 px-5 py-3">
+                <div className="flex items-center gap-3 border-b border-ink/8 bg-paper/80 px-4 py-3 @min-[36rem]:px-5">
                   <button
                     type="button"
                     onClick={() => setLightboxUrl(order.payment_proof_url!)}
-                    className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-[10px] border border-amber-500/50 bg-white shadow-sm"
+                    className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-[10px] border border-ink/10 bg-white shadow-sm"
                     aria-label="Ampliar comprobante de pago"
                   >
                     <img
@@ -372,33 +502,53 @@ export function PedidosPanel() {
                     </span>
                   </button>
                   <div className="min-w-0">
-                    <p className="flex items-center gap-1.5 text-sm font-bold text-amber-900">
+                    <p className="flex items-center gap-1.5 text-sm font-bold text-ink">
                       <Receipt size={15} aria-hidden />
                       Comprobante de pago
                     </p>
-                    <p className="mt-0.5 text-xs text-amber-900/80">
-                      Revisa la transferencia antes de preparar el pedido.
+                    <p className="mt-0.5 text-xs text-clay">
+                      {isCounter
+                        ? "Comprobante de pago del mostrador."
+                        : "Revisa la transferencia antes de preparar el pedido."}
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => setLightboxUrl(order.payment_proof_url!)}
-                      className="mt-1.5 inline-flex items-center gap-1 text-xs font-bold text-ember underline-offset-2 hover:underline"
+                    <label
+                      className={cn(
+                        "mt-1 inline-flex min-h-11 cursor-pointer items-center gap-1 text-xs font-bold text-ember underline-offset-2 hover:underline",
+                        uploadingId === order.id && "pointer-events-none opacity-60",
+                      )}
                     >
-                      <Maximize2 size={12} aria-hidden />
-                      Ver a pantalla completa
-                    </button>
+                      <Replace size={12} aria-hidden />
+                      {uploadingId === order.id ? "Cambiando…" : "Cambiar foto"}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="sr-only"
+                        disabled={uploadingId === order.id}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          event.target.value = "";
+                          if (file) void uploadProof(order.id, file, true);
+                        }}
+                      />
+                    </label>
                   </div>
                 </div>
               ) : null}
 
-              <div className="grid gap-4 px-5 py-4 md:grid-cols-[1fr_auto]">
-                <div>
-                  <p className="text-sm font-medium text-ember">Recoger en el local</p>
-                  <ul className="mt-3 space-y-1.5 text-sm text-ink">
+              <div className="space-y-4 px-4 py-4 @min-[36rem]:px-5">
+                <div className="min-w-0">
+                  <p className="inline-flex items-center gap-1.5 text-sm font-medium text-clay">
+                    <MapPin size={15} className="shrink-0" aria-hidden />
+                    Recoger en el local
+                  </p>
+                  <ul className="mt-2 overflow-hidden rounded-[10px] border border-ink/8 bg-paper/70">
                     {order.items.map((item, idx) => (
-                      <li key={`${order.id}-${item.id}-${idx}`} className="flex gap-2">
-                        <span className="w-8 shrink-0 font-semibold text-clay">{item.qty}×</span>
-                        <span>
+                      <li
+                        key={`${order.id}-${item.id}-${idx}`}
+                        className="flex items-baseline gap-3 border-b border-ink/8 px-3 py-2.5 text-sm last:border-b-0"
+                      >
+                        <span className="w-8 shrink-0 font-bold tabular-nums text-ink">{item.qty}×</span>
+                        <span className="min-w-0 text-ink">
                           {item.name}
                           {item.tortillas ? (
                             <span className="text-clay">
@@ -417,17 +567,25 @@ export function PedidosPanel() {
                     ))}
                   </ul>
                 </div>
-                <div className="flex flex-col items-start justify-between gap-3 md:items-end">
-                  <p className="text-xl font-bold text-ink">{formatMxn(order.total_cents)}</p>
-                  {canEditCounter ? (
-                    <Link
-                      to={`/sistema/mostrador?edit=${order.id}`}
-                      className="btn-accent inline-flex h-10 shrink-0 items-center gap-1.5 px-3 text-sm"
-                    >
-                      <Pencil size={15} aria-hidden />
-                      Editar pedido
-                    </Link>
-                  ) : null}
+                <div className="flex flex-col gap-3 border-t border-ink/8 pt-4 @min-[36rem]:flex-row @min-[36rem]:items-center @min-[36rem]:justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-clay">Total</p>
+                    <p className="text-xl font-bold text-ink">{formatMxn(order.total_cents)}</p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 @min-[36rem]:flex @min-[36rem]:flex-wrap @min-[36rem]:justify-end">
+                    {canEditCounter ? (
+                      <Link
+                        to={`/sistema/mostrador?edit=${order.id}`}
+                        className={cn(
+                          "inline-flex h-11 w-full shrink-0 items-center justify-center gap-1.5 px-3 text-sm @min-[36rem]:w-auto",
+                          pendingProof ? "btn-secondary" : "btn-accent",
+                        )}
+                      >
+                        <Pencil size={15} aria-hidden />
+                        Editar pedido
+                      </Link>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </article>

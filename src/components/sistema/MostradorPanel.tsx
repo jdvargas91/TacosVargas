@@ -50,7 +50,7 @@ const kindTabs: { id: ProductKind; label: string; icon: typeof UtensilsCrossed }
   { id: "drink", label: "Bebidas", icon: CupSoda },
 ];
 
-const OPEN_STATUSES = ["recibido", "en_preparacion", "en_camino"] as const;
+const OPEN_STATUSES = ["recibido", "en_preparacion"] as const;
 
 type OpenCounterOrder = {
   id: string;
@@ -338,11 +338,16 @@ export function MostradorPanel() {
     }
 
     const payload = data as RpcOrderPayload;
-    const folio = formatOrderCode(payload.order_number, String(payload.id));
-    const okMsg = `Pedido ${folio} abierto · puedes seguir editándolo`;
+    const createdId = String(payload.id);
+    await supabase
+      .from("orders")
+      .update({ status: "en_preparacion" })
+      .eq("id", createdId)
+      .eq("source", "mostrador");
+    const folio = formatOrderCode(payload.order_number, createdId);
+    const okMsg = `Pedido ${folio} abierto · queda en preparación`;
     setMessage(okMsg);
     toast.success("Pedido creado", okMsg);
-    const createdId = String(payload.id);
     setEditingOrderId(createdId);
     setBaselineQty({ ...cart });
     setSearchParams({ edit: createdId }, { replace: true });
@@ -546,7 +551,7 @@ export function MostradorPanel() {
             <p className="mt-1 text-xs text-clay">
               {editingOrderId
                 ? `Editando ${formatOrderCode(editingOrder?.order_number, editingOrderId)} · cambia cantidades y guarda`
-                : "Nuevo pedido de mostrador · queda en recibido hasta entregarlo"}
+                : "Nuevo pedido de mostrador · queda en preparación hasta entregarlo"}
             </p>
           </div>
 
