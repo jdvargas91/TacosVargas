@@ -383,7 +383,7 @@ export function SitioPanel() {
             </p>
           </div>
           {galleryDraft.shots.length < GALLERY_LIMIT ? (
-            <button type="button" onClick={addShot} className="btn-secondary h-11 px-4 text-sm">
+            <button type="button" onClick={addShot} className="btn-secondary h-11 w-full px-4 text-sm sm:w-auto">
               <Plus size={16} aria-hidden />
               Agregar foto
             </button>
@@ -423,11 +423,11 @@ export function SitioPanel() {
       ) : null}
         </div>
 
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 border-t border-ink/10 px-5 py-4 md:px-6">
-          <button type="button" disabled={saving} onClick={cancelAll} className="btn-secondary h-12 px-6">
+        <div className="flex shrink-0 gap-3 border-t border-ink/10 px-4 py-4 sm:justify-end sm:px-5 md:px-6">
+          <button type="button" disabled={saving} onClick={cancelAll} className="btn-secondary h-12 min-w-0 flex-1 px-6 sm:flex-none">
             Cancelar
           </button>
-          <button type="button" disabled={saving} onClick={() => void saveAll()} className="btn-accent h-12 px-6">
+          <button type="button" disabled={saving} onClick={() => void saveAll()} className="btn-accent h-12 min-w-0 flex-1 px-6 sm:flex-none">
             <Save size={16} aria-hidden />
             {saving ? "Guardando…" : "Guardar sitio"}
           </button>

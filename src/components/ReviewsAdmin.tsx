@@ -128,12 +128,12 @@ export function ReviewsAdmin() {
           description="Si está apagado, la opinión no aparece en la página pública."
         />
 
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <button type="button" onClick={reset} className="btn-secondary h-11 px-5 text-sm">
+        <div className="flex w-full gap-3 sm:justify-end">
+          <button type="button" onClick={reset} className="btn-secondary h-11 min-w-0 flex-1 px-5 text-sm sm:flex-none">
             <X size={16} aria-hidden />
             Cancelar
           </button>
-          <button type="submit" className="btn-accent h-11 px-5">
+          <button type="submit" className="btn-accent h-11 min-w-0 flex-1 px-5 sm:flex-none">
             {editingId ? <Save size={16} aria-hidden /> : <Plus size={16} aria-hidden />}
             {editingId ? "Guardar cambios" : "Publicar"}
           </button>
@@ -142,57 +142,64 @@ export function ReviewsAdmin() {
 
       <ul className="space-y-4">
         {reviews.map((review) => (
-          <li key={review.id} className="card-shadow rounded-[10px] border border-ink/8 bg-smoke p-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="font-display text-xl text-ink">{review.author}</p>
-                <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-clay">
-                  <span className="inline-flex items-center gap-1 font-medium text-ink">
-                    <Star size={14} className="fill-gold text-gold" aria-hidden />
-                    {review.rating} de 5
-                  </span>
-                  <span className="text-ink/25">·</span>
-                  {review.publishedAt}
-                  <span className="text-ink/25">·</span>
-                  {review.visible ? "Visible" : "Oculta"}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => startEdit(review)} className="btn-secondary h-11 px-4 text-sm">
-                  <Pencil size={16} aria-hidden />
-                  Editar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void upsert({ ...review, visible: !review.visible })}
-                  className="btn-secondary h-11 px-4 text-sm"
-                >
-                  {review.visible ? <EyeOff size={16} aria-hidden /> : <Eye size={16} aria-hidden />}
-                  {review.visible ? "Ocultar" : "Mostrar"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void (async () => {
-                      try {
-                        await remove(review.id);
-                        toast.success("Opinión eliminada", `Se quitó la opinión de ${review.author}.`);
-                      } catch (err) {
-                        toast.error(
-                          "Opinión no eliminada",
-                          err instanceof Error ? err.message : "No se pudo borrar",
-                        );
-                      }
-                    })();
-                  }}
-                  className="inline-flex h-11 items-center gap-2 rounded-[10px] border border-terracotta/35 px-4 text-sm font-medium text-terracotta"
-                >
-                  <Trash2 size={16} aria-hidden />
-                  Borrar
-                </button>
-              </div>
+          <li key={review.id} className="card-shadow rounded-[10px] border border-ink/8 bg-smoke p-4 sm:p-5">
+            <div className="flex items-start justify-between gap-3">
+              <p className="font-display text-xl leading-none text-ink">{review.author}</p>
+              <span
+                className={
+                  review.visible
+                    ? "shrink-0 rounded-full bg-emerald-600/10 px-2.5 py-1 text-xs font-semibold text-emerald-900"
+                    : "shrink-0 rounded-full bg-ink/8 px-2.5 py-1 text-xs font-semibold text-clay"
+                }
+              >
+                {review.visible ? "Visible" : "Oculta"}
+              </span>
             </div>
-            <p className="mt-3 text-ink">{review.text}</p>
+            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-clay">
+              <span className="inline-flex items-center gap-1 font-medium text-ink">
+                <Star size={14} className="fill-gold text-gold" aria-hidden />
+                {review.rating} de 5
+              </span>
+              <span className="text-ink/25" aria-hidden>
+                ·
+              </span>
+              <time dateTime={review.publishedAt}>{review.publishedAt}</time>
+            </p>
+            <p className="mt-3 text-base leading-relaxed text-ink">{review.text}</p>
+            <div className="mt-4 grid w-full grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+              <button type="button" onClick={() => startEdit(review)} className="btn-secondary h-11 w-full px-4 text-sm sm:w-auto">
+                <Pencil size={16} aria-hidden />
+                Editar
+              </button>
+              <button
+                type="button"
+                onClick={() => void upsert({ ...review, visible: !review.visible })}
+                className="btn-secondary h-11 w-full px-4 text-sm sm:w-auto"
+              >
+                {review.visible ? <EyeOff size={16} aria-hidden /> : <Eye size={16} aria-hidden />}
+                {review.visible ? "Ocultar" : "Mostrar"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void (async () => {
+                    try {
+                      await remove(review.id);
+                      toast.success("Opinión eliminada", `Se quitó la opinión de ${review.author}.`);
+                    } catch (err) {
+                      toast.error(
+                        "Opinión no eliminada",
+                        err instanceof Error ? err.message : "No se pudo borrar",
+                      );
+                    }
+                  })();
+                }}
+                className="col-span-2 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[10px] border border-terracotta/35 px-4 text-sm font-medium text-terracotta sm:col-span-1 sm:w-auto"
+              >
+                <Trash2 size={16} aria-hidden />
+                Borrar
+              </button>
+            </div>
           </li>
         ))}
       </ul>

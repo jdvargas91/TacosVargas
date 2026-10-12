@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight, PackageMinus, PackagePlus, Pencil, Save, Search, X } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { MediaUpload } from "@/components/ui/MediaUpload";
 import { Select } from "@/components/ui/Select";
 import { Switch } from "@/components/ui/Switch";
@@ -328,12 +329,12 @@ export function CatalogoPanel() {
             </div>
           </div>
 
-          <div className="mt-6 flex flex-wrap items-center justify-end gap-3">
-            <button type="button" onClick={cancelForm} className="btn-secondary h-12 px-6">
+          <div className="mt-6 flex w-full gap-3 sm:justify-end">
+            <button type="button" onClick={cancelForm} className="btn-secondary h-12 min-w-0 flex-1 px-6 sm:flex-none">
               <X size={16} aria-hidden />
               Cancelar
             </button>
-            <button type="button" disabled={creating} onClick={() => void createProduct()} className="btn-accent h-12 px-6">
+            <button type="button" disabled={creating} onClick={() => void createProduct()} className="btn-accent h-12 min-w-0 flex-1 px-6 sm:flex-none">
               <PackagePlus size={16} aria-hidden />
               {creating ? "Guardando…" : "Crear producto"}
             </button>
@@ -348,7 +349,7 @@ export function CatalogoPanel() {
       return (
         <div className="space-y-4">
           <p className="text-clay">Ese producto ya no está en el menú.</p>
-          <button type="button" onClick={cancelForm} className="btn-secondary h-11 px-5">
+          <button type="button" onClick={cancelForm} className="btn-secondary h-11 w-full px-5 sm:w-auto">
             Volver al listado
           </button>
         </div>
@@ -396,7 +397,7 @@ export function CatalogoPanel() {
             className="h-11 w-full rounded-[10px] border border-ink/15 bg-white pl-10 pr-3 text-ink focus-visible:border-terracotta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-terracotta/35"
           />
         </label>
-        <button type="button" onClick={openCreate} className="btn-accent h-11 shrink-0 self-end px-5 sm:self-auto">
+        <button type="button" onClick={openCreate} className="btn-accent h-11 w-full shrink-0 px-5 sm:w-auto">
           <PackagePlus size={16} aria-hidden />
           Crear producto
         </button>
@@ -450,11 +451,11 @@ export function CatalogoPanel() {
                       </p>
                     </div>
 
-                    <div className="grid shrink-0 grid-cols-2 gap-2 sm:w-auto sm:grid-cols-[7.5rem_7.5rem]">
+                    <div className="grid w-full shrink-0 grid-cols-2 gap-2 sm:w-auto sm:grid-cols-[7.5rem_7.5rem]">
                       <button
                         type="button"
                         onClick={() => openEdit(product)}
-                        className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-[10px] border border-ink/15 bg-white px-3 text-sm font-medium text-ink"
+                        className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-[10px] border border-ink/15 bg-white px-3 text-sm font-medium text-ink"
                       >
                         <Pencil size={14} aria-hidden />
                         Editar
@@ -475,17 +476,17 @@ export function CatalogoPanel() {
           </div>
 
           {totalPages > 1 ? (
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-clay">
                 Mostrando {(currentPage - 1) * PAGE_SIZE + 1}–
                 {Math.min(currentPage * PAGE_SIZE, filtered.length)} de {filtered.length}
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex w-full items-center justify-between gap-2 sm:w-auto">
                 <button
                   type="button"
                   disabled={currentPage <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="inline-flex h-10 items-center gap-1.5 rounded-[10px] border border-ink/15 bg-white px-3 text-sm font-medium text-ink disabled:opacity-40"
+                  className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[10px] border border-ink/15 bg-white px-3 text-sm font-medium text-ink disabled:opacity-40 sm:flex-none"
                 >
                   <ChevronLeft size={16} aria-hidden />
                   Anterior
@@ -497,7 +498,7 @@ export function CatalogoPanel() {
                   type="button"
                   disabled={currentPage >= totalPages}
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  className="inline-flex h-10 items-center gap-1.5 rounded-[10px] border border-ink/15 bg-white px-3 text-sm font-medium text-ink disabled:opacity-40"
+                  className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[10px] border border-ink/15 bg-white px-3 text-sm font-medium text-ink disabled:opacity-40 sm:flex-none"
                 >
                   Siguiente
                   <ChevronRight size={16} aria-hidden />
@@ -520,34 +521,47 @@ function DeleteProductButton({
   onDone: () => void;
   onError: (message: string) => void;
 }) {
+  const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   async function remove() {
     if (!supabase) return;
-    if (
-      !confirm(
-        `¿Eliminar “${product.name}” del menú?\n\nDejará de mostrarse a los clientes. Esta acción pide confirmación a propósito.`,
-      )
-    ) {
-      return;
-    }
     setBusy(true);
     const { error } = await supabase.from("products").update({ archived: true }).eq("id", product.id);
     setBusy(false);
-    if (error) onError(error.message);
-    else onDone();
+    if (error) {
+      onError(error.message);
+      return;
+    }
+    setOpen(false);
+    onDone();
   }
 
   return (
-    <button
-      type="button"
-      disabled={busy}
-      onClick={() => void remove()}
-      className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-[10px] border border-terracotta/40 bg-white px-3 text-sm font-medium text-terracotta disabled:opacity-50"
-    >
-      <PackageMinus size={14} aria-hidden />
-      {busy ? "…" : "Eliminar"}
-    </button>
+    <>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => setOpen(true)}
+        className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-[10px] border border-terracotta/40 bg-white px-3 text-sm font-medium text-terracotta disabled:opacity-50"
+      >
+        <PackageMinus size={14} aria-hidden />
+        Eliminar
+      </button>
+      <ConfirmDialog
+        open={open}
+        title={`¿Eliminar “${product.name}”?`}
+        body="Dejará de mostrarse a los clientes. Esta acción pide confirmación a propósito."
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        busy={busy}
+        busyLabel="Eliminando…"
+        onConfirm={() => void remove()}
+        onCancel={() => {
+          if (!busy) setOpen(false);
+        }}
+      />
+    </>
   );
 }
 
@@ -747,16 +761,18 @@ function ProductEditor({
           />
         </div>
 
-        <div className="flex flex-wrap items-center justify-end gap-3">
-          {message ? <p className="mr-auto text-sm text-clay">{message}</p> : null}
-          <button type="button" onClick={onCancel} className="btn-secondary h-11 px-6">
+        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+          {message ? <p className="text-sm text-clay sm:mr-auto">{message}</p> : null}
+          <div className="flex w-full gap-3 sm:w-auto">
+          <button type="button" onClick={onCancel} className="btn-secondary h-11 min-w-0 flex-1 px-6 sm:flex-none">
             <X size={16} aria-hidden />
             Cancelar
           </button>
-          <button type="button" onClick={() => void save()} disabled={saving} className="btn-accent h-11 px-6">
+          <button type="button" onClick={() => void save()} disabled={saving} className="btn-accent h-11 min-w-0 flex-1 px-6 sm:flex-none">
             <Save size={16} aria-hidden />
             {saving ? "Guardando…" : "Guardar cambios"}
           </button>
+          </div>
         </div>
       </div>
     </article>

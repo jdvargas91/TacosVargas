@@ -148,7 +148,7 @@ export function EquipoPanel() {
             options={inviteRoleOptions}
             aria-label="Rol de la invitación"
           />
-          <button type="button" onClick={() => void invite()} className="btn-accent h-11 px-5">
+          <button type="button" onClick={() => void invite()} className="btn-accent h-11 w-full px-5 sm:w-auto">
             <UserPlus size={16} aria-hidden />
             Invitar
           </button>

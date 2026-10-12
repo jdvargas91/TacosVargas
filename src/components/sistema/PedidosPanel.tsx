@@ -30,7 +30,6 @@ import {
   ORDER_STATUS_LABELS,
   ORDER_STATUS_MARK,
   ORDER_STATUS_RAIL,
-  ORDER_STATUS_TONES,
   orderStatusChoices,
   type OrderStatus,
 } from "@/lib/orderStatus";
@@ -176,13 +175,11 @@ export function PedidosPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [base, start]);
 
-  const visible = base
-    .filter((order) => {
-      if (groupOf(order) !== tab) return false;
-      if (tab !== "proceso" && !inPeriod(order)) return false;
-      return true;
-    })
-    .sort((a, b) => Number(needsPaymentProof(b)) - Number(needsPaymentProof(a)));
+  const visible = base.filter((order) => {
+    if (groupOf(order) !== tab) return false;
+    if (tab !== "proceso" && !inPeriod(order)) return false;
+    return true;
+  });
 
   async function updateStatus(id: string, status: OrderRow["status"]) {
     if (!supabase) return;
@@ -192,8 +189,16 @@ export function PedidosPanel() {
       toast.error("Pedido no actualizado", updateError.message);
       return;
     }
+    const previous = orders.find((item) => item.id === id);
+    const nextGroup = previous ? groupOf({ ...previous, status }) : null;
+    const moved = previous != null && nextGroup !== groupOf(previous);
     setOrders((current) => current.map((item) => (item.id === id ? { ...item, status } : item)));
-    toast.success("Pedido actualizado", `Estado: ${ORDER_STATUS_LABELS[status]}.`);
+    toast.success(
+      "Pedido actualizado",
+      moved
+        ? `Estado: ${ORDER_STATUS_LABELS[status]}. Ahora está en ${nextGroup === "entregado" ? "Entregados" : "En proceso"}.`
+        : `Estado: ${ORDER_STATUS_LABELS[status]}.`,
+    );
   }
 
   async function uploadProof(orderId: string, file: File, replacing = false) {
@@ -226,12 +231,20 @@ export function PedidosPanel() {
       setUploadingId(null);
       return;
     }
+    const previous = orders.find((item) => item.id === orderId);
+    const moved =
+      previous != null &&
+      groupOf(previous) !== groupOf({ ...previous, payment_proof_url: pub.publicUrl });
     setOrders((current) =>
       current.map((item) => (item.id === orderId ? { ...item, payment_proof_url: pub.publicUrl } : item)),
     );
     toast.success(
       replacing ? "Comprobante actualizado" : "Comprobante guardado",
-      replacing ? "La foto anterior quedó reemplazada." : "El pedido ya tiene su comprobante de pago.",
+      moved
+        ? "La foto quedó guardada. El pedido pasó a Entregados."
+        : replacing
+          ? "La foto anterior quedó reemplazada. El pedido sigue en su lugar."
+          : "La foto quedó guardada. El pedido sigue en su lugar.",
     );
     setUploadingId(null);
   }
@@ -278,8 +291,8 @@ export function PedidosPanel() {
       </div>
 
       {/* Filtros */}
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="block min-w-[12rem] flex-1 py-1 sm:max-w-xs text-sm text-clay">
+      <div className="grid grid-cols-1 items-end gap-3 md:grid-cols-2 lg:flex lg:flex-wrap">
+        <div className="block min-w-0 py-1 text-sm text-clay lg:min-w-[12rem] lg:max-w-xs lg:flex-1">
           <span className="mb-2 block font-medium text-ink/80">Cliente</span>
           <label className="relative block">
             <span className="sr-only">Buscar por nombre de cliente</span>
@@ -296,7 +309,7 @@ export function PedidosPanel() {
             />
           </label>
         </div>
-        <label className="block min-w-[12rem] text-sm text-clay">
+        <label className="block min-w-0 text-sm text-clay lg:w-56">
           <span className="mb-2 block font-medium text-ink/80">Origen</span>
           <Select
             value={sourceFilter}
@@ -394,41 +407,33 @@ export function PedidosPanel() {
                     <StatusIcon size={18} strokeWidth={2} />
                   </span>
                   <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-display text-2xl tracking-wide text-ink">{code}</p>
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1 rounded-[8px] border px-2.5 py-0.5 text-xs font-semibold",
-                        isCounter
-                          ? "border-ember/30 bg-ember/10 text-ember"
-                          : "border-ink/15 bg-white text-clay",
-                      )}
-                    >
-                      {isCounter ? <Store size={12} aria-hidden /> : null}
-                      {isCounter ? "Mostrador" : "Web"}
-                    </span>
-                    <span
-                      className={cn(
-                        "inline-flex items-center rounded-[8px] border px-2.5 py-0.5 text-xs font-semibold",
-                        ORDER_STATUS_TONES[order.status],
-                      )}
-                    >
-                      {ORDER_STATUS_LABELS[order.status]}
-                    </span>
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <p className="inline-flex items-center gap-1.5 text-sm font-medium text-ink">
-                      <User size={14} className="text-clay" aria-hidden />
-                      {customerName}
-                    </p>
-                    <p className="inline-flex items-center gap-1.5 text-xs text-clay">
-                      <Calendar size={14} aria-hidden />
-                      {new Date(order.created_at).toLocaleString("es-MX", {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })}
-                    </p>
-                  </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-display text-2xl tracking-wide text-ink">{code}</p>
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 rounded-[8px] border px-2.5 py-0.5 text-xs font-semibold",
+                          isCounter
+                            ? "border-ember/30 bg-ember/10 text-ember"
+                            : "border-ink/15 bg-white text-clay",
+                        )}
+                      >
+                        {isCounter ? <Store size={12} aria-hidden /> : null}
+                        {isCounter ? "Mostrador" : "Web"}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <p className="inline-flex items-center gap-1.5 text-sm font-medium text-ink">
+                        <User size={14} className="text-clay" aria-hidden />
+                        {customerName}
+                      </p>
+                      <p className="inline-flex items-center gap-1.5 text-xs text-clay">
+                        <Calendar size={14} aria-hidden />
+                        {new Date(order.created_at).toLocaleString("es-MX", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
+                      </p>
+                    </div>
                   </div>
                 </div>
                 <div className="w-full @min-[36rem]:w-56">
@@ -518,7 +523,7 @@ export function PedidosPanel() {
                       )}
                     >
                       <Replace size={12} aria-hidden />
-                      {uploadingId === order.id ? "Cambiando…" : "Cambiar foto"}
+                      {uploadingId === order.id ? "Cambiando…" : "Cambiar comprobante"}
                       <input
                         type="file"
                         accept="image/jpeg,image/png,image/webp"

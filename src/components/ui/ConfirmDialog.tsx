@@ -68,12 +68,12 @@ export function ConfirmDialog({
           </button>
         </div>
         <p className="mt-4 text-clay">{body}</p>
-        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        <div className="mt-6 flex gap-3">
           <button
             type="button"
             disabled={busy}
             onClick={onCancel}
-            className="btn-secondary h-11 px-5 disabled:opacity-50"
+            className="btn-secondary h-11 min-w-0 flex-1 px-5 disabled:opacity-50"
           >
             {cancelLabel}
           </button>
@@ -84,8 +84,8 @@ export function ConfirmDialog({
             onClick={onConfirm}
             className={
               tone === "danger"
-                ? "inline-flex h-11 items-center justify-center gap-2 rounded-[10px] border border-terracotta/40 bg-terracotta px-5 text-sm font-semibold text-white transition enabled:hover:bg-ember disabled:opacity-50"
-                : "btn-accent h-11 px-5 disabled:opacity-50"
+                ? "inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-[10px] border border-terracotta/40 bg-terracotta px-5 text-sm font-semibold text-white transition enabled:hover:bg-ember disabled:opacity-50"
+                : "btn-accent h-11 min-w-0 flex-1 px-5 disabled:opacity-50"
             }
           >
             {busy ? (busyLabel ?? "Procesando…") : confirmLabel}

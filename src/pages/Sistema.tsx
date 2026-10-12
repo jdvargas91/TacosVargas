@@ -215,7 +215,7 @@ function SistemaShell() {
             />
             <aside
               id="menu-sistema"
-              className="absolute inset-y-0 left-0 flex w-[min(18rem,88vw)] flex-col bg-paper shadow-xl"
+              className="absolute inset-y-0 right-0 flex w-[min(18rem,88vw)] flex-col bg-paper shadow-xl"
             >
               <div className="flex items-center justify-between gap-2 border-b border-ink/10 px-4 py-4">
                 <BrandLogo className="h-9 drop-shadow-none" />
@@ -266,10 +266,16 @@ function SistemaShell() {
         ) : null}
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <header className={cn("flex items-center gap-3 border-b border-ink/10 bg-paper px-4 py-3", pinned && "lg:hidden")}>
+          <header className={cn("flex items-center justify-between gap-3 border-b border-ink/10 bg-paper px-4 py-3", pinned && "lg:hidden")}>
+            <div className="min-w-0">
+              <p className="truncate font-display text-2xl leading-none text-ink">{tabMeta[tab].label}</p>
+              <p className="mt-1 truncate text-xs text-clay">
+                {business.name} · {role === "admin" ? "Administrador" : "Vendedor"}
+              </p>
+            </div>
             <button
               type="button"
-              className="grid h-11 w-11 place-items-center rounded-[10px] border border-ink/15"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] border border-ink/15"
               aria-label="Abrir menú"
               aria-expanded={navOpen}
               aria-controls="menu-sistema"
@@ -277,12 +283,6 @@ function SistemaShell() {
             >
               <Menu size={18} />
             </button>
-            <div className="min-w-0">
-              <p className="truncate font-display text-2xl leading-none text-ink">{tabMeta[tab].label}</p>
-              <p className="mt-1 truncate text-xs text-clay">
-                {business.name} · {role === "admin" ? "Administrador" : "Vendedor"}
-              </p>
-            </div>
           </header>
 
           <main id="contenido" className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-6 md:px-8 md:py-8">
