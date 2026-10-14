@@ -51,7 +51,7 @@ export function Header() {
   }, [location.pathname, location.hash]);
 
   useEffect(() => {
-    const media = window.matchMedia("(min-width: 1280px)");
+    const media = window.matchMedia("(min-width: 768px)");
     const onChange = () => {
       if (media.matches) setOpen(false);
     };
@@ -152,7 +152,7 @@ export function Header() {
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-[60] xl:hidden"
+          className="fixed inset-0 z-[60] md:hidden"
           initial={reduce ? { opacity: 1 } : { opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={reduce ? { opacity: 1 } : { opacity: 0 }}
@@ -269,7 +269,7 @@ export function Header() {
             <BrandLogo />
           </a>
 
-          <nav className="hidden items-center gap-6 xl:flex" aria-label="Principal">
+          <nav className="hidden items-center gap-4 text-[0.8125rem] md:flex lg:gap-5 lg:text-sm xl:gap-6" aria-label="Principal">
             {links.map((link) => (
               <a
                 key={link.href}
@@ -324,7 +324,7 @@ export function Header() {
             </Link>
             <button
               type="button"
-              className={`grid h-11 w-11 place-items-center rounded-full xl:hidden ${solid ? "border border-ink/15 text-ink" : "border border-tortilla/40 text-tortilla"
+              className={`grid h-11 w-11 place-items-center rounded-full md:hidden ${solid ? "border border-ink/15 text-ink" : "border border-tortilla/40 text-tortilla"
                 }`}
               aria-label={open ? "Cerrar menú" : "Abrir menú"}
               aria-expanded={open}
