@@ -10,10 +10,15 @@ export const ORDER_STATUSES: OrderStatus[] = [
   "cancelado",
 ];
 
-/** Estados que el equipo puede asignar según el origen del pedido. */
-export function orderStatusChoices(source: "web" | "mostrador" | null | undefined): OrderStatus[] {
-  if (source === "mostrador") return ["en_preparacion", "entregado"];
-  return ["recibido", "en_preparacion", "entregado"];
+/** Estados del flujo operativo. Facturado (entregado) solo si hay comprobante. */
+export function orderStatusChoices(
+  source: "web" | "mostrador" | null | undefined,
+  hasPaymentProof = false,
+): OrderStatus[] {
+  const base: OrderStatus[] =
+    source === "mostrador" ? ["en_preparacion"] : ["recibido", "en_preparacion"];
+  if (hasPaymentProof) base.push("entregado");
+  return base;
 }
 
 /** Etiquetas claras: "Nuevo" evita confundir con "recibido por el cliente". */
@@ -21,7 +26,7 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   recibido: "Nuevo",
   en_preparacion: "En preparación",
   en_camino: "En camino",
-  entregado: "Entregado al cliente",
+  entregado: "Facturado",
   cancelado: "Cancelado",
 };
 

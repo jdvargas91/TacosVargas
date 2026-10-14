@@ -527,7 +527,7 @@ export function EstadisticasPanel() {
               <p className="mt-2 text-2xl font-semibold text-ink">{formatMxn(summary.sales_cents)}</p>
             </article>
             <article className="rounded-[10px] border border-ink/10 bg-smoke p-4">
-              <h2 className="text-sm font-medium text-clay">Pedidos entregados</h2>
+              <h2 className="text-sm font-medium text-clay">Pedidos facturados</h2>
               <p className="mt-2 text-2xl font-semibold text-ink">{summary.orders_delivered}</p>
             </article>
             <article className="rounded-[10px] border border-ink/10 bg-smoke p-4">

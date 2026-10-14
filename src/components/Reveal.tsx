@@ -1,33 +1,39 @@
 import { type ReactNode, useRef } from "react";
 import { motion, useInView, useReducedMotion } from "framer-motion";
 
+type RevealTag = "div" | "li" | "article";
+
 export function Reveal({
   children,
   className,
   delay = 0,
+  as = "div",
 }: {
   children: ReactNode;
   className?: string;
   delay?: number;
+  as?: RevealTag;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-10% 0px" });
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "0px 0px -12% 0px" });
   const reduce = useReducedMotion();
+  const MotionTag = motion[as];
 
   if (reduce) {
-    return <div className={className}>{children}</div>;
+    const Tag = as;
+    return <Tag className={className}>{children}</Tag>;
   }
 
   return (
-    <motion.div
+    <MotionTag
       ref={ref}
       className={className}
-      initial={{ opacity: 0, y: 22, filter: "blur(10px)" }}
+      initial={{ opacity: 0, y: 22, filter: "blur(8px)" }}
       animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : undefined}
-      transition={{ duration: 0.75, delay, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.7, delay, ease: [0.22, 1, 0.36, 1] }}
     >
       {children}
-    </motion.div>
+    </MotionTag>
   );
 }
 

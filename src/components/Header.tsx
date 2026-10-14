@@ -11,8 +11,8 @@ import { useCart } from "@/context/CartContext";
 const links = [
   { href: "/#inicio", label: "Inicio" },
   { href: "/#quienes-somos", label: "Quiénes somos" },
-  { href: "/#cocina", label: "Cocina" },
   { href: "/#menu", label: "Menú" },
+  { href: "/#cocina", label: "Cocina" },
   { href: "/#resenas", label: "Reseñas" },
   { href: "/#galeria", label: "Galería" },
   { href: "/#ubicacion", label: "Ubicación" },
@@ -32,9 +32,10 @@ export function Header() {
   const titleId = useId();
   const home = location.pathname === "/";
   const solid = !home || scrolled || open;
+  const showLogo = !home || scrolled;
 
   const authLinkClass = solid
-    ? "cursor-pointer rounded-full px-3 py-2 text-sm text-clay hover:text-ink hover:underline"
+    ? "cursor-pointer rounded-full px-3 py-2 text-sm text-carbon hover:text-ink hover:underline"
     : "cursor-pointer rounded-full px-3 py-2 text-sm text-tortilla/90 hover:text-tortilla hover:underline";
 
   useEffect(() => {
@@ -78,7 +79,7 @@ export function Header() {
   }, [open]);
 
   const navClass = solid
-    ? "cursor-pointer text-sm font-medium text-clay transition hover:text-ink hover:underline"
+    ? "cursor-pointer text-sm font-medium text-carbon transition hover:text-ink hover:underline"
     : "cursor-pointer text-sm font-medium text-tortilla/90 transition hover:text-tortilla hover:underline";
 
   const redirectAfterLogin = `${window.location.origin}/cuenta`;
@@ -211,17 +212,21 @@ export function Header() {
         Saltar al contenido
       </a>
       <header
-        className={`fixed inset-x-0 top-0 z-40 transition-[background-color,border-color,box-shadow] duration-300 ${
-          solid
-            ? "border-b border-ink/10 bg-paper/92 shadow-[0_8px_24px_rgb(30_23_16_/_0.08)] backdrop-blur-md"
-            : "border-b border-transparent bg-transparent"
-        }`}
+        className={`fixed inset-x-0 top-0 z-40 transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 ${solid
+          ? "border-b border-ink/10 bg-paper/55 shadow-[0_8px_24px_rgb(30_23_16_/_0.06)] backdrop-blur-[8px]"
+          : "border-b border-transparent bg-transparent"
+          }`}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 md:px-6">
           <a
             href={home ? "#inicio" : "/#inicio"}
-            className="shrink-0"
+            className={`shrink-0 overflow-hidden transition-[opacity,transform,max-width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${showLogo
+              ? "max-w-[9rem] translate-y-0 opacity-100"
+              : "pointer-events-none max-w-0 -translate-y-1 opacity-0"
+              }`}
             aria-label="Vargas Tacos"
+            aria-hidden={!showLogo}
+            tabIndex={showLogo ? undefined : -1}
           >
             <BrandLogo />
           </a>
@@ -275,9 +280,8 @@ export function Header() {
             </Link>
             <button
               type="button"
-              className={`grid h-11 w-11 place-items-center rounded-full xl:hidden ${
-                solid ? "border border-ink/15 text-ink" : "border border-tortilla/40 text-tortilla"
-              }`}
+              className={`grid h-11 w-11 place-items-center rounded-full xl:hidden ${solid ? "border border-ink/15 text-ink" : "border border-tortilla/40 text-tortilla"
+                }`}
               aria-label={open ? "Cerrar menú" : "Abrir menú"}
               aria-expanded={open}
               aria-controls="menu-movil"

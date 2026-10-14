@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { motion, useReducedMotion } from "framer-motion";
 import { ExternalLink } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
 import { useSiteContent } from "@/context/SiteContentContext";
@@ -14,6 +15,7 @@ const pin = L.divIcon({
 
 export function LocationMap() {
   const { business } = useSiteContent();
+  const reduce = useReducedMotion();
   const mapRef = useRef<L.Map | null>(null);
   const locationRef = useRef(business.location);
   locationRef.current = business.location;
@@ -71,7 +73,14 @@ export function LocationMap() {
             </a>
           ) : null}
         </Reveal>
-        <div ref={containerRef} className="location-map" />
+        <motion.div
+          initial={reduce ? false : { opacity: 0 }}
+          whileInView={reduce ? undefined : { opacity: 1 }}
+          viewport={{ once: true, margin: "0px 0px -10% 0px" }}
+          transition={{ duration: 0.7, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <div ref={containerRef} className="location-map" />
+        </motion.div>
       </div>
     </section>
   );

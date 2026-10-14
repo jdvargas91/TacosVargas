@@ -491,26 +491,58 @@ html.nav-open #root {
 
 .kitchen-frame {
   position: relative;
-  overflow: hidden;
-  width: min(100%, 22rem);
-  height: min(27.5rem, calc(100svh - 9rem));
-  justify-self: start;
-  border-radius: 10px;
-  box-shadow: 0 22px 48px rgb(0 0 0 / 0.38);
+  width: min(100%, 20.5rem);
+  margin: 0.85rem 0.35rem 0.15rem;
+  padding: 0.7rem 0.7rem 2.45rem;
+  background: #f6f3ec;
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.7) inset,
+    0 16px 28px rgb(0 0 0 / 0.32),
+    0 2px 5px rgb(0 0 0 / 0.2);
 }
 
-.kitchen-frame::after {
-  content: "";
+.kitchen-frame__photo {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  object-position: center 35%;
+  background: #172026;
+}
+
+.kitchen-tape {
   position: absolute;
-  inset: 0;
+  z-index: 2;
+  top: -0.7rem;
+  width: 5.4rem;
+  height: 1.55rem;
+  background:
+    linear-gradient(180deg, rgb(255 250 220 / 0.45), transparent 42%),
+    linear-gradient(90deg,
+      rgb(226 190 70 / 0.42),
+      rgb(246 219 104 / 0.88) 16%,
+      rgb(241 214 98 / 0.8) 78%,
+      rgb(210 172 54 / 0.4));
+  box-shadow: 0 1px 1px rgb(30 23 16 / 0.14);
   pointer-events: none;
-  background: linear-gradient(to top, rgb(30 23 16 / 0.38), transparent 46%);
+}
+
+.kitchen-frame--left .kitchen-tape {
+  top: -0.15rem;
+  right: -1.6rem;
+  transform: rotate(43deg);
+}
+
+.kitchen-frame--right .kitchen-tape {
+  top: 0.15rem;
+  left: -1.6rem;
+  transform: rotate(-43deg);
 }
 
 .about-portrait {
   position: relative;
   width: min(100%, 24rem);
-  padding: 0.75rem 1.25rem 1.25rem 0;
+  padding: 0.5rem 0.75rem 1rem 0;
 }
 
 .about-portrait__blob,
@@ -521,12 +553,13 @@ html.nav-open #root {
 .about-portrait__blob {
   position: absolute;
   z-index: 0;
-  top: -6%;
-  right: -8%;
-  width: 112%;
-  height: 108%;
-  overflow: visible;
+  top: 8%;
+  left: -14%;
+  width: 128%;
+  height: auto;
+  max-width: none;
   pointer-events: none;
+  user-select: none;
 }
 
 .about-portrait__photo {
@@ -535,11 +568,11 @@ html.nav-open #root {
   display: block;
   width: 78%;
   height: auto;
-  margin-left: 2%;
+  margin-left: 6%;
 }
 
 .about-portrait:hover .about-portrait__blob {
-  transform: translateY(0.85rem);
+  transform: translate(0.35rem, 0.7rem);
 }
 
 .about-portrait:hover .about-portrait__photo {
@@ -548,9 +581,9 @@ html.nav-open #root {
 
 @media (max-width: 720px) {
   .about-portrait__blob {
-    top: -2%;
-    right: 0;
-    width: 104%;
+    top: 10%;
+    left: -10%;
+    width: 122%;
   }
 }
 

@@ -30,15 +30,17 @@ export function KitchenCrew() {
                     }`}
                   >
                     <motion.figure
-                      className="kitchen-frame shrink-0"
+                      className={`kitchen-frame shrink-0 ${reverse ? "kitchen-frame--right" : "kitchen-frame--left"}`}
+                      style={{ rotate: reverse ? 2.6 : -2.4 }}
                       whileHover={reduce ? undefined : { scale: 1.015 }}
                       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                     >
+                      <span className="kitchen-tape" aria-hidden />
                       <img
                         src={person.image}
                         alt={person.imageAlt}
                         loading="lazy"
-                        className="h-full w-full object-cover"
+                        className="kitchen-frame__photo"
                       />
                     </motion.figure>
                     <div>

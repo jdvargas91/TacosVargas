@@ -9,6 +9,7 @@ import { ReviewsSection } from "@/components/ReviewsSection";
 import { Footer } from "@/components/Footer";
 import { BackToTop } from "@/components/BackToTop";
 import { MarqueeBand } from "@/components/MarqueeBand";
+import { Reveal } from "@/components/Reveal";
 import { Seo } from "@/components/Seo";
 import { useProducts } from "@/context/ProductsContext";
 import { useSiteContent } from "@/context/SiteContentContext";
@@ -32,10 +33,12 @@ export function Home() {
       <Header />
       <main id="contenido">
         <Hero />
-        <MarqueeBand items={products.map((product) => product.name)} />
+        <Reveal>
+          <MarqueeBand items={products.map((product) => product.name)} />
+        </Reveal>
         <About />
-        <KitchenCrew />
         <MenuSection tacos={tacos} drinks={drinks} />
+        <KitchenCrew />
         <Gallery />
         <ReviewsSection />
         <Suspense fallback={<section id="ubicacion" className="h-[520px]" aria-label="Cargando mapa" />}>

@@ -206,6 +206,7 @@ export function OrderBuilder() {
     }
 
     persistPendingCheckout();
+    clear();
 
     if (!user) {
       sessionStorage.setItem("vargas_post_login", "/mis-pedidos");
@@ -270,59 +271,64 @@ export function OrderBuilder() {
                 const pickerValue = (tortillas ?? 2) as Tortillas;
 
                 return (
-                  <li key={cartKey} className="flex gap-4 rounded-2xl bg-smoke p-3 sm:p-4 card-shadow">
-                    <ProductMedia
-                      src={product.imageUrl}
-                      alt={product.name}
-                      tone="thumb"
-                      className="h-[72px] w-[72px] shrink-0 sm:h-[88px] sm:w-[88px]"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-medium text-ink">{product.name}</p>
-                          <p className="text-sm text-clay">
-                            {formatMxn(unitPrice)} c/u
-                            {tortillaLabel ? <span className="text-clay"> · {tortillaLabel}</span> : null}
-                            {sizeMeta ? <span className="text-clay"> · {sizeMeta.label}</span> : null}
+                  <li key={cartKey} className="rounded-2xl bg-smoke p-3 card-shadow sm:p-4">
+                    <div className="flex gap-3 sm:gap-4">
+                      <ProductMedia
+                        src={product.imageUrl}
+                        alt={product.name}
+                        tone="thumb"
+                        className="h-[72px] w-[72px] shrink-0 sm:h-[88px] sm:w-[88px]"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="font-medium leading-snug text-ink">{product.name}</p>
+                            <p className="mt-0.5 text-sm text-clay">
+                              {formatMxn(unitPrice)} c/u
+                              {tortillaLabel ? <span> · {tortillaLabel}</span> : null}
+                              {sizeMeta ? <span> · {sizeMeta.label}</span> : null}
+                            </p>
+                          </div>
+                          <p className="shrink-0 tabular-nums font-semibold text-ink">
+                            {formatMxn(unitPrice * qty)}
                           </p>
                         </div>
-                        <p className="tabular-nums font-semibold text-ink">{formatMxn(unitPrice * qty)}</p>
                       </div>
+                    </div>
 
-                      {product.kind === "taco" ? (
-                        <TortillaPicker
-                          className="mt-3"
-                          value={pickerValue}
-                          onChange={(next) => changeLineTortillas(cartKey, next)}
-                        />
-                      ) : null}
-                      {product.sizes?.length && size ? (
-                        <SizePicker
-                          className="mt-3"
-                          sizes={product.sizes}
-                          value={size}
-                          onChange={(next) => changeLineSize(cartKey, next)}
-                        />
-                      ) : null}
+                    {product.kind === "taco" ? (
+                      <TortillaPicker
+                        compact
+                        className="mt-3"
+                        value={pickerValue}
+                        onChange={(next) => changeLineTortillas(cartKey, next)}
+                      />
+                    ) : null}
+                    {product.sizes?.length && size ? (
+                      <SizePicker
+                        className="mt-3"
+                        sizes={product.sizes}
+                        value={size}
+                        onChange={(next) => changeLineSize(cartKey, next)}
+                      />
+                    ) : null}
 
-                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                        <QtyStepper
-                          value={qty}
-                          max={available ? product.stock : qty}
-                          disabled={!available}
-                          onChange={(next) => setLineQty(cartKey, next)}
-                          label={product.name}
-                        />
-                        <button
-                          type="button"
-                          aria-label={`Quitar ${product.name} del pedido`}
-                          onClick={() => setLineQty(cartKey, 0)}
-                          className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-clay hover:border-terracotta hover:text-ink"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                      <QtyStepper
+                        value={qty}
+                        max={available ? product.stock : qty}
+                        disabled={!available}
+                        onChange={(next) => setLineQty(cartKey, next)}
+                        label={product.name}
+                      />
+                      <button
+                        type="button"
+                        aria-label={`Quitar ${product.name} del pedido`}
+                        onClick={() => setLineQty(cartKey, 0)}
+                        className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-clay hover:border-terracotta hover:text-ink"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   </li>
                 );
@@ -485,6 +491,7 @@ export function OrderBuilder() {
                         return;
                       }
                       persistPendingCheckout();
+                      clear();
                       sessionStorage.setItem("vargas_post_login", "/mis-pedidos");
                       setLoginError(null);
                       setGate(true);

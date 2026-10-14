@@ -50,8 +50,9 @@ const STATUS_ICONS: Record<OrderStatus, LucideIcon> = {
   cancelado: Ban,
 };
 
+/** Todos los pedidos (web, transferencia, mostrador) necesitan comprobante para Facturado. */
 function needsPaymentProof(order: OrderRow) {
-  return order.source === "mostrador" && !order.payment_proof_url;
+  return !order.payment_proof_url;
 }
 
 const TZ = "America/Mexico_City";
@@ -59,8 +60,7 @@ const TZ = "America/Mexico_City";
 const MX_OFFSET = "-06:00";
 
 function groupOf(order: OrderRow): TabId {
-  if (needsPaymentProof(order)) return "proceso";
-  if (order.status === "entregado") return "entregado";
+  if (order.status === "entregado" && order.payment_proof_url) return "entregado";
   return "proceso";
 }
 
@@ -108,7 +108,7 @@ const periodOptions: { id: Period; label: string }[] = [
 
 const tabMeta: { id: TabId; label: string; icon: typeof ChefHat }[] = [
   { id: "proceso", label: "En proceso", icon: ChefHat },
-  { id: "entregado", label: "Entregados", icon: CheckCircle2 },
+  { id: "entregado", label: "Facturados", icon: CheckCircle2 },
 ];
 
 export function PedidosPanel() {
@@ -183,20 +183,27 @@ export function PedidosPanel() {
 
   async function updateStatus(id: string, status: OrderRow["status"]) {
     if (!supabase) return;
+    const previous = orders.find((item) => item.id === id);
+    if (status === "entregado" && previous && needsPaymentProof(previous)) {
+      toast.error(
+        "Comprobante requerido",
+        "Sube el comprobante de pago antes de marcar el pedido como Facturado.",
+      );
+      return;
+    }
     const { error: updateError } = await supabase.from("orders").update({ status }).eq("id", id);
     if (updateError) {
       setError(updateError.message);
       toast.error("Pedido no actualizado", updateError.message);
       return;
     }
-    const previous = orders.find((item) => item.id === id);
     const nextGroup = previous ? groupOf({ ...previous, status }) : null;
     const moved = previous != null && nextGroup !== groupOf(previous);
     setOrders((current) => current.map((item) => (item.id === id ? { ...item, status } : item)));
     toast.success(
       "Pedido actualizado",
       moved
-        ? `Estado: ${ORDER_STATUS_LABELS[status]}. Ahora está en ${nextGroup === "entregado" ? "Entregados" : "En proceso"}.`
+        ? `Estado: ${ORDER_STATUS_LABELS[status]}. Ahora está en ${nextGroup === "entregado" ? "Facturados" : "En proceso"}.`
         : `Estado: ${ORDER_STATUS_LABELS[status]}.`,
     );
   }
@@ -232,19 +239,18 @@ export function PedidosPanel() {
       return;
     }
     const previous = orders.find((item) => item.id === orderId);
-    const moved =
-      previous != null &&
-      groupOf(previous) !== groupOf({ ...previous, payment_proof_url: pub.publicUrl });
+    const nextRow = previous
+      ? { ...previous, payment_proof_url: pub.publicUrl }
+      : null;
+    const moved = previous != null && nextRow != null && groupOf(previous) !== groupOf(nextRow);
     setOrders((current) =>
       current.map((item) => (item.id === orderId ? { ...item, payment_proof_url: pub.publicUrl } : item)),
     );
     toast.success(
       replacing ? "Comprobante actualizado" : "Comprobante guardado",
       moved
-        ? "La foto quedó guardada. El pedido pasó a Entregados."
-        : replacing
-          ? "La foto anterior quedó reemplazada. El pedido sigue en su lugar."
-          : "La foto quedó guardada. El pedido sigue en su lugar.",
+        ? "La foto quedó guardada. El pedido pasó a Facturados."
+        : "La foto quedó guardada. Ya puedes marcar el pedido como Facturado.",
     );
     setUploadingId(null);
   }
@@ -375,7 +381,7 @@ export function PedidosPanel() {
           const customerName = order.customer_name?.trim() || "Sin nombre";
           const hasProof = Boolean(order.payment_proof_url);
           const pendingProof = needsPaymentProof(order);
-          const flow = orderStatusChoices(order.source);
+          const flow = orderStatusChoices(order.source, hasProof);
           const statusValues =
             flow.includes(order.status) || order.status === "en_camino" || order.status === "cancelado"
               ? flow
@@ -456,7 +462,7 @@ export function PedidosPanel() {
                     <div className="min-w-0">
                       <p className="text-base font-bold leading-tight text-ink">Sube el comprobante</p>
                       <p className="mt-1 text-sm leading-snug text-clay">
-                        Sin esta foto el pedido sigue en proceso y no pasa a Entregados.
+                        Todos los pedidos necesitan comprobante. Sin esta foto no se puede marcar como Facturado.
                       </p>
                     </div>
                   </div>
@@ -554,17 +560,19 @@ export function PedidosPanel() {
                       >
                         <span className="w-8 shrink-0 font-bold tabular-nums text-ink">{item.qty}×</span>
                         <span className="min-w-0 text-ink">
-                          {item.name}
-                          {item.tortillas ? (
-                            <span className="text-clay">
-                              {" "}
-                              · {item.tortillas} tortilla{item.tortillas === 1 ? "" : "s"}
-                            </span>
-                          ) : null}
-                          {item.size ? (
-                            <span className="text-clay">
-                              {" "}
-                              · {item.size === "grande" ? "Grande" : "Chica"}
+                          <span className="font-medium">{item.name}</span>
+                          {item.tortillas || item.size ? (
+                            <span className="mt-1 flex flex-wrap gap-1.5">
+                              {item.tortillas ? (
+                                <span className="inline-flex rounded-full border border-terracotta/25 bg-gold/15 px-2 py-0.5 text-[11px] font-semibold text-ink">
+                                  {item.tortillas} tortilla{item.tortillas === 1 ? "" : "s"}
+                                </span>
+                              ) : null}
+                              {item.size ? (
+                                <span className="inline-flex rounded-full border border-terracotta/25 bg-gold/15 px-2 py-0.5 text-[11px] font-semibold text-ink">
+                                  {item.size === "grande" ? "Grande" : "Chica"}
+                                </span>
+                              ) : null}
                             </span>
                           ) : null}
                         </span>

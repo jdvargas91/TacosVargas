@@ -1,8 +1,7 @@
 import { type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import useEmblaCarousel from "embla-carousel-react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { Eye } from "lucide-react";
 import type { Product } from "@/data/seedProducts";
 import { productPath } from "@/data/seedProducts";
 import { isProductAvailable } from "@/lib/format";
@@ -16,99 +15,69 @@ export function ProductCard({ product }: { product: Product }) {
 
   return (
     <motion.article
-      className="group card-shadow relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl bg-smoke"
-      whileHover={reduce ? undefined : { y: -4 }}
-      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+      className="group card-shadow relative flex h-full min-w-0 flex-col overflow-hidden rounded-[10px] bg-smoke"
+      whileHover={reduce ? undefined : { y: -3 }}
+      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
     >
       <Link to={productPath(product.id)} className="relative block overflow-hidden">
         <ProductMedia src={product.imageUrl} alt={product.name} tone="card" muted={!available}>
           {product.isFeatured ? (
-            <span className="absolute left-3 top-3 rounded-sm bg-gold px-2 py-1 text-xs font-bold text-ink">
+            <span className="absolute left-2.5 top-2.5 rounded-sm bg-gold px-2 py-0.5 text-[11px] font-bold text-ink">
               Especialidad de la casa
             </span>
           ) : null}
           {!available ? (
-            <span className="absolute inset-0 grid place-items-center bg-ink/55 font-display text-2xl text-tortilla">
+            <span className="absolute inset-0 grid place-items-center bg-ink/55 font-display text-xl text-tortilla md:text-2xl">
               Agotado
             </span>
           ) : null}
         </ProductMedia>
       </Link>
-      <div className="flex flex-1 flex-col gap-3 p-6">
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="text-xl font-semibold leading-snug text-ink">
+      <div className="flex flex-1 flex-col gap-2 p-4 md:p-5">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="text-base font-semibold leading-snug text-ink md:text-lg">
             <Link to={productPath(product.id)} className="hover:text-ember">
               {product.name}
             </Link>
           </h3>
           <p className="shrink-0 text-sm font-semibold tabular-nums text-ink">{productPriceLabel(product)}</p>
         </div>
-        <p className="flex-1 text-sm text-clay">{product.description}</p>
-        <div className="mt-auto flex items-center justify-between gap-3">
-          <span className="text-sm text-clay">{available ? "Disponible" : "Agotado"}</span>
-          <Link to={productPath(product.id)} className="btn-accent h-11 px-4 text-sm">
-            <Eye size={16} aria-hidden />
-            Ver detalles
-          </Link>
-        </div>
+        <p className="line-clamp-2 text-sm text-clay">{product.description}</p>
+        <Link
+          to={productPath(product.id)}
+          className={
+            available
+              ? "btn-secondary mt-auto h-11 w-full text-sm"
+              : "btn-secondary mt-auto h-11 w-full text-sm opacity-70"
+          }
+        >
+          <Eye size={15} aria-hidden />
+          Ver detalles
+        </Link>
       </div>
     </motion.article>
   );
 }
 
-function ProductCarousel({
+function ProductGrid({
   products,
   heading,
-  prevLabel,
-  nextLabel,
 }: {
   products: Product[];
   heading: ReactNode;
-  prevLabel: string;
-  nextLabel: string;
 }) {
-  const [emblaRef, embla] = useEmblaCarousel({ align: "start", skipSnaps: false });
   const reduce = useReducedMotion();
 
   return (
     <>
       {heading}
-      <div className="mt-4 flex justify-end gap-2 md:mt-5">
-        <button
-          type="button"
-          aria-label={prevLabel}
-          onClick={() => embla?.scrollPrev()}
-          className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink hover:bg-terracotta"
-        >
-          <ChevronLeft size={18} />
-        </button>
-        <button
-          type="button"
-          aria-label={nextLabel}
-          onClick={() => embla?.scrollNext()}
-          className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink hover:bg-terracotta"
-        >
-          <ChevronRight size={18} />
-        </button>
-      </div>
-      <div className="mt-3 md:mt-4">
-        <div className="-mx-2 overflow-hidden px-3 pb-6 pt-1 sm:-mx-3 sm:px-5 sm:pb-8 sm:pt-2" ref={emblaRef}>
-          <div className="flex gap-5">
-            {products.map((product, index) => (
-              <motion.div
-                key={product.id}
-                className="min-w-0 flex-[0_0_86%] sm:flex-[0_0_46%] lg:flex-[0_0_32%]"
-                initial={reduce ? false : { opacity: 0, y: 16 }}
-                whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-8%" }}
-                transition={{ duration: 0.5, delay: Math.min(index * 0.06, 0.36), ease: [0.22, 1, 0.36, 1] }}
-              >
-                <ProductCard product={product} />
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <ul className="mt-8 grid list-none grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6 xl:grid-cols-4">
+        {products.map((product, index) => (
+          <Reveal key={product.id} as="li" delay={reduce ? 0 : Math.min(index * 0.04, 0.28)}>
+            <ProductCard product={product} />
+          </Reveal>
+        ))}
+      </ul>
     </>
   );
 }
@@ -117,33 +86,27 @@ export function MenuSection({ tacos, drinks }: { tacos: Product[]; drinks: Produ
   return (
     <section id="menu" className="px-4 py-24 md:px-6">
       <div className="mx-auto max-w-6xl">
-        <Reveal>
-          <ProductCarousel
-            products={tacos}
-            prevLabel="Tacos anteriores"
-            nextLabel="Tacos siguientes"
-            heading={
-              <div>
-                <h2 className="font-display text-4xl text-ink md:text-5xl">Tacos que se piden de memoria</h2>
-                <span className="mark" aria-hidden />
-              </div>
-            }
-          />
-        </Reveal>
+        <ProductGrid
+          products={tacos}
+          heading={
+            <Reveal>
+              <h2 className="font-display text-4xl text-ink md:text-5xl">Tacos que se piden de memoria</h2>
+              <span className="mark" aria-hidden />
+            </Reveal>
+          }
+        />
 
-        <Reveal className="mt-20">
-          <ProductCarousel
+        <div className="mt-20">
+          <ProductGrid
             products={drinks}
-            prevLabel="Bebidas anteriores"
-            nextLabel="Bebidas siguientes"
             heading={
-              <div>
+              <Reveal>
                 <h3 className="font-display text-4xl text-ink md:text-5xl">Aguas y refrescos</h3>
                 <span className="mark" aria-hidden />
-              </div>
+              </Reveal>
             }
           />
-        </Reveal>
+        </div>
       </div>
     </section>
   );

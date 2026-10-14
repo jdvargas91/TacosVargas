@@ -47,14 +47,17 @@ export function MisPedidos() {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofPreview, setProofPreview] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setPending(readPendingCheckout());
-  }, [user]);
+    const next = readPendingCheckout();
+    setPending(next);
+    // El carrito ya se convirtió en pedido pendiente: no debe seguir en el contador del header.
+    if (next) clear();
+  }, [user, clear]);
 
   // Vista previa de la imagen seleccionada (y limpieza del object URL).
   useEffect(() => {
@@ -69,13 +72,13 @@ export function MisPedidos() {
 
   // Cerrar el visor con Escape.
   useEffect(() => {
-    if (!lightboxOpen) return;
+    if (!lightboxUrl) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setLightboxOpen(false);
+      if (event.key === "Escape") setLightboxUrl(null);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [lightboxOpen]);
+  }, [lightboxUrl]);
 
   function handleProofFile(file: File | null) {
     if (!file) return;
@@ -95,7 +98,7 @@ export function MisPedidos() {
 
   function clearProof() {
     setProofFile(null);
-    setLightboxOpen(false);
+    setLightboxUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -260,7 +263,7 @@ export function MisPedidos() {
                 <ul className="divide-y divide-ink/8">
                   {pending.items.map((item) => (
                     <li
-                      key={`${item.id}-${item.tortillas ?? "x"}`}
+                      key={`${item.id}-${item.tortillas ?? "x"}-${item.size ?? "x"}`}
                       className="flex items-center justify-between gap-3 px-3 py-2.5"
                     >
                       <div className="flex min-w-0 items-center gap-2.5">
@@ -269,9 +272,18 @@ export function MisPedidos() {
                         </span>
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-medium text-ink">{item.name}</span>
-                          {item.tortillas ? (
-                            <span className="block text-xs text-clay">
-                              {item.tortillas} tortilla{item.tortillas === 1 ? "" : "s"}
+                          {item.tortillas || item.size ? (
+                            <span className="mt-1 flex flex-wrap gap-1.5">
+                              {item.tortillas ? (
+                                <span className="inline-flex rounded-full border border-terracotta/25 bg-gold/15 px-2 py-0.5 text-[11px] font-semibold text-ink">
+                                  {item.tortillas} tortilla{item.tortillas === 1 ? "" : "s"}
+                                </span>
+                              ) : null}
+                              {item.size ? (
+                                <span className="inline-flex rounded-full border border-terracotta/25 bg-gold/15 px-2 py-0.5 text-[11px] font-semibold text-ink">
+                                  {item.size === "grande" ? "Grande" : "Chica"}
+                                </span>
+                              ) : null}
                             </span>
                           ) : null}
                         </span>
@@ -310,7 +322,7 @@ export function MisPedidos() {
                         />
                         <button
                           type="button"
-                          onClick={() => setLightboxOpen(true)}
+                          onClick={() => setLightboxUrl(proofPreview)}
                           className="absolute right-2 top-2 inline-flex h-9 items-center gap-1.5 rounded-full bg-carbon/70 px-3 text-xs font-semibold text-white backdrop-blur transition hover:bg-carbon/85"
                         >
                           <Maximize2 size={14} aria-hidden />
@@ -467,9 +479,18 @@ export function MisPedidos() {
                             </span>
                             <span className="min-w-0">
                               <span className="block truncate text-sm font-medium text-ink">{item.name}</span>
-                              {item.kind === "taco" && item.tortillas ? (
-                                <span className="block text-xs text-clay">
-                                  {item.tortillas} tortilla{item.tortillas === 1 ? "" : "s"}
+                              {(item.kind === "taco" && item.tortillas) || item.size ? (
+                                <span className="mt-1 flex flex-wrap gap-1.5">
+                                  {item.kind === "taco" && item.tortillas ? (
+                                    <span className="inline-flex rounded-full border border-terracotta/25 bg-gold/15 px-2 py-0.5 text-[11px] font-semibold text-ink">
+                                      {item.tortillas} tortilla{item.tortillas === 1 ? "" : "s"}
+                                    </span>
+                                  ) : null}
+                                  {item.size ? (
+                                    <span className="inline-flex rounded-full border border-terracotta/25 bg-gold/15 px-2 py-0.5 text-[11px] font-semibold text-ink">
+                                      {item.size === "grande" ? "Grande" : "Chica"}
+                                    </span>
+                                  ) : null}
                                 </span>
                               ) : null}
                             </span>
@@ -484,6 +505,38 @@ export function MisPedidos() {
                     </ul>
                   </div>
 
+                  {order.payment_proof_url ? (
+                    <div className="mt-4 flex items-center gap-3 rounded-[10px] border border-ink/8 bg-paper/80 px-3 py-3">
+                      <button
+                        type="button"
+                        onClick={() => setLightboxUrl(order.payment_proof_url)}
+                        className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-[10px] border border-ink/10 bg-white shadow-sm"
+                        aria-label="Ampliar comprobante de pago"
+                      >
+                        <img
+                          src={order.payment_proof_url}
+                          alt="Comprobante de pago"
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                        <span className="absolute inset-0 grid place-items-center bg-carbon/0 transition group-hover:bg-carbon/45">
+                          <Maximize2
+                            size={18}
+                            className="text-white opacity-0 transition group-hover:opacity-100"
+                            aria-hidden
+                          />
+                        </span>
+                      </button>
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-1.5 text-sm font-bold text-ink">
+                          <Receipt size={15} aria-hidden />
+                          Comprobante de pago
+                        </p>
+                        <p className="mt-0.5 text-xs text-clay">Toca la miniatura para verla completa.</p>
+                      </div>
+                    </div>
+                  ) : null}
+
                   <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-ink/10 bg-paper px-2.5 py-1 text-clay">
@@ -494,17 +547,6 @@ export function MisPedidos() {
                         <Wallet size={13} className="text-ember" aria-hidden />
                         {order.payment_method === "tarjeta" ? "Transferencia" : "Pago al recoger"}
                       </span>
-                      {order.payment_proof_url ? (
-                        <a
-                          href={order.payment_proof_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 rounded-full border border-terracotta/30 bg-terracotta/5 px-2.5 py-1 font-medium text-ember transition hover:bg-terracotta/10"
-                        >
-                          <Receipt size={13} aria-hidden />
-                          Ver comprobante
-                        </a>
-                      ) : null}
                     </div>
                     <div className="text-right">
                       <span className="block text-[11px] font-medium uppercase tracking-wide text-clay">Total</span>
@@ -532,25 +574,25 @@ export function MisPedidos() {
         </div>
       </main>
       <Footer />
-      {lightboxOpen && proofPreview ? (
+      {lightboxUrl ? (
         <div
           className="fixed inset-0 z-[70] grid place-items-center bg-carbon/90 p-4"
           role="dialog"
           aria-modal="true"
           aria-label="Comprobante en tamaño completo"
-          onClick={() => setLightboxOpen(false)}
+          onClick={() => setLightboxUrl(null)}
         >
           <button
             type="button"
             aria-label="Cerrar"
-            onClick={() => setLightboxOpen(false)}
+            onClick={() => setLightboxUrl(null)}
             className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full border border-white/30 text-white transition hover:bg-white/10"
           >
             <X size={20} />
           </button>
           <img
-            src={proofPreview}
-            alt="Comprobante de transferencia"
+            src={lightboxUrl}
+            alt="Comprobante de pago"
             className="max-h-[88vh] max-w-full rounded-xl object-contain shadow-[0_24px_60px_rgb(0_0_0_/0.5)]"
             onClick={(e) => e.stopPropagation()}
           />

@@ -1,4 +1,6 @@
 import type { CSSProperties } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { Reveal } from "@/components/Reveal";
 import { useSiteContent } from "@/context/SiteContentContext";
 
 /** Misma curva que el trazo SVG: alta en los extremos y baja en el centro. */
@@ -16,14 +18,17 @@ const GALLERY_LIMIT = 6;
 
 export function Gallery() {
   const { gallery } = useSiteContent();
+  const reduce = useReducedMotion();
   const shots = gallery.shots.filter((shot) => shot.src).slice(0, GALLERY_LIMIT);
 
   return (
     <section id="galeria" className="gallery-section">
       <img className="section-wave" src="/gallery-wave-top.svg" alt="" />
       <div className="mx-auto max-w-6xl px-4 pt-8 md:px-6 md:pt-12">
-        <h2 className="font-display text-4xl text-white md:text-5xl">{gallery.headline}</h2>
-        <span className="mark" aria-hidden />
+        <Reveal>
+          <h2 className="font-display text-4xl text-white md:text-5xl">{gallery.headline}</h2>
+          <span className="mark" aria-hidden />
+        </Reveal>
       </div>
 
       {shots.length > 0 ? (
@@ -44,7 +49,7 @@ export function Gallery() {
                 const t = count === 1 ? 0.5 : index / (count - 1);
                 const tilt = (t - 0.5) * 12 + (index % 2 === 0 ? -2 : 2);
                 return (
-                  <li
+                  <motion.li
                     key={shot.src + shot.alt}
                     className="clothesline__item"
                     style={
@@ -53,13 +58,21 @@ export function Gallery() {
                         marginTop: `calc(${ropeDrop(t)} * ${ROPE_DROP})`,
                       } as CSSProperties
                     }
+                    initial={reduce ? false : { opacity: 0, y: 26 }}
+                    whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "0px 0px -8% 0px" }}
+                    transition={{
+                      duration: 0.6,
+                      delay: Math.min(index * 0.07, 0.35),
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
                   >
                     <span className="clothesline__clip" aria-hidden />
                     <figure className="clothesline__card">
                       <img src={shot.src} alt={shot.alt} loading="lazy" />
                       <div className="clothesline__blank" aria-hidden />
                     </figure>
-                  </li>
+                  </motion.li>
                 );
               })}
             </ul>

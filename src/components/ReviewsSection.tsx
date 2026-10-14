@@ -1,4 +1,5 @@
 import useEmblaCarousel from "embla-carousel-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { useReviews } from "@/context/ReviewsContext";
 import { Reveal } from "@/components/Reveal";
@@ -26,6 +27,7 @@ export function StarRating({ rating, label, size = 16 }: { rating: number; label
 
 export function ReviewsSection() {
   const { visibleReviews } = useReviews();
+  const reduce = useReducedMotion();
   const [emblaRef, embla] = useEmblaCarousel({
     align: "start",
     containScroll: "trimSnaps",
@@ -83,10 +85,18 @@ export function ReviewsSection() {
         ) : (
           <div className="mt-10 overflow-hidden" ref={emblaRef}>
             <div className="flex">
-              {visibleReviews.map((review) => (
-                <article
+              {visibleReviews.map((review, index) => (
+                <motion.article
                   key={review.id}
                   className="mr-5 min-w-0 flex-[0_0_85%] border-t border-ink/15 pt-6 sm:flex-[0_0_48%] lg:mr-8 lg:flex-[0_0_31%]"
+                  initial={reduce ? false : { opacity: 0, y: 18 }}
+                  whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "0px 0px -8% 0px" }}
+                  transition={{
+                    duration: 0.55,
+                    delay: Math.min(index * 0.06, 0.3),
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
                 >
                   <StarRating rating={review.rating} />
                   <p className="mt-4 text-lg leading-snug text-ink">{review.text}</p>
@@ -97,7 +107,7 @@ export function ReviewsSection() {
                       month: "long",
                     })}
                   </p>
-                </article>
+                </motion.article>
               ))}
             </div>
           </div>
