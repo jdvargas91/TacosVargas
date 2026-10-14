@@ -39,6 +39,7 @@ export function ProductMedia({
         src={src}
         alt={alt}
         loading={loading}
+        decoding="async"
         className={cn(
           "product-photo h-full w-full object-cover object-center",
           tone === "thumb" && "aspect-square",

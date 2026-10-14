@@ -31,6 +31,7 @@ main [id] {
 body {
   margin: 0;
   min-height: 100vh;
+  padding-bottom: var(--cookie-bar, 0px);
   background: #fff8f0;
   color: #1e1710;
   font-family: var(--font-sans);

@@ -170,7 +170,7 @@ export function SitioPanel() {
         })}
       </div>
 
-      {error ? <p className="shrink-0 rounded-[10px] border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm text-terracotta">{error}</p> : null}
+      {error ? <p className="shrink-0 rounded-[10px] border border-ember/30 bg-terracotta/10 px-4 py-3 text-sm text-ember">{error}</p> : null}
       {message ? <p className="shrink-0 rounded-[10px] border border-ink/10 bg-paper px-4 py-3 text-sm text-clay">{message}</p> : null}
 
       <div className="card-shadow flex min-h-0 flex-1 flex-col rounded-[10px] border border-ink/8 bg-smoke">
@@ -228,11 +228,6 @@ export function SitioPanel() {
             label="Titular de la cuenta"
             value={biz.cardPayment.accountName}
             onChange={(v) => setBiz({ ...biz, cardPayment: { ...biz.cardPayment, accountName: v } })}
-          />
-          <Field
-            label="CLABE"
-            value={biz.cardPayment.clabe}
-            onChange={(v) => setBiz({ ...biz, cardPayment: { ...biz.cardPayment, clabe: v } })}
           />
           <Field
             label="Número de tarjeta"

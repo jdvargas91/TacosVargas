@@ -28,7 +28,7 @@ export const business = {
     bank: "Banorte",
     accountName: "Juan Diego Vargas",
     clabe: "",
-    cardNumber: "4189 2810 1062 2216",
+    cardNumber: "",
     hint: "Transfiere el total exacto a esta tarjeta Visa Banorte y guarda la captura. La necesitarás para confirmar el pedido.",
   },
   socials: {

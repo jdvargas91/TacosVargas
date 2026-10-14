@@ -23,7 +23,7 @@ export function Gallery() {
 
   return (
     <section id="galeria" className="gallery-section">
-      <img className="section-wave" src="/gallery-wave-top.svg" alt="" />
+      <img className="section-wave" src="/gallery-wave-top.svg" alt="" loading="lazy" decoding="async" />
       <div className="mx-auto max-w-6xl px-4 pt-8 md:px-6 md:pt-12">
         <Reveal>
           <h2 className="font-display text-4xl text-white md:text-5xl">{gallery.headline}</h2>
@@ -69,7 +69,7 @@ export function Gallery() {
                   >
                     <span className="clothesline__clip" aria-hidden />
                     <figure className="clothesline__card">
-                      <img src={shot.src} alt={shot.alt} loading="lazy" />
+                      <img src={shot.src} alt={shot.alt} loading="lazy" decoding="async" />
                       <div className="clothesline__blank" aria-hidden />
                     </figure>
                   </motion.li>
@@ -79,7 +79,7 @@ export function Gallery() {
           </div>
         </div>
       ) : null}
-      <img className="section-wave" src="/gallery-wave-bottom.svg" alt="" />
+      <img className="section-wave" src="/gallery-wave-bottom.svg" alt="" loading="lazy" decoding="async" />
     </section>
   );
 }

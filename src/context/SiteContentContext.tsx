@@ -203,7 +203,10 @@ function asBusiness(value: unknown): BusinessContent {
       bank: v.cardPayment?.bank ?? fallbackBusiness.cardPayment.bank,
       accountName: v.cardPayment?.accountName ?? fallbackBusiness.cardPayment.accountName,
       clabe: v.cardPayment?.clabe ?? fallbackBusiness.cardPayment.clabe,
-      cardNumber: v.cardPayment?.cardNumber ?? fallbackBusiness.cardPayment.cardNumber,
+      cardNumber:
+        (v.cardPayment?.cardNumber ?? "").trim() ||
+        (import.meta.env.VITE_PAYMENT_CARD_NUMBER ?? "").trim() ||
+        fallbackBusiness.cardPayment.cardNumber,
       hint: v.cardPayment?.hint ?? fallbackBusiness.cardPayment.hint,
     },
     socials: {

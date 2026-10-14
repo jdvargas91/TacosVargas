@@ -195,7 +195,7 @@ export function CatalogoPanel() {
         </div>
 
         {error ? (
-          <p className="rounded-[10px] border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm text-terracotta">
+          <p className="rounded-[10px] border border-ember/30 bg-terracotta/10 px-4 py-3 text-sm text-ember">
             {error}
           </p>
         ) : null}
@@ -383,7 +383,7 @@ export function CatalogoPanel() {
       </p>
 
       {error ? (
-        <p className="rounded-[10px] border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm text-terracotta">{error}</p>
+        <p className="rounded-[10px] border border-ember/30 bg-terracotta/10 px-4 py-3 text-sm text-ember">{error}</p>
       ) : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -426,6 +426,8 @@ export function CatalogoPanel() {
                           alt=""
                           width={72}
                           height={72}
+                          loading="lazy"
+                          decoding="async"
                           className="h-full w-full object-cover"
                         />
                       ) : (

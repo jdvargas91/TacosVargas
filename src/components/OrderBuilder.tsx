@@ -8,7 +8,12 @@ import { useSiteContent } from "@/context/SiteContentContext";
 import { formatMxn, isProductAvailable, isWithinServiceHours } from "@/lib/format";
 import { parseCartLineKey, type Tortillas } from "@/lib/cart";
 import type { DrinkSizeId } from "@/data/seedProducts";
-import { savePendingCheckout, type PaymentMethod, type PendingCheckoutItem } from "@/lib/pendingCheckout";
+import {
+  LOGIN_ERROR_KEY,
+  savePendingCheckout,
+  type PaymentMethod,
+  type PendingCheckoutItem,
+} from "@/lib/pendingCheckout";
 import { GoogleGateModal } from "@/components/GoogleGateModal";
 import { QtyStepper } from "@/components/QtyStepper";
 import { TortillaPicker } from "@/components/TortillaPicker";
@@ -72,6 +77,14 @@ export function OrderBuilder() {
   const outsideHours = !isWithinServiceHours(new Date(), business.hours);
 
   useEffect(() => {
+    const message = sessionStorage.getItem(LOGIN_ERROR_KEY);
+    if (!message) return;
+    sessionStorage.removeItem(LOGIN_ERROR_KEY);
+    setError(message);
+    setGate(false);
+  }, []);
+
+  useEffect(() => {
     if (!user || name) return;
     const fullName =
       typeof user.user_metadata.full_name === "string"
@@ -108,8 +121,10 @@ export function OrderBuilder() {
   }
 
   async function copyCardNumber() {
+    const number = card.cardNumber.replace(/\s+/g, "");
+    if (!number) return;
     try {
-      await navigator.clipboard.writeText(card.cardNumber.replace(/\s+/g, ""));
+      await navigator.clipboard.writeText(number);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
@@ -173,7 +188,10 @@ export function OrderBuilder() {
   async function handleLogin() {
     setLoginError(null);
     if (!configured) {
-      setLoginError("Falta configurar Supabase en el archivo .env.");
+      const message = "Falta configurar Supabase en el archivo .env.";
+      setLoginError(message);
+      setError(message);
+      setGate(false);
       return;
     }
     setLoginBusy(true);
@@ -181,16 +199,21 @@ export function OrderBuilder() {
       sessionStorage.setItem("vargas_post_login", "/mis-pedidos");
       await signInGoogle(`${window.location.origin}/cuenta`);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "No se pudo iniciar sesión con Google.";
-      if (/provider is not enabled/i.test(message)) {
-        setLoginError(
-          "Google no está habilitado en Supabase. En Authentication → Providers → Google: actívalo, pega Client ID y Secret, y guarda.",
-        );
-      } else {
-        setLoginError(message);
-      }
+      const raw = err instanceof Error ? err.message : "No se pudo iniciar sesión con Google.";
+      const message = /provider is not enabled/i.test(raw)
+        ? "Google no está habilitado en Supabase. En Authentication → Providers → Google: actívalo, pega Client ID y Secret, y guarda."
+        : raw;
+      setLoginError(message);
+      setError(message);
+      setGate(false);
       setLoginBusy(false);
     }
+  }
+
+  function nextStepHint() {
+    return paymentMethod === "transferencia"
+      ? "Entra a tu cuenta y sube el comprobante. Sin esa captura el pedido no llega al panel."
+      : "Entra a tu cuenta y confirma el pedido. Pagas en el local al recogerlo.";
   }
 
   function continueCheckout() {
@@ -206,19 +229,19 @@ export function OrderBuilder() {
     }
 
     persistPendingCheckout();
-    clear();
 
     if (!user) {
       sessionStorage.setItem("vargas_post_login", "/mis-pedidos");
+      setLoginError(null);
       setGate(true);
       return;
     }
 
+    clear();
     setSubmitting(true);
-    setInfo("Continúa en tu cuenta para subir el comprobante.");
-    navigate("/mis-pedidos", {
-      state: { checkoutHint: "Continúa en tu cuenta para subir el comprobante." },
-    });
+    const hint = nextStepHint();
+    setInfo(hint);
+    navigate("/mis-pedidos", { state: { checkoutHint: hint } });
     setSubmitting(false);
   }
 
@@ -229,8 +252,8 @@ export function OrderBuilder() {
           <div>
             <h1 className="font-display text-4xl text-ink md:text-5xl">Tu Pedido</h1>
             <p className="mt-3 max-w-prose text-clay">
-              Arma tu pedido para recoger en el local. Paga por transferencia o tarjeta, inicia sesión con Google y sube
-              tu comprobante en Mis pedidos para confirmar la orden.
+              Armas tu pedido y lo recoges en el local. Entra con Google para guardar tu perfil y tus órdenes. Si pagas
+              por adelantado, el comprobante es obligatorio para que el pedido llegue al panel.
             </p>
           </div>
           {lines.length > 0 ? (
@@ -362,8 +385,8 @@ export function OrderBuilder() {
                         : "hover:bg-white/60",
                     )}
                   >
-                    <span className="block text-sm font-semibold text-ink">Pago al recoger</span>
-                    <span className="mt-0.5 block text-xs text-clay">Pagas en el local al entregarlo</span>
+                    <span className="block text-sm font-semibold text-ink">Pago en el local</span>
+                    <span className="mt-0.5 block text-xs text-clay">Pagas cuando recoges</span>
                   </button>
                   <button
                     type="button"
@@ -377,8 +400,8 @@ export function OrderBuilder() {
                         : "hover:bg-white/60",
                     )}
                   >
-                    <span className="block text-sm font-semibold text-ink">Transferencia</span>
-                    <span className="mt-0.5 block text-xs text-clay">Pagas antes y subes tu comprobante</span>
+                    <span className="block text-sm font-semibold text-ink">Pago por adelantado</span>
+                    <span className="mt-0.5 block text-xs text-clay">Transfiere ahora y sube el comprobante</span>
                   </button>
                 </div>
 
@@ -393,33 +416,29 @@ export function OrderBuilder() {
                         <dt className="text-xs font-medium uppercase tracking-wide text-clay">Titular</dt>
                         <dd className="mt-1 font-semibold text-ink">{card.accountName}</dd>
                       </div>
-                      {card.clabe.trim() ? (
+                      {card.cardNumber.trim() ? (
                         <div className="rounded-[10px] border border-ink/10 bg-white px-4 py-3 sm:col-span-2">
-                          <dt className="text-xs font-medium uppercase tracking-wide text-clay">CLABE</dt>
-                          <dd className="mt-1 font-semibold tabular-nums text-ink">{card.clabe}</dd>
+                          <dt className="text-xs font-medium uppercase tracking-wide text-clay">Tarjeta</dt>
+                          <div className="mt-1 flex items-center justify-between gap-3">
+                            <dd className="font-semibold tabular-nums text-ink">{card.cardNumber}</dd>
+                            <button
+                              type="button"
+                              onClick={() => void copyCardNumber()}
+                              aria-label="Copiar número de tarjeta"
+                              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[8px] border border-ink/15 bg-paper px-3 text-xs font-semibold text-ink transition hover:border-terracotta hover:text-ember"
+                            >
+                              {copied ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
+                              {copied ? "Copiado" : "Copiar"}
+                            </button>
+                          </div>
                         </div>
                       ) : null}
-                      <div className="rounded-[10px] border border-ink/10 bg-white px-4 py-3 sm:col-span-2">
-                        <dt className="text-xs font-medium uppercase tracking-wide text-clay">Tarjeta</dt>
-                        <div className="mt-1 flex items-center justify-between gap-3">
-                          <dd className="font-semibold tabular-nums text-ink">{card.cardNumber}</dd>
-                          <button
-                            type="button"
-                            onClick={() => void copyCardNumber()}
-                            aria-label="Copiar número de tarjeta"
-                            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[8px] border border-ink/15 bg-paper px-3 text-xs font-semibold text-ink transition hover:border-terracotta hover:text-ember"
-                          >
-                            {copied ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />}
-                            {copied ? "Copiado" : "Copiar"}
-                          </button>
-                        </div>
-                      </div>
                     </dl>
                     <p className="mt-3 text-sm text-clay">{card.hint}</p>
                   </div>
                 ) : (
                   <p className="mt-3 text-sm text-clay">
-                    Pagas directamente cuando recojas tu pedido en el local. No necesitas comprobante.
+                    Pagas en el local cuando recoges. El pedido se registra con tu cuenta, sin captura.
                   </p>
                 )}
               </div>
@@ -445,7 +464,7 @@ export function OrderBuilder() {
                   inputMode="text"
                   placeholder="Solo letras, ej. Ana López"
                 />
-                {fieldErrors.name ? <p className="mt-1 text-xs text-terracotta">{fieldErrors.name}</p> : null}
+                {fieldErrors.name ? <p className="mt-1 text-xs text-ember">{fieldErrors.name}</p> : null}
               </label>
               <label className="mt-4 block text-sm text-clay">
                 <FieldLabel>Notas (sabor de agua, sin cebolla…)</FieldLabel>
@@ -460,7 +479,7 @@ export function OrderBuilder() {
                 <span>Total</span>
                 <span className="text-3xl font-semibold text-ink">{formatMxn(totalCents)}</span>
               </p>
-              {error ? <p className="mt-3 text-sm text-terracotta">{error}</p> : null}
+              {error ? <p className="mt-3 text-sm text-ember">{error}</p> : null}
               {info ? <p className="mt-3 text-sm text-ink">{info}</p> : null}
 
               {!authLoading && user ? (
@@ -477,25 +496,13 @@ export function OrderBuilder() {
                 <div className="mt-5 rounded-xl border border-terracotta/25 bg-terracotta/10 px-4 py-4 text-sm text-clay">
                   <p className="font-medium text-ink">Inicia sesión para continuar</p>
                   <p className="mt-1">
-                    Con Google guardamos tu pedido pendiente y podrás subir el comprobante de pago en Mis pedidos.
+                    {paymentMethod === "transferencia"
+                      ? "Entra con Google para guardar tu perfil y la orden. Después subes el comprobante: sin esa captura el pedido no llega al panel."
+                      : "Entra con Google para guardar tu perfil y registrar la orden. El comprobante no hace falta: pagas en el local al recoger."}
                   </p>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (totalItems < 1) {
-                        setError("Agrega tacos o bebidas desde el menú.");
-                        return;
-                      }
-                      if (!validate()) {
-                        setError("Revisa los campos marcados.");
-                        return;
-                      }
-                      persistPendingCheckout();
-                      clear();
-                      sessionStorage.setItem("vargas_post_login", "/mis-pedidos");
-                      setLoginError(null);
-                      setGate(true);
-                    }}
+                    onClick={continueCheckout}
                     className="btn-accent mt-4 w-full"
                   >
                     <LogIn size={18} aria-hidden />
@@ -509,15 +516,12 @@ export function OrderBuilder() {
                   <X size={16} aria-hidden />
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  disabled={submitting || !user}
-                  title={!user ? "Inicia sesión con Google para continuar" : undefined}
-                  className="btn-accent h-11 px-6 disabled:opacity-60"
-                >
-                  <ArrowRight size={18} aria-hidden />
-                  {submitting ? "Continuando…" : "Continuar"}
-                </button>
+                {!authLoading && user ? (
+                  <button type="submit" disabled={submitting} className="btn-accent h-11 px-6">
+                    <ArrowRight size={18} aria-hidden />
+                    {submitting ? "Continuando…" : "Continuar"}
+                  </button>
+                ) : null}
               </div>
               <Link
                 to="/#menu"
@@ -533,7 +537,7 @@ export function OrderBuilder() {
       <GoogleGateModal
         open={gate}
         title="Inicia sesión para continuar"
-        body="Necesitas una cuenta con Google para subir tu comprobante y confirmar el pedido. Tu carrito y datos quedan guardados mientras inicias sesión."
+        body="Necesitas tu cuenta de Google para guardar el perfil y la orden. El pedido se queda en esta pantalla hasta que el acceso sea correcto."
         error={loginError}
         onClose={() => {
           setGate(false);

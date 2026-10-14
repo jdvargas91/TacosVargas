@@ -75,7 +75,7 @@ export function BackToTop() {
           transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           className="btn-accent btn-fab fixed z-50"
           style={{
-            bottom: "max(1.25rem, env(safe-area-inset-bottom))",
+            bottom: "calc(max(1.25rem, env(safe-area-inset-bottom)) + var(--cookie-bar, 0px))",
             right: "max(1.25rem, env(safe-area-inset-right))",
           }}
         >

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { About } from "@/components/About";
@@ -17,6 +17,40 @@ import { useSiteContent } from "@/context/SiteContentContext";
 const LocationMap = lazy(() =>
   import("@/components/LocationMap").then((module) => ({ default: module.LocationMap })),
 );
+
+function WhenNear({
+  id,
+  label,
+  children,
+}: {
+  id: string;
+  label: string;
+  children: ReactNode;
+}) {
+  const hold = useRef<HTMLElement>(null);
+  const [show, setShow] = useState(() =>
+    typeof window !== "undefined" ? window.location.hash === `#${id}` : false,
+  );
+
+  useEffect(() => {
+    if (show) return;
+    const node = hold.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return;
+        setShow(true);
+        observer.disconnect();
+      },
+      { rootMargin: "360px 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [show]);
+
+  if (show) return children;
+  return <section ref={hold} id={id} className="h-[520px]" aria-label={label} />;
+}
 
 export function Home() {
   const { products } = useProducts();
@@ -41,9 +75,11 @@ export function Home() {
         <KitchenCrew />
         <Gallery />
         <ReviewsSection />
-        <Suspense fallback={<section id="ubicacion" className="h-[520px]" aria-label="Cargando mapa" />}>
-          <LocationMap />
-        </Suspense>
+        <WhenNear id="ubicacion" label="Cargando mapa">
+          <Suspense fallback={<section id="ubicacion" className="h-[520px]" aria-label="Cargando mapa" />}>
+            <LocationMap />
+          </Suspense>
+        </WhenNear>
       </main>
       <Footer />
       <BackToTop />

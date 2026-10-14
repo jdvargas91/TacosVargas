@@ -8,7 +8,7 @@ export function KitchenCrew() {
 
   return (
     <section id="cocina" className="kitchen-heat text-tortilla">
-      <img className="section-wave" src="/team-wave-top.svg" alt="" />
+      <img className="section-wave" src="/team-wave-top.svg" alt="" loading="lazy" decoding="async" />
       <div className="mx-auto max-w-6xl px-4 pb-16 pt-8 md:px-6 md:pb-20 md:pt-12">
         <Reveal>
           <h2 className="font-display text-4xl md:text-5xl">{kitchen.headline}</h2>
@@ -40,6 +40,7 @@ export function KitchenCrew() {
                         src={person.image}
                         alt={person.imageAlt}
                         loading="lazy"
+                        decoding="async"
                         className="kitchen-frame__photo"
                       />
                     </motion.figure>
@@ -61,7 +62,6 @@ export function KitchenCrew() {
           })}
         </ul>
       </div>
-      <img className="section-wave" src="/team-wave-bottom.svg" alt="" />
     </section>
   );
 }

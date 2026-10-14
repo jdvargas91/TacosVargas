@@ -51,7 +51,7 @@ export function MediaUpload({
         )}
       >
         {value ? (
-          <img src={value} alt="" className="h-full w-full object-cover" />
+          <img src={value} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
         ) : (
           <div className="grid h-full place-items-center gap-2 px-4 text-center text-clay">
             <ImagePlus size={28} aria-hidden />

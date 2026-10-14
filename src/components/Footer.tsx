@@ -1,6 +1,8 @@
 import { Facebook, Instagram } from "lucide-react";
+import { Link } from "react-router-dom";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Reveal } from "@/components/Reveal";
+import { useConsent } from "@/context/ConsentContext";
 import { useSiteContent } from "@/context/SiteContentContext";
 
 function TikTokIcon() {
@@ -13,6 +15,7 @@ function TikTokIcon() {
 
 export function Footer() {
   const { business } = useSiteContent();
+  const { openSettings } = useConsent();
   const socials = [
     { href: business.socials.facebook, label: "Facebook", icon: Facebook },
     { href: business.socials.instagram, label: "Instagram", icon: Instagram },
@@ -36,6 +39,17 @@ export function Footer() {
           <p className="mt-1">
             {business.hours.days} · {business.hours.label}
           </p>
+          <nav aria-label="Información legal" className="mt-4 flex flex-col items-start gap-2">
+            <Link to="/terminos" className="cursor-pointer text-ember hover:underline">
+              Términos y condiciones
+            </Link>
+            <Link to="/privacidad" className="cursor-pointer text-ember hover:underline">
+              Política de privacidad
+            </Link>
+            <button type="button" onClick={openSettings} className="cursor-pointer text-ember hover:underline">
+              Cookies
+            </button>
+          </nav>
         </div>
         <div>
           <p className="font-display text-lg text-ink">Redes sociales</p>

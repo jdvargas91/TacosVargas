@@ -69,7 +69,7 @@ export function ReviewsAdmin() {
 
   return (
     <div className="mt-2 space-y-8">
-      {error ? <p className="text-terracotta">{error}</p> : null}
+      {error ? <p className="text-ember">{error}</p> : null}
 
       <form
         className="card-shadow grid gap-4 rounded-[10px] border border-ink/8 bg-smoke p-5 md:p-6"

@@ -257,7 +257,7 @@ export function PedidosPanel() {
 
   return (
     <div className="mt-2 space-y-5">
-      {error ? <p className="text-terracotta">{error}</p> : null}
+      {error ? <p className="text-ember">{error}</p> : null}
 
       {/* Pestañas por estado */}
       <div

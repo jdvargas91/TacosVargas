@@ -25,9 +25,16 @@ export function About() {
                 src="/figura-blob.svg"
                 alt=""
                 aria-hidden
+                loading="lazy"
                 decoding="async"
               />
-              <img className="about-portrait__photo" src={about.image} alt="Especialidad de Vargas Tacos" />
+              <img
+                className="about-portrait__photo"
+                src={about.image}
+                alt="Especialidad de Vargas Tacos"
+                loading="lazy"
+                decoding="async"
+              />
             </figure>
           </Reveal>
         </div>

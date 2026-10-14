@@ -232,7 +232,7 @@ export function MisPedidos() {
 
         <h1 className="font-display text-4xl text-ink">Mis pedidos</h1>
         <p className="mt-2 text-sm text-clay">
-          Recoges en tienda. Si pagas por transferencia, sube el comprobante para que el pedido quede registrado.
+          Recoges en el local. Si pagaste por adelantado, sube el comprobante para que el pedido llegue al panel.
         </p>
 
         {pending && user ? (
@@ -251,8 +251,8 @@ export function MisPedidos() {
                 </h2>
                 <p className="mt-1 text-sm text-clay">
                   {pending.paymentMethod === "transferencia"
-                    ? "Ya transferiste a la tarjeta del negocio. Adjunta la captura para registrar tu pedido a nombre de "
-                    : "Pagas en el local al recogerlo. Confirma para registrar tu pedido a nombre de "}
+                    ? "Ya pagaste por adelantado. Adjunta la captura para que el pedido llegue al panel a nombre de "
+                    : "Pago en el local: confirmas ahora y pagas al recoger. El pedido queda a nombre de "}
                   <span className="font-medium text-ink">{pending.name}</span>.
                 </p>
               </div>
@@ -318,6 +318,8 @@ export function MisPedidos() {
                         <img
                           src={proofPreview}
                           alt="Vista previa del comprobante"
+                          loading="lazy"
+                          decoding="async"
                           className="max-h-64 w-full bg-ink/[0.03] object-contain"
                         />
                         <button
@@ -428,7 +430,7 @@ export function MisPedidos() {
         {!loading && user && orders.length === 0 && !pending ? (
           <p className="mt-6 text-clay">Aún no tienes pedidos.</p>
         ) : null}
-        {error ? <p className="mt-4 text-terracotta">{error}</p> : null}
+        {error ? <p className="mt-4 text-ember">{error}</p> : null}
 
         <div className="mt-8 space-y-4">
           {orders.map((order) => {
@@ -509,7 +511,7 @@ export function MisPedidos() {
                     <div className="mt-4 flex items-center gap-3 rounded-[10px] border border-ink/8 bg-paper/80 px-3 py-3">
                       <button
                         type="button"
-                        onClick={() => setLightboxUrl(order.payment_proof_url)}
+                        onClick={() => setLightboxUrl(order.payment_proof_url ?? null)}
                         className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-[10px] border border-ink/10 bg-white shadow-sm"
                         aria-label="Ampliar comprobante de pago"
                       >
@@ -545,7 +547,7 @@ export function MisPedidos() {
                       </span>
                       <span className="inline-flex items-center gap-1.5 rounded-full border border-ink/10 bg-paper px-2.5 py-1 text-clay">
                         <Wallet size={13} className="text-ember" aria-hidden />
-                        {order.payment_method === "tarjeta" ? "Transferencia" : "Pago al recoger"}
+                        {order.payment_method === "tarjeta" ? "Pago por adelantado" : "Pago en el local"}
                       </span>
                     </div>
                     <div className="text-right">
@@ -613,7 +615,7 @@ export function MisPedidos() {
       <GoogleGateModal
         open={!loading && !user}
         title="Tu cuenta Vargas"
-        body="Entra con Google para subir el comprobante y ver el estado de tus pedidos."
+        body="Entra con Google para guardar tu perfil y ver el estado de tus pedidos."
         error={loginError}
         onClose={() => {
           window.location.href = "/";

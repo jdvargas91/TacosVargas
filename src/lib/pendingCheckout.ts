@@ -1,6 +1,7 @@
 import type { DrinkSizeId } from "@/data/seedProducts";
 
 const PENDING_KEY = "vargas_pending_checkout";
+export const LOGIN_ERROR_KEY = "vargas_login_error";
 
 export type PendingCheckoutItem = {
   id: string;

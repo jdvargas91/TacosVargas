@@ -125,7 +125,7 @@ export function EquipoPanel() {
 
   return (
     <div className="mt-2 space-y-10">
-      {error ? <p className="text-terracotta">{error}</p> : null}
+      {error ? <p className="text-ember">{error}</p> : null}
       {message ? <p className="text-clay">{message}</p> : null}
 
       <section className="card-shadow rounded-[10px] border border-ink/8 bg-smoke p-5 md:p-6">

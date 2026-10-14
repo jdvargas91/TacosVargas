@@ -29,7 +29,7 @@ export function GoogleGateModal({
           </button>
         </div>
         <p className="mt-4 text-clay">{body}</p>
-        {error ? <p className="mt-3 text-sm text-terracotta">{error}</p> : null}
+        {error ? <p className="mt-3 text-sm text-ember">{error}</p> : null}
         <button
           type="button"
           onClick={onConfirm}

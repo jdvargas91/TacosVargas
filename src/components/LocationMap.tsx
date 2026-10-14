@@ -1,44 +1,54 @@
-import { useCallback, useEffect, useRef } from "react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { useEffect, useRef } from "react";
+import type { Map as LeafletMap } from "leaflet";
 import { motion, useReducedMotion } from "framer-motion";
 import { ExternalLink } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
+import { useConsent } from "@/context/ConsentContext";
 import { useSiteContent } from "@/context/SiteContentContext";
-
-const pin = L.divIcon({
-  className: "",
-  html: '<span style="display:block;width:18px;height:18px;border-radius:999px;background:#f0734f;box-shadow:0 10px 18px rgb(30 23 16 / 0.28)"></span>',
-  iconSize: [18, 18],
-  iconAnchor: [9, 9],
-});
 
 export function LocationMap() {
   const { business } = useSiteContent();
+  const { consent, openSettings } = useConsent();
+  const allowMap = consent?.map === true;
   const reduce = useReducedMotion();
-  const mapRef = useRef<L.Map | null>(null);
+  const hostRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
   const locationRef = useRef(business.location);
   locationRef.current = business.location;
 
-  const containerRef = useCallback((node: HTMLDivElement | null) => {
-    if (mapRef.current) {
-      mapRef.current.remove();
-      mapRef.current = null;
-    }
-    if (!node) return;
+  useEffect(() => {
+    if (!allowMap) return;
+    const host = hostRef.current;
+    if (!host) return;
+    let cancelled = false;
 
-    const location = locationRef.current;
-    const map = L.map(node, { scrollWheelZoom: false }).setView(
-      [location.lat, location.lng],
-      16,
-    );
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap",
-    }).addTo(map);
-    L.marker([location.lat, location.lng], { icon: pin }).addTo(map).bindPopup(location.label);
-    mapRef.current = map;
-    requestAnimationFrame(() => map.invalidateSize());
-  }, []);
+    void (async () => {
+      const leaflet = await import("leaflet");
+      await import("leaflet/dist/leaflet.css");
+      if (cancelled || !hostRef.current) return;
+      const L = leaflet.default;
+      const location = locationRef.current;
+      const pin = L.divIcon({
+        className: "",
+        html: '<span style="display:block;width:18px;height:18px;border-radius:999px;background:#f0734f;box-shadow:0 10px 18px rgb(30 23 16 / 0.28)"></span>',
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
+      });
+      const map = L.map(host, { scrollWheelZoom: false }).setView([location.lat, location.lng], 16);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap",
+      }).addTo(map);
+      L.marker([location.lat, location.lng], { icon: pin }).addTo(map).bindPopup(location.label);
+      mapRef.current = map;
+      requestAnimationFrame(() => map.invalidateSize());
+    })();
+
+    return () => {
+      cancelled = true;
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
+  }, [allowMap]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -48,7 +58,7 @@ export function LocationMap() {
 
   return (
     <section id="ubicacion" className="location-section px-4 py-24 md:px-6">
-      <img className="location-section__photo" src="/ubicacion.webp" alt="" />
+      <img className="location-section__photo" src="/ubicacion.webp" alt="" loading="lazy" decoding="async" />
       <div className="location-section__wash" aria-hidden />
       <div className="relative z-10 mx-auto grid max-w-6xl gap-8 lg:grid-cols-2">
         <Reveal>
@@ -79,7 +89,21 @@ export function LocationMap() {
           viewport={{ once: true, margin: "0px 0px -10% 0px" }}
           transition={{ duration: 0.7, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div ref={containerRef} className="location-map" />
+          {allowMap ? (
+            <div ref={hostRef} className="location-map" />
+          ) : (
+            <div className="location-map grid place-items-center px-6 text-center">
+              <div className="max-w-[36ch]">
+                <p className="text-sm leading-relaxed text-ink">
+                  El mapa se carga cuando aceptas la cookie de OpenStreetMap. La dirección y el enlace de arriba siguen
+                  disponibles.
+                </p>
+                <button type="button" onClick={openSettings} className="btn-secondary mt-4 h-11 px-5 text-sm">
+                  Elegir cookies
+                </button>
+              </div>
+            </div>
+          )}
         </motion.div>
       </div>
     </section>

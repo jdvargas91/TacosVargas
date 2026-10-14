@@ -95,7 +95,7 @@ export function Login() {
 
             <div className="mt-8 space-y-4">
               {!configured ? (
-                <p className="rounded-2xl border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-sm text-terracotta">
+                <p className="rounded-2xl border border-ember/30 bg-terracotta/10 px-4 py-3 text-sm text-ember">
                   Falta configurar Supabase en el archivo .env.
                 </p>
               ) : (
@@ -110,7 +110,7 @@ export function Login() {
                 </button>
               )}
               {error ? (
-                <p className="rounded-2xl border border-terracotta/30 bg-terracotta/10 px-4 py-3 text-left text-sm text-terracotta">
+                <p className="rounded-2xl border border-ember/30 bg-terracotta/10 px-4 py-3 text-left text-sm text-ember">
                   {error}
                 </p>
               ) : null}

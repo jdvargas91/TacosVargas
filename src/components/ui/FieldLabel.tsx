@@ -15,7 +15,7 @@ export function FieldLabel({
       <span className="font-medium text-ink/80">
         {children}
         {required ? (
-          <span className="ml-0.5 text-terracotta" aria-hidden>
+          <span className="ml-0.5 text-ember" aria-hidden>
             *
           </span>
         ) : null}

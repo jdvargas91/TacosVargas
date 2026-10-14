@@ -5,7 +5,9 @@ import { ProductsProvider } from "@/context/ProductsContext";
 import { ReviewsProvider } from "@/context/ReviewsContext";
 import { SiteContentProvider } from "@/context/SiteContentContext";
 import { ToastProvider } from "@/context/ToastContext";
+import { CookieNotice } from "@/components/CookieNotice";
 import { HashScroll } from "@/components/HashScroll";
+import { ConsentProvider } from "@/context/ConsentContext";
 import { Home } from "@/pages/Home";
 import { Pedido } from "@/pages/Pedido";
 import { ProductDetail } from "@/pages/ProductDetail";
@@ -13,6 +15,9 @@ import { MisPedidos } from "@/pages/MisPedidos";
 import { Sistema } from "@/pages/Sistema";
 import { Login } from "@/pages/Login";
 import { Cuenta } from "@/pages/Cuenta";
+import { NotFound } from "@/pages/NotFound";
+import { Privacidad } from "@/pages/Privacidad";
+import { Terminos } from "@/pages/Terminos";
 
 export default function App() {
   return (
@@ -23,7 +28,9 @@ export default function App() {
             <ReviewsProvider>
               <ToastProvider>
                 <BrowserRouter>
+                  <ConsentProvider>
                   <HashScroll />
+                  <CookieNotice />
                   <Routes>
                     <Route path="/" element={<Home />} />
                     <Route path="/producto/:id" element={<ProductDetail />} />
@@ -32,10 +39,14 @@ export default function App() {
                     <Route path="/mis-pedidos" element={<MisPedidos />} />
                     <Route path="/cuenta" element={<Cuenta />} />
                     <Route path="/login" element={<Login />} />
+                    <Route path="/terminos" element={<Terminos />} />
+                    <Route path="/privacidad" element={<Privacidad />} />
                     <Route path="/sistema" element={<Sistema />} />
                     <Route path="/sistema/:seccion" element={<Sistema />} />
                     <Route path="/admin" element={<Navigate to="/sistema" replace />} />
+                    <Route path="*" element={<NotFound />} />
                   </Routes>
+                  </ConsentProvider>
                 </BrowserRouter>
               </ToastProvider>
             </ReviewsProvider>

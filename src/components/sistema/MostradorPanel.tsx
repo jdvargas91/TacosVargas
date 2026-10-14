@@ -625,7 +625,7 @@ export function MostradorPanel() {
                 placeholder="Solo letras, ej. Ana López"
                 inputMode="text"
               />
-              {nameError ? <p className="mt-1 text-xs text-terracotta">{nameError}</p> : null}
+              {nameError ? <p className="mt-1 text-xs text-ember">{nameError}</p> : null}
             </label>
           </div>
 
@@ -683,7 +683,7 @@ export function MostradorPanel() {
               <p className="text-2xl font-bold text-ink">{formatMxn(totalCents)}</p>
             </div>
 
-            {error ? <p className="mt-3 text-sm text-terracotta">{error}</p> : null}
+            {error ? <p className="mt-3 text-sm text-ember">{error}</p> : null}
             {message ? (
               <p className="mt-3 flex items-start gap-2 rounded-[10px] border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-900">
                 <CheckCircle2 size={16} className="mt-0.5 shrink-0" aria-hidden />

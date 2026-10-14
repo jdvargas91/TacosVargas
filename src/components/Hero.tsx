@@ -45,7 +45,12 @@ export function Hero() {
       return Math.min(HERO_LOOP_END, Math.max(HERO_LOOP_START + 0.2, video.duration - 0.04));
     };
 
+    const arm = (video: HTMLVideoElement) => {
+      if (video.preload === "none") video.preload = "auto";
+    };
+
     const prepStandby = () => {
+      arm(standby);
       applyRate(standby);
       if (Math.abs(standby.currentTime - HERO_LOOP_START) > 0.04) {
         standby.currentTime = HERO_LOOP_START;
@@ -106,6 +111,7 @@ export function Hero() {
     const enterHold = () => {
       if (holding) return;
       holding = true;
+      arm(loop);
       applyRate(loop);
       loop.currentTime = HERO_LOOP_START;
       const reveal = () => {
@@ -128,8 +134,6 @@ export function Hero() {
 
     const onLoaded = () => {
       applyRate(primary);
-      applyRate(loop);
-      loop.currentTime = HERO_LOOP_START;
     };
 
     applyRate(primary);
@@ -169,7 +173,7 @@ export function Hero() {
             className="hero-media absolute inset-0 h-full w-full"
             muted
             playsInline
-            preload="auto"
+            preload="none"
             aria-hidden
             style={{ opacity: 0 }}
           >

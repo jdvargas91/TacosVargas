@@ -4,4 +4,12 @@
     <loc>/</loc>
     <changefreq>weekly</changefreq>
   </url>
+  <url>
+    <loc>/terminos</loc>
+    <changefreq>yearly</changefreq>
+  </url>
+  <url>
+    <loc>/privacidad</loc>
+    <changefreq>yearly</changefreq>
+  </url>
 </urlset>

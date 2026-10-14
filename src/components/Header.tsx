@@ -9,13 +9,13 @@ import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 
 const links = [
-  { href: "/#inicio", label: "Inicio" },
-  { href: "/#quienes-somos", label: "Quiénes somos" },
-  { href: "/#menu", label: "Menú" },
-  { href: "/#cocina", label: "Cocina" },
-  { href: "/#resenas", label: "Reseñas" },
-  { href: "/#galeria", label: "Galería" },
-  { href: "/#ubicacion", label: "Ubicación" },
+  { href: "/#inicio", id: "inicio", label: "Inicio" },
+  { href: "/#quienes-somos", id: "quienes-somos", label: "Quiénes somos" },
+  { href: "/#menu", id: "menu", label: "Menú" },
+  { href: "/#cocina", id: "cocina", label: "Cocina" },
+  { href: "/#galeria", id: "galeria", label: "Galería" },
+  { href: "/#resenas", id: "resenas", label: "Reseñas" },
+  { href: "/#ubicacion", id: "ubicacion", label: "Ubicación" },
 ];
 
 export function Header() {
@@ -26,6 +26,7 @@ export function Header() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loginBusy, setLoginBusy] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [visibleSection, setVisibleSection] = useState("inicio");
   const location = useLocation();
   const reduce = useReducedMotion();
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -81,6 +82,39 @@ export function Header() {
   const navClass = solid
     ? "cursor-pointer text-sm font-medium text-carbon transition hover:text-ink hover:underline"
     : "cursor-pointer text-sm font-medium text-tortilla/90 transition hover:text-tortilla hover:underline";
+
+  const activeSection = location.pathname.startsWith("/producto") ? "menu" : home ? visibleSection : null;
+
+  useEffect(() => {
+    if (!home) return;
+    const fromHash = location.hash.replace("#", "");
+    if (fromHash) setVisibleSection(fromHash);
+
+    const mark = () => {
+      const line = 120;
+      const sections = links
+        .map((link) => ({ id: link.id, node: document.getElementById(link.id) }))
+        .filter((item): item is { id: string; node: HTMLElement } => item.node !== null)
+        .sort((a, b) => a.node.offsetTop - b.node.offsetTop);
+      let current = sections[0]?.id ?? "inicio";
+      for (const section of sections) {
+        if (section.node.getBoundingClientRect().top <= line) current = section.id;
+      }
+      setVisibleSection(current);
+    };
+
+    mark();
+    window.addEventListener("scroll", mark, { passive: true });
+    return () => window.removeEventListener("scroll", mark);
+  }, [home, location.hash]);
+
+  function sectionClass(id: string, mobile = false) {
+    const current = id === activeSection;
+    if (mobile) {
+      return `cursor-pointer py-3 text-left text-lg text-ink hover:underline ${current ? "font-semibold underline decoration-terracotta decoration-2 underline-offset-4" : ""}`;
+    }
+    return `${navClass} ${current ? "font-semibold underline decoration-terracotta decoration-2 underline-offset-8" : ""}`;
+  }
 
   const redirectAfterLogin = `${window.location.origin}/cuenta`;
 
@@ -165,8 +199,12 @@ export function Header() {
                 <a
                   key={link.href}
                   href={link.href}
-                  onClick={() => setOpen(false)}
-                  className="cursor-pointer py-3 text-lg text-ink hover:underline"
+                  aria-current={link.id === activeSection ? "true" : undefined}
+                  onClick={() => {
+                    setVisibleSection(link.id);
+                    setOpen(false);
+                  }}
+                  className={sectionClass(link.id, true)}
                 >
                   {link.label}
                 </a>
@@ -233,7 +271,13 @@ export function Header() {
 
           <nav className="hidden items-center gap-6 xl:flex" aria-label="Principal">
             {links.map((link) => (
-              <a key={link.href} href={link.href} className={navClass}>
+              <a
+                key={link.href}
+                href={link.href}
+                aria-current={link.id === activeSection ? "true" : undefined}
+                onClick={() => setVisibleSection(link.id)}
+                className={sectionClass(link.id)}
+              >
                 {link.label}
               </a>
             ))}
