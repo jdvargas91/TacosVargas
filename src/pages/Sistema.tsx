@@ -9,7 +9,6 @@ import {
   Menu,
   MessageSquareQuote,
   Package,
-  PanelLeftClose,
   Store,
   Users,
   X,
@@ -26,9 +25,6 @@ import { CatalogoPanel } from "@/components/sistema/CatalogoPanel";
 import { SitioPanel } from "@/components/sistema/SitioPanel";
 import { ResenasPanel } from "@/components/sistema/ResenasPanel";
 import { EstadisticasPanel } from "@/components/sistema/EstadisticasPanel";
-import { cn } from "@/lib/cn";
-
-const NAV_KEY = "sistema-nav";
 
 type Tab = "pedidos" | "mostrador" | "estadisticas" | "equipo" | "catalogo" | "sitio" | "resenas";
 
@@ -81,13 +77,6 @@ function SistemaShell() {
   const { business } = useSiteContent();
   const { seccion } = useParams();
   const [navOpen, setNavOpen] = useState(false);
-  const [pinned, setPinned] = useState(() => {
-    try {
-      return localStorage.getItem(NAV_KEY) !== "collapsed";
-    } catch {
-      return true;
-    }
-  });
   const requested = seccion ? sectionTab[seccion] : "pedidos";
   const unknown = Boolean(seccion) && !requested;
   const forbidden = Boolean(requested && adminTabs.has(requested) && !isAdmin);
@@ -107,25 +96,14 @@ function SistemaShell() {
     return () => window.removeEventListener("keydown", onKey);
   }, [navOpen]);
 
-  function collapseNav() {
-    setPinned(false);
-    setNavOpen(false);
-    try {
-      localStorage.setItem(NAV_KEY, "collapsed");
-    } catch {
-      /* el menú igual se oculta en esta visita */
-    }
-  }
-
-  function pinNav() {
-    setPinned(true);
-    setNavOpen(false);
-    try {
-      localStorage.setItem(NAV_KEY, "open");
-    } catch {
-      /* el menú igual queda fijo en esta visita */
-    }
-  }
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => {
+      if (media.matches) setNavOpen(false);
+    };
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
 
   if (unknown || forbidden) return <Navigate to="/sistema" replace />;
 
@@ -159,28 +137,13 @@ function SistemaShell() {
     <>
       <Seo title={`Sistema · ${business.name}`} description="Panel operativo." noindex />
       <div className="flex min-h-svh bg-[#F7F1E8] text-ink">
-        {/* Menú fijo desde escritorio. En tablet se oculta y queda el botón de menú. */}
-        <aside
-          className={cn(
-            "sticky top-0 h-svh w-64 shrink-0 flex-col self-start overflow-y-auto border-r border-ink/10 bg-paper",
-            pinned ? "hidden lg:flex" : "hidden",
-          )}
-        >
-          <div className="flex items-start justify-between gap-2 border-b border-ink/10 px-4 py-4">
-            <div className="min-w-0">
-              <BrandLogo className="h-10 drop-shadow-none" />
-              <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-clay">Sistema</p>
-              <p className="mt-1 truncate text-sm text-ink">{displayName ?? "Equipo"}</p>
-              <p className="text-xs text-clay">{role === "admin" ? "Administrador" : "Vendedor"}</p>
-            </div>
-            <button
-              type="button"
-              onClick={collapseNav}
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] border border-ink/15 text-ink transition hover:bg-ink/5"
-              aria-label="Ocultar menú"
-            >
-              <PanelLeftClose size={18} aria-hidden />
-            </button>
+        {/* Sidebar fijo en escritorio. En teléfono/tablet queda el menú hamburguesa. */}
+        <aside className="sticky top-0 hidden h-svh w-64 shrink-0 flex-col self-start overflow-y-auto border-r border-ink/10 bg-paper lg:flex">
+          <div className="border-b border-ink/10 px-4 py-4">
+            <BrandLogo className="h-10 drop-shadow-none" />
+            <p className="mt-3 text-xs font-semibold uppercase tracking-[0.16em] text-clay">Sistema</p>
+            <p className="mt-1 truncate text-sm text-ink">{displayName ?? "Equipo"}</p>
+            <p className="text-xs text-clay">{role === "admin" ? "Administrador" : "Vendedor"}</p>
           </div>
           {SidebarNav}
           <div className="mt-auto space-y-2 border-t border-ink/10 p-3">
@@ -204,9 +167,8 @@ function SistemaShell() {
           </div>
         </aside>
 
-        {/* Mobile drawer */}
         {navOpen ? (
-          <div className="fixed inset-0 z-50">
+          <div className="fixed inset-0 z-50 lg:hidden">
             <button
               type="button"
               className="absolute inset-0 bg-carbon/40"
@@ -219,23 +181,14 @@ function SistemaShell() {
             >
               <div className="flex items-center justify-between gap-2 border-b border-ink/10 px-4 py-4">
                 <BrandLogo className="h-9 drop-shadow-none" />
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={pinNav}
-                    className="hidden h-11 items-center rounded-[10px] border border-ink/15 px-3 text-sm font-medium text-ink transition hover:bg-ink/5 lg:inline-flex"
-                  >
-                    Fijar menú
-                  </button>
-                  <button
-                    type="button"
-                    className="grid h-11 w-11 place-items-center rounded-[10px] border border-ink/15"
-                    aria-label="Cerrar"
-                    onClick={() => setNavOpen(false)}
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="grid h-11 w-11 place-items-center rounded-[10px] border border-ink/15"
+                  aria-label="Cerrar"
+                  onClick={() => setNavOpen(false)}
+                >
+                  <X size={18} />
+                </button>
               </div>
               <div className="border-b border-ink/10 px-4 py-3">
                 <p className="truncate text-sm font-medium text-ink">{displayName ?? "Equipo"}</p>
@@ -266,7 +219,7 @@ function SistemaShell() {
         ) : null}
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          <header className={cn("flex items-center justify-between gap-3 border-b border-ink/10 bg-paper px-4 py-3", pinned && "lg:hidden")}>
+          <header className="flex items-center justify-between gap-3 border-b border-ink/10 bg-paper px-4 py-3 lg:hidden">
             <div className="min-w-0">
               <p className="truncate font-display text-2xl leading-none text-ink">{tabMeta[tab].label}</p>
               <p className="mt-1 truncate text-xs text-clay">
@@ -286,7 +239,7 @@ function SistemaShell() {
           </header>
 
           <main id="contenido" className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 py-6 md:px-8 md:py-8">
-            <div className={cn("mb-6 shrink-0", pinned ? "hidden lg:block" : "hidden")}>
+            <div className="mb-6 hidden shrink-0 lg:block">
               <h1 className="font-display text-3xl text-ink md:text-4xl">{tabMeta[tab].label}</h1>
               <p className="mt-1 text-sm text-clay">
                 {business.name} · panel {role === "admin" ? "de administración" : "de ventas"}

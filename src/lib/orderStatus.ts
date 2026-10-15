@@ -10,14 +10,11 @@ export const ORDER_STATUSES: OrderStatus[] = [
   "cancelado",
 ];
 
-/** Estados del flujo operativo. Facturado (entregado) solo si hay comprobante. */
-export function orderStatusChoices(
-  source: "web" | "mostrador" | null | undefined,
-  hasPaymentProof = false,
-): OrderStatus[] {
+/** Estados del flujo operativo. Pagado no exige comprobante. */
+export function orderStatusChoices(source: "web" | "mostrador" | null | undefined): OrderStatus[] {
   const base: OrderStatus[] =
     source === "mostrador" ? ["en_preparacion"] : ["recibido", "en_preparacion"];
-  if (hasPaymentProof) base.push("entregado");
+  base.push("entregado");
   return base;
 }
 
@@ -26,7 +23,7 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   recibido: "Nuevo",
   en_preparacion: "En preparación",
   en_camino: "En camino",
-  entregado: "Facturado",
+  entregado: "Pagado",
   cancelado: "Cancelado",
 };
 

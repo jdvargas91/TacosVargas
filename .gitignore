@@ -3,6 +3,10 @@ dist
 .env
 .env.local
 .netlify
+.wrangler
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
 *.local
 .DS_Store
 *.tsbuildinfo

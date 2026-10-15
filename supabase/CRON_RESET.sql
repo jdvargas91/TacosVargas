@@ -1,5 +1,5 @@
 -- Programa el "desagotado" diario dentro de Supabase con pg_cron, para no depender
--- de la función programada de Netlify (que requiere variables de entorno y despliegue).
+-- del Worker programado de Cloudflare (que requiere secretos y despliegue).
 --
 -- Ejecuta este archivo UNA VEZ en Supabase → SQL Editor.
 -- Corre a las 06:00 UTC = 00:00 en Manzanillo/Colima (UTC-6, sin horario de verano).

@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-Vite + React + TypeScript + Tailwind CSS, React Router, Supabase (Auth Google, Postgres, Storage, RLS). Deploy en Netlify.
+Vite + React + TypeScript + Tailwind CSS, React Router, Supabase (Auth Google, Postgres, Storage, RLS). Deploy en Cloudflare Workers.
 
 ## Users
 

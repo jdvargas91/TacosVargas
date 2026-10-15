@@ -50,17 +50,12 @@ const STATUS_ICONS: Record<OrderStatus, LucideIcon> = {
   cancelado: Ban,
 };
 
-/** Todos los pedidos (web, transferencia, mostrador) necesitan comprobante para Facturado. */
-function needsPaymentProof(order: OrderRow) {
-  return !order.payment_proof_url;
-}
-
 const TZ = "America/Mexico_City";
 /** Colima/Manzanillo usan UTC-6 fijo (México ya no aplica horario de verano). */
 const MX_OFFSET = "-06:00";
 
 function groupOf(order: OrderRow): TabId {
-  if (order.status === "entregado" && order.payment_proof_url) return "entregado";
+  if (order.status === "entregado") return "entregado";
   return "proceso";
 }
 
@@ -108,7 +103,7 @@ const periodOptions: { id: Period; label: string }[] = [
 
 const tabMeta: { id: TabId; label: string; icon: typeof ChefHat }[] = [
   { id: "proceso", label: "En proceso", icon: ChefHat },
-  { id: "entregado", label: "Facturados", icon: CheckCircle2 },
+  { id: "entregado", label: "Pagados", icon: CheckCircle2 },
 ];
 
 export function PedidosPanel() {
@@ -184,13 +179,6 @@ export function PedidosPanel() {
   async function updateStatus(id: string, status: OrderRow["status"]) {
     if (!supabase) return;
     const previous = orders.find((item) => item.id === id);
-    if (status === "entregado" && previous && needsPaymentProof(previous)) {
-      toast.error(
-        "Comprobante requerido",
-        "Sube el comprobante de pago antes de marcar el pedido como Facturado.",
-      );
-      return;
-    }
     const { error: updateError } = await supabase.from("orders").update({ status }).eq("id", id);
     if (updateError) {
       setError(updateError.message);
@@ -203,7 +191,7 @@ export function PedidosPanel() {
     toast.success(
       "Pedido actualizado",
       moved
-        ? `Estado: ${ORDER_STATUS_LABELS[status]}. Ahora está en ${nextGroup === "entregado" ? "Facturados" : "En proceso"}.`
+        ? `Estado: ${ORDER_STATUS_LABELS[status]}. Ahora está en ${nextGroup === "entregado" ? "Pagados" : "En proceso"}.`
         : `Estado: ${ORDER_STATUS_LABELS[status]}.`,
     );
   }
@@ -238,19 +226,12 @@ export function PedidosPanel() {
       setUploadingId(null);
       return;
     }
-    const previous = orders.find((item) => item.id === orderId);
-    const nextRow = previous
-      ? { ...previous, payment_proof_url: pub.publicUrl }
-      : null;
-    const moved = previous != null && nextRow != null && groupOf(previous) !== groupOf(nextRow);
     setOrders((current) =>
       current.map((item) => (item.id === orderId ? { ...item, payment_proof_url: pub.publicUrl } : item)),
     );
     toast.success(
       replacing ? "Comprobante actualizado" : "Comprobante guardado",
-      moved
-        ? "La foto quedó guardada. El pedido pasó a Facturados."
-        : "La foto quedó guardada. Ya puedes marcar el pedido como Facturado.",
+      "La foto quedó guardada en el pedido.",
     );
     setUploadingId(null);
   }
@@ -380,8 +361,7 @@ export function PedidosPanel() {
           const code = formatOrderCode(order.order_number, order.id);
           const customerName = order.customer_name?.trim() || "Sin nombre";
           const hasProof = Boolean(order.payment_proof_url);
-          const pendingProof = needsPaymentProof(order);
-          const flow = orderStatusChoices(order.source, hasProof);
+          const flow = orderStatusChoices(order.source);
           const statusValues =
             flow.includes(order.status) || order.status === "en_camino" || order.status === "cancelado"
               ? flow
@@ -453,82 +433,45 @@ export function PedidosPanel() {
                 </div>
               </div>
 
-              {pendingProof ? (
-                <div className="flex flex-col gap-3 border-b border-ember/15 bg-ember/10 px-4 py-4 @min-[36rem]:flex-row @min-[36rem]:items-center @min-[36rem]:justify-between @min-[36rem]:px-5">
-                  <div className="flex min-w-0 items-start gap-3">
-                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[10px] bg-paper text-ember" aria-hidden>
-                      <Receipt size={20} />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-base font-bold leading-tight text-ink">Sube el comprobante</p>
-                      <p className="mt-1 text-sm leading-snug text-clay">
-                        Todos los pedidos necesitan comprobante. Sin esta foto no se puede marcar como Facturado.
-                      </p>
+              <div className="flex flex-col gap-3 border-b border-ink/8 bg-paper/70 px-4 py-3 @min-[36rem]:flex-row @min-[36rem]:items-center @min-[36rem]:justify-between @min-[36rem]:px-5">
+                {hasProof ? (
+                  <>
+                    <div className="flex min-w-0 items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setLightboxUrl(order.payment_proof_url!)}
+                        className="group relative h-16 w-16 shrink-0 overflow-hidden rounded-[10px] border border-ink/10 bg-white shadow-sm"
+                        aria-label="Ampliar comprobante de pago"
+                      >
+                        <img
+                          src={order.payment_proof_url!}
+                          alt="Comprobante de pago"
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                        <span className="absolute inset-0 grid place-items-center bg-carbon/0 transition group-hover:bg-carbon/45">
+                          <Maximize2
+                            size={16}
+                            className="text-white opacity-0 transition group-hover:opacity-100"
+                            aria-hidden
+                          />
+                        </span>
+                      </button>
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-1.5 text-sm font-medium text-ink">
+                          <Receipt size={15} aria-hidden />
+                          Comprobante
+                        </p>
+                        <p className="mt-0.5 text-xs text-clay">Opcional. Solo si el cliente pagó por transferencia.</p>
+                      </div>
                     </div>
-                  </div>
-                  <label
-                    className={cn(
-                      "btn-accent h-11 w-full shrink-0 cursor-pointer px-4 text-sm @min-[36rem]:w-auto",
-                      uploadingId === order.id && "pointer-events-none opacity-60",
-                    )}
-                  >
-                    <Upload size={16} aria-hidden />
-                    {uploadingId === order.id ? "Subiendo…" : "Subir comprobante"}
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      className="sr-only"
-                      disabled={uploadingId === order.id}
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        event.target.value = "";
-                        if (file) void uploadProof(order.id, file);
-                      }}
-                    />
-                  </label>
-                </div>
-              ) : null}
-
-              {/* Comprobante destacado */}
-              {hasProof ? (
-                <div className="flex items-center gap-3 border-b border-ink/8 bg-paper/80 px-4 py-3 @min-[36rem]:px-5">
-                  <button
-                    type="button"
-                    onClick={() => setLightboxUrl(order.payment_proof_url!)}
-                    className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-[10px] border border-ink/10 bg-white shadow-sm"
-                    aria-label="Ampliar comprobante de pago"
-                  >
-                    <img
-                      src={order.payment_proof_url!}
-                      alt="Comprobante de pago"
-                      className="h-full w-full object-cover"
-                      loading="lazy"
-                    />
-                    <span className="absolute inset-0 grid place-items-center bg-carbon/0 transition group-hover:bg-carbon/45">
-                      <Maximize2
-                        size={18}
-                        className="text-white opacity-0 transition group-hover:opacity-100"
-                        aria-hidden
-                      />
-                    </span>
-                  </button>
-                  <div className="min-w-0">
-                    <p className="flex items-center gap-1.5 text-sm font-bold text-ink">
-                      <Receipt size={15} aria-hidden />
-                      Comprobante de pago
-                    </p>
-                    <p className="mt-0.5 text-xs text-clay">
-                      {isCounter
-                        ? "Comprobante de pago del mostrador."
-                        : "Revisa la transferencia antes de preparar el pedido."}
-                    </p>
                     <label
                       className={cn(
-                        "mt-1 inline-flex min-h-11 cursor-pointer items-center gap-1 text-xs font-bold text-ember underline-offset-2 hover:underline",
+                        "inline-flex h-11 w-full shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border border-ink/15 bg-white px-4 text-sm font-medium text-ink transition hover:border-ink/25 @min-[36rem]:w-auto",
                         uploadingId === order.id && "pointer-events-none opacity-60",
                       )}
                     >
-                      <Replace size={12} aria-hidden />
+                      <Replace size={15} aria-hidden />
                       {uploadingId === order.id ? "Cambiando…" : "Cambiar comprobante"}
                       <input
                         type="file"
@@ -542,9 +485,46 @@ export function PedidosPanel() {
                         }}
                       />
                     </label>
-                  </div>
-                </div>
-              ) : null}
+                  </>
+                ) : (
+                  <>
+                    <div className="flex min-w-0 items-start gap-3">
+                      <span
+                        className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] border border-ink/10 bg-white text-clay"
+                        aria-hidden
+                      >
+                        <Receipt size={18} />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-ink">Comprobante</p>
+                        <p className="mt-0.5 text-xs leading-snug text-clay">
+                          Opcional. Súbelo solo si el cliente pagó por transferencia.
+                        </p>
+                      </div>
+                    </div>
+                    <label
+                      className={cn(
+                        "btn-secondary h-11 w-full shrink-0 cursor-pointer px-4 text-sm @min-[36rem]:w-auto",
+                        uploadingId === order.id && "pointer-events-none opacity-60",
+                      )}
+                    >
+                      <Upload size={16} aria-hidden />
+                      {uploadingId === order.id ? "Subiendo…" : "Subir comprobante"}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="sr-only"
+                        disabled={uploadingId === order.id}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          event.target.value = "";
+                          if (file) void uploadProof(order.id, file);
+                        }}
+                      />
+                    </label>
+                  </>
+                )}
+              </div>
 
               <div className="space-y-4 px-4 py-4 @min-[36rem]:px-5">
                 <div className="min-w-0">
@@ -589,10 +569,7 @@ export function PedidosPanel() {
                     {canEditCounter ? (
                       <Link
                         to={`/sistema/mostrador?edit=${order.id}`}
-                        className={cn(
-                          "inline-flex h-11 w-full shrink-0 items-center justify-center gap-1.5 px-3 text-sm @min-[36rem]:w-auto",
-                          pendingProof ? "btn-secondary" : "btn-accent",
-                        )}
+                        className="btn-secondary inline-flex h-11 w-full shrink-0 items-center justify-center gap-1.5 px-3 text-sm @min-[36rem]:w-auto"
                       >
                         <Pencil size={15} aria-hidden />
                         Editar pedido
