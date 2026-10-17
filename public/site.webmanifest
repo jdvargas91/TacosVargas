@@ -1,0 +1,30 @@
+{
+  "name": "Vargas Tacos",
+  "short_name": "Vargas Tacos",
+  "description": "Tacos y aguas en Manzanillo",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1E1710",
+  "theme_color": "#1E1710",
+  "lang": "es-MX",
+  "icons": [
+    {
+      "src": "/icon-192.webp",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
