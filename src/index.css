@@ -420,8 +420,34 @@ html.nav-open #root {
   filter: brightness(1);
 }
 
+.menu-card .product-photo {
+  filter: brightness(1);
+}
+
+.menu-card .product-photo--muted {
+  filter: grayscale(0.35) brightness(0.92);
+}
+
+.menu-card:hover .product-photo {
+  transform: scale(1.04);
+  filter: brightness(1);
+}
+
+.menu-card__more {
+  transition: color 0.2s ease;
+}
+
+.menu-card:hover .menu-card__more {
+  color: #b5442c;
+}
+
 .product-photo-frame:hover .product-photo--muted {
   transform: scale(1.2);
+  filter: grayscale(0.4) brightness(1);
+}
+
+.menu-card:hover .product-photo--muted {
+  transform: scale(1.05);
   filter: grayscale(0.4) brightness(1);
 }
 
@@ -614,7 +640,9 @@ html.nav-open #root {
 
   .product-photo,
   .product-photo-frame:hover .product-photo,
-  .product-photo-frame:hover .product-photo--muted {
+  .product-photo-frame:hover .product-photo--muted,
+  .menu-card:hover .product-photo,
+  .menu-card:hover .product-photo--muted {
     transform: none;
     transition: none;
   }
