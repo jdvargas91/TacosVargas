@@ -1,7 +1,8 @@
 import useEmblaCarousel from "embla-carousel-react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import { useReviews } from "@/context/ReviewsContext";
+import { CarouselControls } from "@/components/CarouselControls";
 import { Reveal } from "@/components/Reveal";
 
 /** Estrellas con fracciones (ej. 4.8 llena 4 completas y ~80% de la quinta). */
@@ -58,24 +59,12 @@ export function ReviewsSection() {
               ) : null}
             </div>
             {visibleReviews.length > 1 ? (
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  aria-label="Opinión anterior"
-                  onClick={() => embla?.scrollPrev()}
-                  className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink hover:bg-terracotta"
-                >
-                  <ChevronLeft size={18} />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Opinión siguiente"
-                  onClick={() => embla?.scrollNext()}
-                  className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink hover:bg-terracotta"
-                >
-                  <ChevronRight size={18} />
-                </button>
-              </div>
+              <CarouselControls
+                onPrev={() => embla?.scrollPrev()}
+                onNext={() => embla?.scrollNext()}
+                prevLabel="Opinión anterior"
+                nextLabel="Opinión siguiente"
+              />
             ) : null}
           </div>
         </Reveal>

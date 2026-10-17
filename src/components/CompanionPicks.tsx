@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
 import useEmblaCarousel from "embla-carousel-react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { Product } from "@/data/seedProducts";
 import { productPath } from "@/data/seedProducts";
+import { CarouselControls } from "@/components/CarouselControls";
 import { ProductMedia } from "@/components/ProductMedia";
 import { productPriceLabel } from "@/lib/productPricing";
 
@@ -28,24 +28,12 @@ export function CompanionPicks({ current, items }: { current: Product; items: Pr
           </p>
         </div>
         {items.length > 1 ? (
-          <div className="flex gap-2">
-            <button
-              type="button"
-              aria-label="Productos anteriores"
-              onClick={() => embla?.scrollPrev()}
-              className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink hover:bg-terracotta"
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <button
-              type="button"
-              aria-label="Productos siguientes"
-              onClick={() => embla?.scrollNext()}
-              className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink hover:bg-terracotta"
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
+          <CarouselControls
+            onPrev={() => embla?.scrollPrev()}
+            onNext={() => embla?.scrollNext()}
+            prevLabel="Productos anteriores"
+            nextLabel="Productos siguientes"
+          />
         ) : null}
       </div>
 

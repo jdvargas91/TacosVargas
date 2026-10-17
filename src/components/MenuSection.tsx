@@ -1,12 +1,32 @@
-import { type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
+import useEmblaCarousel from "embla-carousel-react";
 import { useReducedMotion } from "framer-motion";
 import type { Product } from "@/data/seedProducts";
 import { productPath } from "@/data/seedProducts";
 import { isProductAvailable } from "@/lib/format";
 import { productPriceLabel } from "@/lib/productPricing";
+import { CarouselControls } from "@/components/CarouselControls";
 import { ProductMedia } from "@/components/ProductMedia";
 import { Reveal } from "@/components/Reveal";
+
+const PHONE_QUERY = "(max-width: 767px)";
+
+function useIsPhone() {
+  const [isPhone, setIsPhone] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia(PHONE_QUERY).matches : false,
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia(PHONE_QUERY);
+    const onChange = () => setIsPhone(media.matches);
+    onChange();
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
+  return isPhone;
+}
 
 export function ProductCard({ product }: { product: Product }) {
   const available = isProductAvailable(product.soldOut, product.stock);
@@ -48,22 +68,54 @@ export function ProductCard({ product }: { product: Product }) {
 function ProductGrid({
   products,
   heading,
+  prevLabel,
+  nextLabel,
 }: {
   products: Product[];
   heading: ReactNode;
+  prevLabel: string;
+  nextLabel: string;
 }) {
   const reduce = useReducedMotion();
+  const isPhone = useIsPhone();
+  const [emblaRef, embla] = useEmblaCarousel({
+    align: "start",
+    containScroll: "trimSnaps",
+    dragFree: false,
+  });
 
   return (
     <>
-      {heading}
-      <ul className="mt-8 grid list-none grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3 lg:gap-6 xl:grid-cols-4">
-        {products.map((product, index) => (
-          <Reveal key={product.id} as="li" delay={reduce ? 0 : Math.min(index * 0.04, 0.28)}>
-            <ProductCard product={product} />
-          </Reveal>
-        ))}
-      </ul>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">{heading}</div>
+        {isPhone && products.length > 1 ? (
+          <CarouselControls
+            onPrev={() => embla?.scrollPrev()}
+            onNext={() => embla?.scrollNext()}
+            prevLabel={prevLabel}
+            nextLabel={nextLabel}
+          />
+        ) : null}
+      </div>
+      {isPhone ? (
+        <div className="mt-8 overflow-hidden pb-4" ref={emblaRef}>
+          <ul className="flex">
+            {products.map((product) => (
+              <li key={product.id} className="mr-5 min-w-0 flex-[0_0_85%]">
+                <ProductCard product={product} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <ul className="mt-8 grid list-none grid-cols-2 gap-5 lg:grid-cols-3 lg:gap-6 xl:grid-cols-4">
+          {products.map((product, index) => (
+            <Reveal key={product.id} as="li" delay={reduce ? 0 : Math.min(index * 0.04, 0.28)}>
+              <ProductCard product={product} />
+            </Reveal>
+          ))}
+        </ul>
+      )}
     </>
   );
 }
@@ -80,6 +132,8 @@ export function MenuSection({ tacos, drinks }: { tacos: Product[]; drinks: Produ
               <span className="mark" aria-hidden />
             </Reveal>
           }
+          prevLabel="Tacos anteriores"
+          nextLabel="Tacos siguientes"
         />
 
         <div className="mt-20">
@@ -91,6 +145,8 @@ export function MenuSection({ tacos, drinks }: { tacos: Product[]; drinks: Produ
                 <span className="mark" aria-hidden />
               </Reveal>
             }
+            prevLabel="Bebidas anteriores"
+            nextLabel="Bebidas siguientes"
           />
         </div>
       </div>
