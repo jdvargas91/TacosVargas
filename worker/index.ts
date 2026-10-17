@@ -97,6 +97,46 @@ function withEdgeHeader(response: Response): Response {
   });
 }
 
+/** Cache-Control para estáticos (run_worker_first no aplica public/_headers solo). */
+function cacheControlForAsset(path: string): string | null {
+  if (path.startsWith("/assets/")) {
+    return "public, max-age=31536000, immutable";
+  }
+  if (/\.(?:woff2?|ttf|otf)$/i.test(path)) {
+    return "public, max-age=31536000, immutable";
+  }
+  if (/\.(?:webp|avif|jpe?g|png|gif|svg|ico|mp4|webm)$/i.test(path)) {
+    return "public, max-age=2592000, stale-while-revalidate=86400";
+  }
+  if (/\.(?:js|mjs|css|map)$/i.test(path)) {
+    return "public, max-age=31536000, immutable";
+  }
+  return null;
+}
+
+async function serveStaticAsset(
+  env: Env,
+  request: Request,
+  path: string,
+  opts?: { cache?: boolean },
+): Promise<Response> {
+  const asset = await env.ASSETS.fetch(request);
+  if (!asset.ok) return asset;
+  if (!opts?.cache) return asset;
+
+  const cache = cacheControlForAsset(path);
+  if (!cache) return withEdgeHeader(asset);
+
+  const headers = new Headers(asset.headers);
+  headers.set("Cache-Control", cache);
+  headers.set("X-TV-Edge", "worker");
+  return new Response(asset.body, {
+    status: asset.status,
+    statusText: asset.statusText,
+    headers,
+  });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -108,7 +148,7 @@ export default {
     // Redirects sí; deep links SPA caen a index.html sin clonar el Response.
     if (isLocal) {
       if (looksLikeStaticAsset(path) || !isDocumentNavigation(request)) {
-        return env.ASSETS.fetch(request);
+        return serveStaticAsset(env, request, path);
       }
       const localRedirect = PERMANENT_REDIRECTS[path];
       if (localRedirect) return withEdgeHeader(redirect(localRedirect, request, 301));
@@ -122,7 +162,7 @@ export default {
 
     // Módulos / assets / fetch: nunca pasar por la lógica HTML 200/404.
     if (looksLikeStaticAsset(path) || !isDocumentNavigation(request)) {
-      return env.ASSETS.fetch(request);
+      return serveStaticAsset(env, request, path, { cache: true });
     }
 
     const dest = PERMANENT_REDIRECTS[path];

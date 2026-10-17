@@ -1,0 +1,23 @@
+# Assets con hash de Vite
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Fuentes autohospedadas
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Media estática del sitio
+/*.webp
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+
+/*.mp4
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+
+/products/*
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+
+/team/*
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+
+/gallery/*
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400

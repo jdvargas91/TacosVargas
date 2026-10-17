@@ -3,37 +3,38 @@ import { Clock, UtensilsCrossed } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useSiteContent } from "@/context/SiteContentContext";
 
-/** Video de prueba en el hero. Quitar o sustituir cuando se confirme el asset final. */
+/** Video solo en desktop: en móvil no encaja con el recorte vertical. */
 const HERO_VIDEO = "/hero.mp4";
 /** Más lento que 1.0 para que el movimiento se sienta cinematográfico. */
 const HERO_PLAYBACK_RATE = 0.65;
-const DESKTOP_POSTER_QUERY = "(min-width: 768px)";
+const DESKTOP_MEDIA = "(min-width: 768px)";
 
-function posterForViewport(desktop: string, mobile: string) {
-  if (typeof window === "undefined") return mobile;
-  return window.matchMedia(DESKTOP_POSTER_QUERY).matches ? desktop : mobile;
+function isDesktopViewport() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia(DESKTOP_MEDIA).matches;
 }
 
 export function Hero() {
   const { business, hero } = useSiteContent();
   const reduce = useReducedMotion();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const useVideo = Boolean(HERO_VIDEO) && !reduce;
   const desktopPoster = hero.imageDesktop || "/hero.webp";
   const mobilePoster = hero.imageMobile || "/hero_cel.webp";
-  const [poster, setPoster] = useState(() => posterForViewport(desktopPoster, mobilePoster));
+  /** Mobile-first: evita montar el video en el HTML inicial / LCP móvil. */
+  const [isDesktop, setIsDesktop] = useState(isDesktopViewport);
+  const useVideo = Boolean(HERO_VIDEO) && !reduce && isDesktop;
 
   useEffect(() => {
-    const media = window.matchMedia(DESKTOP_POSTER_QUERY);
-    const apply = () => setPoster(media.matches ? desktopPoster : mobilePoster);
+    const media = window.matchMedia(DESKTOP_MEDIA);
+    const apply = () => setIsDesktop(media.matches);
     apply();
     media.addEventListener("change", apply);
     return () => media.removeEventListener("change", apply);
-  }, [desktopPoster, mobilePoster]);
+  }, []);
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !useVideo) return;
     const applyRate = () => {
       video.playbackRate = HERO_PLAYBACK_RATE;
     };
@@ -56,19 +57,22 @@ export function Hero() {
           muted
           loop
           playsInline
-          preload="auto"
-          poster={poster}
+          preload="metadata"
+          poster={desktopPoster}
           aria-hidden
         >
           <source src={HERO_VIDEO} type="video/mp4" />
         </video>
       ) : (
         <picture>
-          <source media={DESKTOP_POSTER_QUERY} srcSet={desktopPoster} />
+          <source media={DESKTOP_MEDIA} srcSet={desktopPoster} />
           <img
             src={mobilePoster}
             alt={hero.imageAlt}
             fetchPriority="high"
+            decoding="async"
+            width={1080}
+            height={1920}
             className="hero-media absolute inset-0 h-full w-full"
           />
         </picture>

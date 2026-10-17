@@ -18,7 +18,7 @@ export function MediaUpload({
   onChange,
   onClear,
   label = "Imagen",
-  hint = "JPG o PNG · se muestra en el sitio",
+  hint = "WebP recomendado · también JPG/PNG",
   aspect = "square",
   className,
   busy = false,

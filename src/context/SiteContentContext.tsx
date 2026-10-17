@@ -91,6 +91,20 @@ type SiteContentValue = {
   uploadSiteMedia: (file: File, path: string) => Promise<string>;
 };
 
+/** Evita servir PNG crudos del CMS (p. ej. site-media/*.png de ~1 MB). */
+function isUsableAboutImage(url: string | undefined): url is string {
+  if (!url) return false;
+  if (url.endsWith("/about.jpg")) return false;
+  if (/\.png(?:\?|#|$)/i.test(url)) return false;
+  return true;
+}
+
+/** Prefiere WebP local cuando el CMS aún apunta a PNG del mismo path. */
+function preferLocalWebp(url: string): string {
+  if (!url.startsWith("/")) return url;
+  return url.replace(/\.png$/i, ".webp");
+}
+
 const defaultHero: HeroContent = {
   headline: fallbackBusiness.name,
   imageDesktop: "/hero.webp",
@@ -249,10 +263,7 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
           const next = content as Partial<AboutContent>;
           const staleHeadline =
             typeof next.headline === "string" && next.headline.includes("Cómo nació");
-          const image =
-            next.image && !String(next.image).endsWith("/about.jpg")
-              ? next.image
-              : defaultAbout.image;
+          const image = isUsableAboutImage(next.image) ? next.image! : defaultAbout.image;
           setAbout({
             ...defaultAbout,
             ...next,
@@ -266,7 +277,18 @@ export function SiteContentProvider({ children }: { children: ReactNode }) {
             image,
           });
         }
-        if (section.id === "kitchen") setKitchen({ ...defaultKitchen, ...content });
+        if (section.id === "kitchen") {
+          const next = content as Partial<KitchenContent>;
+          const people = (next.people?.length ? next.people : defaultKitchen.people).map((person) => ({
+            ...person,
+            image: preferLocalWebp(person.image),
+          }));
+          setKitchen({
+            ...defaultKitchen,
+            ...next,
+            people,
+          });
+        }
         if (section.id === "gallery") setGallery({ ...defaultGallery, ...content });
       }
     }
