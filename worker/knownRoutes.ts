@@ -34,16 +34,38 @@ export function isKnownSpaRoute(pathname: string): boolean {
   return PATTERNS.some((re) => re.test(path));
 }
 
-/** True si parece un archivo estático (extensión), no una ruta de la SPA. */
+/** True si parece un archivo estático / módulo (no una ruta HTML de la SPA). */
 export function looksLikeStaticAsset(pathname: string): boolean {
   const path = normalizePath(pathname);
+  // Rutas internas de Vite / Cloudflare en desarrollo local.
+  if (
+    path.startsWith("/@") ||
+    path.startsWith("/src/") ||
+    path.startsWith("/node_modules/") ||
+    path.startsWith("/__vite") ||
+    path.startsWith("/.vite")
+  ) {
+    return true;
+  }
   const base = path.split("/").pop() || "";
-  // index.html de rutas prerenderizadas no cuenta como “asset suelto” aquí.
   if (!base.includes(".")) return false;
-  // Evitar tratar IDs con punto raro; solo extensiones típicas de asset.
-  return /\.(?:js|css|map|json|xml|txt|svg|png|jpe?g|webp|gif|ico|woff2?|ttf|mp4|webm|avif|pdf)$/i.test(
+  return /\.(?:js|mjs|cjs|ts|tsx|jsx|css|map|json|xml|txt|svg|png|jpe?g|webp|gif|ico|woff2?|ttf|mp4|webm|avif|pdf|wasm)$/i.test(
     base,
   );
+}
+
+/**
+ * Solo las navegaciones de documento (HTML) deben pasar por la lógica 200/404.
+ * Scripts, CSS, fetch, HMR, etc. van directo a ASSETS (imprescindible en `vite` local).
+ */
+export function isDocumentNavigation(request: Request): boolean {
+  const mode = request.headers.get("Sec-Fetch-Mode");
+  const dest = request.headers.get("Sec-Fetch-Dest");
+  // Sin cabeceras (curl/bots antiguos): tratar como navegación.
+  if (!mode && !dest) return true;
+  if (dest === "document") return true;
+  if (mode === "navigate" && (dest === "document" || !dest)) return true;
+  return false;
 }
 
 /** Redirects permanentes (mismo destino que Navigate en App.tsx). */

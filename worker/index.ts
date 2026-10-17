@@ -1,4 +1,5 @@
 import {
+  isDocumentNavigation,
   isKnownSpaRoute,
   looksLikeStaticAsset,
   normalizePath,
@@ -100,13 +101,32 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const path = normalizePath(url.pathname);
+    const host = url.hostname;
+    const isLocal = host === "localhost" || host === "127.0.0.1";
+
+    // En local, no reescribimos respuestas (rompe el HTML transform de Vite).
+    // Redirects sí; deep links SPA caen a index.html sin clonar el Response.
+    if (isLocal) {
+      if (looksLikeStaticAsset(path) || !isDocumentNavigation(request)) {
+        return env.ASSETS.fetch(request);
+      }
+      const localRedirect = PERMANENT_REDIRECTS[path];
+      if (localRedirect) return withEdgeHeader(redirect(localRedirect, request, 301));
+
+      const asset = await env.ASSETS.fetch(request);
+      if (asset.status !== 404) return asset;
+
+      // Hard refresh en /pedido, /producto/…, etc.
+      return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
+    }
+
+    // Módulos / assets / fetch: nunca pasar por la lógica HTML 200/404.
+    if (looksLikeStaticAsset(path) || !isDocumentNavigation(request)) {
+      return env.ASSETS.fetch(request);
+    }
 
     const dest = PERMANENT_REDIRECTS[path];
     if (dest) return withEdgeHeader(redirect(dest, request, 301));
-
-    if (looksLikeStaticAsset(path)) {
-      return withEdgeHeader(await env.ASSETS.fetch(request));
-    }
 
     // HTML prerenderizado (home, legales, productos) en la URL canónica sin barra final.
     const html = await resolveHtmlAsset(env, request, path);
