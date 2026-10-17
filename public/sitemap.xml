@@ -1,15 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Este archivo es un respaldo para desarrollo. En el build de producción,
+  el plugin "generate-sitemap" de vite.config.ts lo regenera con URLs
+  absolutas e incluye todas las páginas de producto del catálogo.
+-->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>/</loc>
+    <loc>https://vargastacos.com/</loc>
     <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
   </url>
   <url>
-    <loc>/terminos</loc>
+    <loc>https://vargastacos.com/terminos</loc>
     <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
   </url>
   <url>
-    <loc>/privacidad</loc>
+    <loc>https://vargastacos.com/privacidad</loc>
     <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
   </url>
 </urlset>

@@ -3,17 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vargas Tacos · tacos y aguas en Colima</title>
-    <meta
-      name="description"
-      content="Tacos Vargas: camarón capeado, arrachera, barbacoa y aguas frescas. Pedidos por WhatsApp, pago presencial. Lunes a sábado de 7:30 a.m. a 1:30 p.m."
-    />
-    <meta property="og:title" content="Vargas Tacos" />
-    <meta
-      property="og:description"
-      content="Camarón capeado, tacos de la casa y aguas frescas. Pedidos por WhatsApp, pago presencial."
-    />
-    <meta property="og:image" content="/hero.webp" />
+    <!-- Title/description/OG/JSON-LD los inyecta react-helmet-async (Seo.tsx) por ruta.
+         No duplicar metas aquí: en el prerender quedarían dos descriptions y Google
+         podría leer la genérica en lugar de la del producto. -->
+    <title>Vargas Tacos</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

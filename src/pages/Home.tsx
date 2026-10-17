@@ -61,8 +61,9 @@ export function Home() {
   return (
     <>
       <Seo
-        title={`${business.name} · tacos y aguas en ${business.location.city}`}
-        description={`${business.name}: camarón capeado, arrachera, barbacoa y aguas frescas. Pedidos por WhatsApp, pago presencial. ${business.hours.days} de ${business.hours.label}.`}
+        title={`${business.name} · Tacos de camarón y desayunos en ${business.location.city}`}
+        description={`Taquería en ${business.location.city}, ${business.location.region}: camarón capeado, arrachera, barbacoa y aguas frescas. Recoge en el local. ${business.hours.days} de ${business.hours.label}.`}
+        path="/"
       />
       <Header />
       <main id="contenido">

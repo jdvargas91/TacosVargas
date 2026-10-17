@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json && vite build",
+    "build": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json && vite build && pnpm prerender",
+    "build:no-prerender": "tsc --noEmit && tsc --noEmit -p tsconfig.worker.json && vite build",
+    "prerender": "tsx scripts/prerender.ts",
     "preview": "vite preview",
     "deploy": "pnpm build && wrangler deploy",
     "cf-typegen": "wrangler types"
@@ -29,7 +31,9 @@
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.2",
+    "playwright": "^1.64.1",
     "tailwindcss": "^4.1.13",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.2",
     "vite": "^7.1.5",
     "wrangler": "^4.150.0"

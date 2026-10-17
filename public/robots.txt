@@ -1,7 +1,35 @@
 User-agent: *
 Allow: /
 Disallow: /admin
+Disallow: /sistema
+Disallow: /login
+Disallow: /cuenta
 Disallow: /mis-pedidos
 Disallow: /pedido
+Disallow: /pedir
 
-Sitemap: /sitemap.xml
+# Asistentes de IA: permitimos el rastreo de las páginas públicas
+# para que puedan citar y recomendar el negocio.
+User-agent: GPTBot
+Allow: /
+Disallow: /admin
+Disallow: /sistema
+Disallow: /login
+Disallow: /cuenta
+Disallow: /mis-pedidos
+Disallow: /pedido
+Disallow: /pedir
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+Sitemap: https://vargastacos.com/sitemap.xml

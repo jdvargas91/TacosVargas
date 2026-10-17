@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import useEmblaCarousel from "embla-carousel-react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ChevronLeft, ChevronRight, ShoppingBag, UtensilsCrossed } from "lucide-react";
+import { ShoppingBag, UtensilsCrossed } from "lucide-react";
+import { CarouselControls } from "@/components/CarouselControls";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { QtyStepper } from "@/components/QtyStepper";
@@ -18,6 +19,7 @@ import { useSiteContent } from "@/context/SiteContentContext";
 import type { Tortillas } from "@/lib/cart";
 import { formatMxn, isProductAvailable } from "@/lib/format";
 import { productHasSizes, productUnitPrice } from "@/lib/productPricing";
+import { SITE_URL, absoluteUrl } from "@/lib/site";
 
 export function ProductDetail() {
   const { id } = useParams();
@@ -91,9 +93,52 @@ export function ProductDetail() {
   const showTags = product.ingredients.length > 0;
   const reduce = useReducedMotion();
 
+  const canonicalPath = productPath(product.id);
+  const productUrl = absoluteUrl(canonicalPath);
+  const basePriceCents = hasSizes && product.sizes?.length
+    ? Math.min(...product.sizes.map((s) => s.priceCents))
+    : product.priceCents;
+  const seoTitle = `${product.name} en ${business.location.city} · ${business.name}`;
+  const seoDescription = `${product.description} Pídelo en ${business.name}, ${business.location.city}. Recoge en el local.`;
+
+  const productLd = {
+    "@context": "https://schema.org",
+    "@type": isTaco ? "MenuItem" : "Product",
+    name: product.name,
+    description: product.longDescription || product.description,
+    image: absoluteUrl(product.imageUrl),
+    category: isTaco ? "Taco" : "Bebida",
+    brand: { "@type": "Brand", name: business.name },
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "MXN",
+      price: (basePriceCents / 100).toFixed(2),
+      availability: available ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      url: productUrl,
+      seller: { "@type": "Restaurant", name: business.name },
+    },
+  };
+
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Inicio", item: `${SITE_URL}/` },
+      { "@type": "ListItem", position: 2, name: "Menú", item: `${SITE_URL}/#menu` },
+      { "@type": "ListItem", position: 3, name: product.name, item: productUrl },
+    ],
+  };
+
   return (
     <>
-      <Seo title={`${product.name} · ${business.name}`} description={product.description} />
+      <Seo
+        title={seoTitle}
+        description={seoDescription}
+        path={canonicalPath}
+        image={product.imageUrl}
+        type="product"
+        structuredData={[productLd, breadcrumbLd]}
+      />
       <Header />
       <main id="contenido" className="px-4 pb-20 pt-28 md:px-6">
         <motion.div
@@ -102,13 +147,17 @@ export function ProductDetail() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p className="text-sm text-clay">
+          <nav aria-label="Ruta de navegación" className="text-sm text-clay">
+            <Link to="/" className="hover:text-ember">
+              Inicio
+            </Link>
+            <span aria-hidden> / </span>
             <Link to="/#menu" className="hover:text-ember">
               Menú
             </Link>
             <span aria-hidden> / </span>
-            <span className="text-ink">{product.name}</span>
-          </p>
+            <span className="text-ink" aria-current="page">{product.name}</span>
+          </nav>
 
           <div className="mt-8 grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
             <motion.div
@@ -237,24 +286,12 @@ function RelatedPicks({
           </p>
         </div>
         {items.length > 1 ? (
-          <div className="flex gap-2">
-            <button
-              type="button"
-              aria-label="Productos anteriores"
-              onClick={() => embla?.scrollPrev()}
-              className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink hover:bg-terracotta"
-            >
-              <ChevronLeft size={18} />
-            </button>
-            <button
-              type="button"
-              aria-label="Productos siguientes"
-              onClick={() => embla?.scrollNext()}
-              className="grid h-11 w-11 place-items-center rounded-full border border-ink/15 text-ink hover:bg-terracotta"
-            >
-              <ChevronRight size={18} />
-            </button>
-          </div>
+          <CarouselControls
+            onPrev={() => embla?.scrollPrev()}
+            onNext={() => embla?.scrollNext()}
+            prevLabel="Productos anteriores"
+            nextLabel="Productos siguientes"
+          />
         ) : null}
       </div>
       <div className="mt-8">

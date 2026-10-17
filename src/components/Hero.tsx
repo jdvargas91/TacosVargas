@@ -90,7 +90,9 @@ export function Hero() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
       >
-        <h1 className="sr-only">{business.name}</h1>
+        <h1 className="sr-only">
+          {business.name} — tacos de camarón capeado, arrachera y desayunos en {business.location.city}
+        </h1>
         <div className="flex flex-wrap items-center gap-3">
           <a href="#menu" className="btn-accent">
             <UtensilsCrossed size={18} aria-hidden />
