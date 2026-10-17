@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Clock, UtensilsCrossed } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useSiteContent } from "@/context/SiteContentContext";
@@ -7,12 +7,29 @@ import { useSiteContent } from "@/context/SiteContentContext";
 const HERO_VIDEO = "/hero.mp4";
 /** Más lento que 1.0 para que el movimiento se sienta cinematográfico. */
 const HERO_PLAYBACK_RATE = 0.65;
+const DESKTOP_POSTER_QUERY = "(min-width: 768px)";
+
+function posterForViewport(desktop: string, mobile: string) {
+  if (typeof window === "undefined") return mobile;
+  return window.matchMedia(DESKTOP_POSTER_QUERY).matches ? desktop : mobile;
+}
 
 export function Hero() {
   const { business, hero } = useSiteContent();
   const reduce = useReducedMotion();
   const videoRef = useRef<HTMLVideoElement>(null);
   const useVideo = Boolean(HERO_VIDEO) && !reduce;
+  const desktopPoster = hero.imageDesktop || "/hero.webp";
+  const mobilePoster = hero.imageMobile || "/hero_cel.webp";
+  const [poster, setPoster] = useState(() => posterForViewport(desktopPoster, mobilePoster));
+
+  useEffect(() => {
+    const media = window.matchMedia(DESKTOP_POSTER_QUERY);
+    const apply = () => setPoster(media.matches ? desktopPoster : mobilePoster);
+    apply();
+    media.addEventListener("change", apply);
+    return () => media.removeEventListener("change", apply);
+  }, [desktopPoster, mobilePoster]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -40,17 +57,21 @@ export function Hero() {
           loop
           playsInline
           preload="auto"
+          poster={poster}
           aria-hidden
         >
           <source src={HERO_VIDEO} type="video/mp4" />
         </video>
       ) : (
-        <img
-          src={hero.imageDesktop}
-          alt={hero.imageAlt}
-          fetchPriority="high"
-          className="hero-media absolute inset-0 h-full w-full"
-        />
+        <picture>
+          <source media={DESKTOP_POSTER_QUERY} srcSet={desktopPoster} />
+          <img
+            src={mobilePoster}
+            alt={hero.imageAlt}
+            fetchPriority="high"
+            className="hero-media absolute inset-0 h-full w-full"
+          />
+        </picture>
       )}
 
       {/* Gradiente general de lectura + banda inferior para tapar la marca de agua */}
