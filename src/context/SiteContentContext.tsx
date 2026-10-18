@@ -91,11 +91,10 @@ type SiteContentValue = {
   uploadSiteMedia: (file: File, path: string) => Promise<string>;
 };
 
-/** Evita servir PNG crudos del CMS (p. ej. site-media/*.png de ~1 MB). */
+/** Solo descarta el placeholder viejo del seed; la foto del CMS (PNG/WebP/JPG) se respeta. */
 function isUsableAboutImage(url: string | undefined): url is string {
   if (!url) return false;
   if (url.endsWith("/about.jpg")) return false;
-  if (/\.png(?:\?|#|$)/i.test(url)) return false;
   return true;
 }
 
