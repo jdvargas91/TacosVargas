@@ -10,6 +10,6 @@ export const about = {
     { title: "Rapidez", body: "Pedido listo sin perder el trato." },
     { title: "Atención", body: "Servicio amable para todo público." },
   ],
-  image: "/products/camaron_capeado.webp",
+  image: "/diego.webp",
   placeholder: true,
 } as const;

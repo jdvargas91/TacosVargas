@@ -31,7 +31,7 @@ export function About() {
               <img
                 className="about-portrait__photo"
                 src={about.image}
-                alt="Especialidad de Vargas Tacos"
+                alt="Historia de Vargas Tacos"
                 loading="lazy"
                 decoding="async"
               />

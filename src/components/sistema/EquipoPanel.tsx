@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { Ban, UserPlus } from "lucide-react";
+import { Trash2, UserPlus } from "lucide-react";
 import { Select } from "@/components/ui/Select";
-import type { UserRole } from "@/context/AuthContext";
+import { useAuth, type UserRole } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { supabase } from "@/lib/supabase";
 
@@ -40,11 +40,11 @@ const inviteRoleOptions = [
 const memberRoleOptions = [
   { value: "vendedor", label: "Vendedor" },
   { value: "admin", label: "Administrador" },
-  { value: "cliente", label: "Cliente (quitar acceso)" },
 ];
 
 export function EquipoPanel() {
   const toast = useToast();
+  const { user } = useAuth();
   const [invites, setInvites] = useState<Invite[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [email, setEmail] = useState("");
@@ -55,7 +55,11 @@ export function EquipoPanel() {
   const refresh = useCallback(async () => {
     if (!supabase) return;
     const [invitesRes, membersRes] = await Promise.all([
-      supabase.from("team_invites").select("*").order("created_at", { ascending: false }),
+      supabase
+        .from("team_invites")
+        .select("*")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false }),
       supabase.from("profiles").select("user_id, email, display_name, role").in("role", ["admin", "vendedor"]),
     ]);
     if (invitesRes.error) setError(invitesRes.error.message);
@@ -97,14 +101,30 @@ export function EquipoPanel() {
     void refresh();
   }
 
-  async function revoke(id: string) {
+  async function removeInvite(id: string, inviteEmail: string) {
     if (!supabase) return;
-    const { error: revokeError } = await supabase.from("team_invites").update({ status: "revoked" }).eq("id", id);
-    if (revokeError) {
-      toast.error("Invitación no revocada", revokeError.message);
+    const { error: deleteError } = await supabase.from("team_invites").delete().eq("id", id);
+    if (deleteError) {
+      toast.error("Invitación no eliminada", deleteError.message);
       return;
     }
-    toast.info("Invitación revocada", "Ya no podrá usarse para unirse al equipo.");
+    toast.info("Invitación eliminada", `Se borró la invitación de ${inviteEmail}.`);
+    void refresh();
+  }
+
+  async function removeMember(userId: string, name: string) {
+    if (!supabase) return;
+    if (userId === user?.id) {
+      toast.error("No puedes eliminarte", "Pídele a otro administrador que quite tu acceso.");
+      return;
+    }
+    const { error: deleteError } = await supabase.from("profiles").delete().eq("user_id", userId);
+    if (deleteError) {
+      setError(deleteError.message);
+      toast.error("Miembro no eliminado", deleteError.message);
+      return;
+    }
+    toast.success("Miembro eliminado", `${name} ya no forma parte del equipo.`);
     void refresh();
   }
 
@@ -167,13 +187,27 @@ export function EquipoPanel() {
                 <p className="font-medium text-ink">{member.display_name ?? member.email ?? member.user_id}</p>
                 <p className="text-sm text-clay">{member.email}</p>
               </div>
-              <Select
-                className="w-56"
-                value={member.role}
-                onValueChange={(v) => void changeRole(member.user_id, v as UserRole)}
-                options={memberRoleOptions}
-                aria-label={`Rol de ${member.display_name ?? member.email ?? "miembro"}`}
-              />
+              <div className="flex flex-wrap items-center gap-3">
+                <Select
+                  className="w-56"
+                  value={member.role}
+                  onValueChange={(v) => void changeRole(member.user_id, v as UserRole)}
+                  options={memberRoleOptions}
+                  aria-label={`Rol de ${member.display_name ?? member.email ?? "miembro"}`}
+                />
+                {member.user_id === user?.id ? null : (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void removeMember(member.user_id, member.display_name ?? member.email ?? "El miembro")
+                    }
+                    className="inline-flex h-11 items-center gap-2 rounded-[10px] border border-terracotta/35 px-4 text-sm font-medium text-terracotta"
+                  >
+                    <Trash2 size={16} aria-hidden />
+                    Eliminar
+                  </button>
+                )}
+              </div>
             </li>
           ))}
           {members.length === 0 ? <p className="text-clay">Aún no hay miembros de equipo.</p> : null}
@@ -182,6 +216,7 @@ export function EquipoPanel() {
 
       <section>
         <h2 className="font-display text-2xl text-ink">Invitaciones</h2>
+        <p className="mt-1 text-sm text-clay">Solo se muestran las invitaciones pendientes de aceptar.</p>
         <ul className="mt-4 space-y-3">
           {invites.map((inviteRow) => (
             <li
@@ -194,18 +229,17 @@ export function EquipoPanel() {
                   {roleLabel[inviteRow.role]} · {inviteStatusLabel[inviteRow.status]}
                 </p>
               </div>
-              {inviteRow.status === "pending" ? (
-                <button
-                  type="button"
-                  onClick={() => void revoke(inviteRow.id)}
-                  className="inline-flex h-11 items-center gap-2 rounded-[10px] border border-terracotta/35 px-4 text-sm font-medium text-terracotta"
-                >
-                  <Ban size={16} aria-hidden />
-                  Revocar
-                </button>
-              ) : null}
+              <button
+                type="button"
+                onClick={() => void removeInvite(inviteRow.id, inviteRow.email)}
+                className="inline-flex h-11 items-center gap-2 rounded-[10px] border border-terracotta/35 px-4 text-sm font-medium text-terracotta"
+              >
+                <Trash2 size={16} aria-hidden />
+                Eliminar
+              </button>
             </li>
           ))}
+          {invites.length === 0 ? <p className="text-clay">No hay invitaciones pendientes.</p> : null}
         </ul>
       </section>
     </div>
