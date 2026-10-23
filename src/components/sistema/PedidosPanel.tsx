@@ -343,7 +343,7 @@ export function PedidosPanel() {
         </p>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {visible.length === 0 ? (
           <div className="rounded-[10px] border border-dashed border-ink/15 bg-smoke/60 px-6 py-12 text-center">
             <Package className="mx-auto text-clay" size={28} aria-hidden />
@@ -371,6 +371,8 @@ export function PedidosPanel() {
             label: ORDER_STATUS_LABELS[status],
           }));
           const StatusIcon = STATUS_ICONS[order.status];
+          const isPaid = order.status === "entregado";
+          const needsAttention = !isPaid && order.status !== "cancelado";
 
           return (
             <article
@@ -381,66 +383,104 @@ export function PedidosPanel() {
                 className={cn("absolute inset-y-0 left-0 w-1", ORDER_STATUS_RAIL[order.status])}
                 aria-hidden
               />
-              <div className="relative z-10 flex flex-col gap-3 border-b border-ink/8 bg-paper/50 px-4 py-4 @min-[36rem]:flex-row @min-[36rem]:items-start @min-[36rem]:justify-between @min-[36rem]:px-5">
-                <div className="flex min-w-0 flex-1 items-start gap-3">
-                  <span
-                    className={cn(
-                      "grid h-10 w-10 shrink-0 place-items-center rounded-[10px]",
-                      ORDER_STATUS_MARK[order.status],
-                    )}
-                    aria-hidden
-                  >
-                    <StatusIcon size={18} strokeWidth={2} />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-display text-2xl tracking-wide text-ink">{code}</p>
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1 rounded-[8px] border px-2.5 py-0.5 text-xs font-semibold",
-                          isCounter
-                            ? "border-ember/30 bg-ember/10 text-ember"
-                            : "border-ink/15 bg-white text-clay",
-                        )}
-                      >
-                        {isCounter ? <Store size={12} aria-hidden /> : null}
-                        {isCounter ? "Mostrador" : "Web"}
-                      </span>
-                    </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <p className="inline-flex items-center gap-1.5 text-sm font-medium text-ink">
-                        <User size={14} className="text-clay" aria-hidden />
-                        {customerName}
-                      </p>
-                      <p className="inline-flex items-center gap-1.5 text-xs text-clay">
-                        <Calendar size={14} aria-hidden />
-                        {new Date(order.created_at).toLocaleString("es-MX", {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        })}
-                      </p>
-                    </div>
+
+              {/* Cabecera compacta: folio + cliente + fecha */}
+              <div className="relative z-10 flex items-start gap-2.5 border-b border-ink/8 bg-paper/50 px-3 py-2.5 @min-[36rem]:px-4">
+                <span
+                  className={cn(
+                    "grid h-9 w-9 shrink-0 place-items-center rounded-[8px]",
+                    ORDER_STATUS_MARK[order.status],
+                  )}
+                  aria-hidden
+                >
+                  <StatusIcon size={16} strokeWidth={2} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <p className="font-display text-lg leading-none tracking-wide text-ink @min-[36rem]:text-xl">
+                      {code}
+                    </p>
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-[6px] border px-1.5 py-0.5 text-[11px] font-semibold",
+                        isCounter
+                          ? "border-ember/30 bg-ember/10 text-ember"
+                          : "border-ink/15 bg-white text-clay",
+                      )}
+                    >
+                      {isCounter ? <Store size={11} aria-hidden /> : null}
+                      {isCounter ? "Mostrador" : "Web"}
+                    </span>
                   </div>
-                </div>
-                <div className="w-full @min-[36rem]:w-56">
-                  <p className="mb-1.5 text-xs font-medium text-clay">Cambiar estado</p>
-                  <Select
-                    value={statusValues.includes(order.status) ? order.status : statusValues[0]}
-                    onValueChange={(v) => void updateStatus(order.id, v as OrderRow["status"])}
-                    options={statusOptions}
-                    aria-label={`Estado del pedido ${code}`}
-                  />
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-xs">
+                    <p className="inline-flex items-center gap-1 font-medium text-ink">
+                      <User size={12} className="text-clay" aria-hidden />
+                      {customerName}
+                    </p>
+                    <p className="inline-flex items-center gap-1 text-clay">
+                      <Calendar size={12} aria-hidden />
+                      {new Date(order.created_at).toLocaleString("es-MX", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3 border-b border-ink/8 bg-paper/70 px-4 py-3 @min-[36rem]:flex-row @min-[36rem]:items-center @min-[36rem]:justify-between @min-[36rem]:px-5">
+              {/* Estado: rojo si abierto, verde si Pagado */}
+              <div
+                className={cn(
+                  "relative z-10 border-b px-3 py-2.5 @min-[36rem]:px-4",
+                  isPaid
+                    ? "border-emerald-600/25 bg-emerald-500/18"
+                    : needsAttention
+                      ? "border-ember/40 bg-ember/18 status-attention"
+                      : "border-ink/10 bg-ink/[0.04]",
+                )}
+              >
+                <div className="mb-1 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+                  <p
+                    className={cn(
+                      "text-xs font-semibold uppercase tracking-[0.08em]",
+                      isPaid ? "text-emerald-800" : needsAttention ? "text-ember" : "text-clay",
+                    )}
+                  >
+                    Estado del pedido
+                  </p>
+                  {needsAttention ? (
+                    <p className="text-[11px] text-clay">Para cerrarlo, elige Pagado</p>
+                  ) : null}
+                </div>
+                <Select
+                  value={statusValues.includes(order.status) ? order.status : statusValues[0]}
+                  onValueChange={(v) => void updateStatus(order.id, v as OrderRow["status"])}
+                  options={statusOptions}
+                  aria-label={
+                    needsAttention
+                      ? `Estado del pedido ${code}. Para cerrarlo elige Pagado.`
+                      : `Estado del pedido ${code}`
+                  }
+                  triggerClassName={cn(
+                    "h-12 bg-white font-semibold text-ink",
+                    isPaid
+                      ? "border-emerald-600/45 shadow-[0_1px_0_rgb(5_150_105_/0.12)] hover:border-emerald-600 focus-visible:border-emerald-600"
+                      : needsAttention
+                        ? "border-ember/55 shadow-[0_1px_0_rgb(196_69_42_/0.14)] hover:border-ember focus-visible:border-ember"
+                        : "border-ink/15 hover:border-ink/25",
+                  )}
+                />
+              </div>
+
+              {/* Comprobante compacto */}
+              <div className="flex flex-col gap-2 border-b border-ink/8 bg-paper/70 px-3 py-2 @min-[36rem]:flex-row @min-[36rem]:items-center @min-[36rem]:justify-between @min-[36rem]:px-4">
                 {hasProof ? (
                   <>
-                    <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex min-w-0 items-center gap-2.5">
                       <button
                         type="button"
                         onClick={() => setLightboxUrl(order.payment_proof_url!)}
-                        className="group relative h-16 w-16 shrink-0 overflow-hidden rounded-[10px] border border-ink/10 bg-white shadow-sm"
+                        className="group relative h-11 w-11 shrink-0 overflow-hidden rounded-[8px] border border-ink/10 bg-white"
                         aria-label="Ampliar comprobante de pago"
                       >
                         <img
@@ -451,28 +491,28 @@ export function PedidosPanel() {
                         />
                         <span className="absolute inset-0 grid place-items-center bg-carbon/0 transition group-hover:bg-carbon/45">
                           <Maximize2
-                            size={16}
+                            size={14}
                             className="text-white opacity-0 transition group-hover:opacity-100"
                             aria-hidden
                           />
                         </span>
                       </button>
                       <div className="min-w-0">
-                        <p className="flex items-center gap-1.5 text-sm font-medium text-ink">
-                          <Receipt size={15} aria-hidden />
+                        <p className="flex items-center gap-1 text-xs font-medium text-ink">
+                          <Receipt size={13} aria-hidden />
                           Comprobante
                         </p>
-                        <p className="mt-0.5 text-xs text-clay">Opcional. Solo si el cliente pagó por transferencia.</p>
+                        <p className="text-[11px] text-clay">Opcional · transferencia</p>
                       </div>
                     </div>
                     <label
                       className={cn(
-                        "inline-flex h-11 w-full shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[10px] border border-ink/15 bg-white px-4 text-sm font-medium text-ink transition hover:border-ink/25 @min-[36rem]:w-auto",
+                        "inline-flex h-10 w-full shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[8px] border border-ink/15 bg-white px-3 text-xs font-medium text-ink transition hover:border-ink/25 @min-[36rem]:w-auto",
                         uploadingId === order.id && "pointer-events-none opacity-60",
                       )}
                     >
-                      <Replace size={15} aria-hidden />
-                      {uploadingId === order.id ? "Cambiando…" : "Cambiar comprobante"}
+                      <Replace size={14} aria-hidden />
+                      {uploadingId === order.id ? "Cambiando…" : "Cambiar"}
                       <input
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
@@ -488,28 +528,22 @@ export function PedidosPanel() {
                   </>
                 ) : (
                   <>
-                    <div className="flex min-w-0 items-start gap-3">
-                      <span
-                        className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] border border-ink/10 bg-white text-clay"
-                        aria-hidden
-                      >
-                        <Receipt size={18} />
+                    <p className="flex min-w-0 items-center gap-1.5 text-xs text-clay">
+                      <Receipt size={14} className="shrink-0" aria-hidden />
+                      <span>
+                        <span className="font-medium text-ink">Comprobante</span>
+                        {" · "}
+                        opcional si pagó por transferencia
                       </span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-ink">Comprobante</p>
-                        <p className="mt-0.5 text-xs leading-snug text-clay">
-                          Opcional. Súbelo solo si el cliente pagó por transferencia.
-                        </p>
-                      </div>
-                    </div>
+                    </p>
                     <label
                       className={cn(
-                        "btn-secondary h-11 w-full shrink-0 cursor-pointer px-4 text-sm @min-[36rem]:w-auto",
+                        "inline-flex h-10 w-full shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[8px] border border-ink/15 bg-white px-3 text-xs font-medium text-ink transition hover:border-ink/25 @min-[36rem]:w-auto",
                         uploadingId === order.id && "pointer-events-none opacity-60",
                       )}
                     >
-                      <Upload size={16} aria-hidden />
-                      {uploadingId === order.id ? "Subiendo…" : "Subir comprobante"}
+                      <Upload size={14} aria-hidden />
+                      {uploadingId === order.id ? "Subiendo…" : "Subir"}
                       <input
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
@@ -526,56 +560,53 @@ export function PedidosPanel() {
                 )}
               </div>
 
-              <div className="space-y-4 px-4 py-4 @min-[36rem]:px-5">
-                <div className="min-w-0">
-                  <p className="inline-flex items-center gap-1.5 text-sm font-medium text-clay">
-                    <MapPin size={15} className="shrink-0" aria-hidden />
-                    Recoger en el local
-                  </p>
-                  <ul className="mt-2 overflow-hidden rounded-[10px] border border-ink/8 bg-paper/70">
-                    {order.items.map((item, idx) => (
-                      <li
-                        key={`${order.id}-${item.id}-${idx}`}
-                        className="flex items-baseline gap-3 border-b border-ink/8 px-3 py-2.5 text-sm last:border-b-0"
-                      >
-                        <span className="w-8 shrink-0 font-bold tabular-nums text-ink">{item.qty}×</span>
-                        <span className="min-w-0 text-ink">
-                          <span className="font-medium">{item.name}</span>
-                          {item.tortillas || item.size ? (
-                            <span className="mt-1 flex flex-wrap gap-1.5">
-                              {item.tortillas ? (
-                                <span className="inline-flex rounded-full border border-terracotta/25 bg-gold/15 px-2 py-0.5 text-[11px] font-semibold text-ink">
-                                  {item.tortillas} tortilla{item.tortillas === 1 ? "" : "s"}
-                                </span>
-                              ) : null}
-                              {item.size ? (
-                                <span className="inline-flex rounded-full border border-terracotta/25 bg-gold/15 px-2 py-0.5 text-[11px] font-semibold text-ink">
-                                  {item.size === "grande" ? "Grande" : "Chica"}
-                                </span>
-                              ) : null}
+              {/* Ítems densos + total */}
+              <div className="px-3 py-2.5 @min-[36rem]:px-4">
+                <p className="inline-flex items-center gap-1 text-[11px] font-medium text-clay">
+                  <MapPin size={12} className="shrink-0" aria-hidden />
+                  Recoger en el local
+                </p>
+                <ul className="mt-1.5 overflow-hidden rounded-[8px] border border-ink/8 bg-paper/70">
+                  {order.items.map((item, idx) => (
+                    <li
+                      key={`${order.id}-${item.id}-${idx}`}
+                      className="flex items-center gap-2 border-b border-ink/8 px-2.5 py-1.5 text-sm last:border-b-0"
+                    >
+                      <span className="w-7 shrink-0 text-xs font-bold tabular-nums text-ink">
+                        {item.qty}×
+                      </span>
+                      <span className="min-w-0 flex-1 truncate font-medium text-ink">{item.name}</span>
+                      {item.tortillas || item.size ? (
+                        <span className="flex shrink-0 flex-wrap justify-end gap-1">
+                          {item.tortillas ? (
+                            <span className="inline-flex rounded-full border border-terracotta/25 bg-gold/15 px-1.5 py-px text-[10px] font-semibold text-ink">
+                              {item.tortillas} tort.
+                            </span>
+                          ) : null}
+                          {item.size ? (
+                            <span className="inline-flex rounded-full border border-terracotta/25 bg-gold/15 px-1.5 py-px text-[10px] font-semibold text-ink">
+                              {item.size === "grande" ? "Gde" : "Chica"}
                             </span>
                           ) : null}
                         </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="flex flex-col gap-3 border-t border-ink/8 pt-4 @min-[36rem]:flex-row @min-[36rem]:items-center @min-[36rem]:justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-clay">Total</p>
-                    <p className="text-xl font-bold text-ink">{formatMxn(order.total_cents)}</p>
-                  </div>
-                  <div className="grid grid-cols-1 gap-2 @min-[36rem]:flex @min-[36rem]:flex-wrap @min-[36rem]:justify-end">
-                    {canEditCounter ? (
-                      <Link
-                        to={`/sistema/mostrador?edit=${order.id}`}
-                        className="btn-secondary inline-flex h-11 w-full shrink-0 items-center justify-center gap-1.5 px-3 text-sm @min-[36rem]:w-auto"
-                      >
-                        <Pencil size={15} aria-hidden />
-                        Editar pedido
-                      </Link>
-                    ) : null}
-                  </div>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-2.5 flex items-center justify-between gap-3 border-t border-ink/8 pt-2.5">
+                  <p className="text-base font-bold tabular-nums text-ink">
+                    <span className="mr-1.5 text-[11px] font-medium text-clay">Total</span>
+                    {formatMxn(order.total_cents)}
+                  </p>
+                  {canEditCounter ? (
+                    <Link
+                      to={`/sistema/mostrador?edit=${order.id}`}
+                      className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-[8px] border border-ink/15 bg-white px-3 text-xs font-medium text-ink transition hover:border-ink/25"
+                    >
+                      <Pencil size={14} aria-hidden />
+                      Editar
+                    </Link>
+                  ) : null}
                 </div>
               </div>
             </article>

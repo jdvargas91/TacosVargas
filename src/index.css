@@ -437,6 +437,27 @@ html.nav-open #root {
   }
 }
 
+/* Atención breve al selector de estado (pedidos abiertos). 3 ciclos, luego se queda. */
+@keyframes status-attention {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(196 69 42 / 0);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgb(196 69 42 / 0.32);
+  }
+}
+
+.status-attention {
+  animation: status-attention 1.35s ease-in-out 3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-attention {
+    animation: none;
+  }
+}
+
 .product-photo {
   transform: scale(1);
   filter: brightness(0.8);

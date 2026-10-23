@@ -16,6 +16,8 @@ type SelectProps = {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  /** Estilos extra del botón disparador (p. ej. resaltar estado del pedido). */
+  triggerClassName?: string;
   "aria-label"?: string;
   id?: string;
 };
@@ -29,6 +31,7 @@ export function Select({
   placeholder = "Seleccionar",
   disabled = false,
   className,
+  triggerClassName,
   id,
   "aria-label": ariaLabel,
 }: SelectProps) {
@@ -154,6 +157,7 @@ export function Select({
           "ui-select-trigger flex h-11 w-full cursor-pointer items-center justify-between gap-2 border border-ink/15 bg-white px-3 text-left text-sm text-ink transition",
           "hover:border-ink/25 focus-visible:border-terracotta",
           disabled && "cursor-not-allowed opacity-50",
+          triggerClassName,
         )}
       >
         <span className={cn("truncate", !selected && "text-clay")}>{selected?.label ?? placeholder}</span>
