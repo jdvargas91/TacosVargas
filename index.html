@@ -1,6 +1,21 @@
 <!doctype html>
 <html lang="es-MX">
   <head>
+    <script>
+      (function () {
+        var p = new URLSearchParams(location.search);
+        var h = location.hash || "";
+        var cb =
+          p.has("code") ||
+          p.has("error") ||
+          p.has("error_description") ||
+          h.indexOf("access_token") !== -1 ||
+          /(?:^|[&#])error(?:_description)?=/.test(h);
+        if (location.pathname !== "/cuenta" && cb) {
+          location.replace("/cuenta" + location.search + location.hash);
+        }
+      })();
+    </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- Metas SEO por ruta: las inyecta Seo.tsx (react-helmet-async). -->

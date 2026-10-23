@@ -4,6 +4,8 @@ import { supabase, supabaseConfigured } from "@/lib/supabase";
 
 export type UserRole = "cliente" | "vendedor" | "admin";
 
+const OAUTH_PENDING_KEY = "vargas_oauth_pending";
+
 type AuthContextValue = {
   configured: boolean;
   loading: boolean;
@@ -22,6 +24,15 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 function roleFromProfile(value: string | null | undefined): UserRole {
   if (value === "admin" || value === "vendedor" || value === "cliente") return value;
   return "cliente";
+}
+
+/** Solo tras un login OAuth pendiente: si caímos en / o /login, ir a /cuenta. */
+function redirectPostLoginIfNeeded() {
+  if (sessionStorage.getItem(OAUTH_PENDING_KEY) !== "1") return;
+  const path = window.location.pathname;
+  if (path === "/" || path === "/login") {
+    window.location.replace("/cuenta");
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -66,7 +77,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setRole(roleFromProfile(data.role));
         setDisplayName(data.display_name);
       } else {
-        // Legacy fallback while migrations roll out
         const { data: staff } = await client.from("staff").select("user_id").eq("user_id", nextUser.id).maybeSingle();
         setRole(staff ? "admin" : "cliente");
         setDisplayName(
@@ -78,12 +88,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     }
 
-    client.auth.getSession().then(({ data }) => {
+    // getSession() espera initializePromise (incluye exchange PKCE de ?code=).
+    void client.auth.getSession().then(({ data }) => {
       void sync(data.session?.user ?? null);
     });
 
-    const { data: listener } = client.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = client.auth.onAuthStateChange((event, session) => {
       void sync(session?.user ?? null);
+      // Solo SIGNED_IN (OAuth recién hecho). INITIAL_SESSION en cada carga del home
+      // no debe expulsar al staff de / hacia /cuenta.
+      if (event === "SIGNED_IN" && session) {
+        redirectPostLoginIfNeeded();
+      }
     });
 
     return () => listener.subscription.unsubscribe();
@@ -105,14 +121,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       displayName,
       signInGoogle: async (redirectTo: string) => {
         if (!supabase) throw new Error("Supabase no está configurado");
+        sessionStorage.setItem(OAUTH_PENDING_KEY, "1");
         const { error } = await supabase.auth.signInWithOAuth({
           provider: "google",
           options: { redirectTo },
         });
-        if (error) throw error;
+        if (error) {
+          sessionStorage.removeItem(OAUTH_PENDING_KEY);
+          throw error;
+        }
       },
       signOut: async () => {
         if (!supabase) return;
+        sessionStorage.removeItem(OAUTH_PENDING_KEY);
         await supabase.auth.signOut();
       },
     }),
@@ -127,3 +148,5 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth debe usarse dentro de AuthProvider");
   return ctx;
 }
+
+export { OAUTH_PENDING_KEY };

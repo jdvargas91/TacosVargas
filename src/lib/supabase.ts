@@ -15,15 +15,38 @@ const key =
 
 export const supabaseConfigured = Boolean(url && key);
 
-export const supabase: SupabaseClient | null = supabaseConfigured
-  ? createClient(url!, key!, {
-      auth: {
-        flowType: "pkce",
-        detectSessionInUrl: true,
-        persistSession: true,
-      },
-    })
-  : null;
+/**
+ * Si el callback PKCE aterriza fuera de /cuenta, NO crear el cliente aquí:
+ * createClient + detectSessionInUrl consumiría el ?code= en / y luego
+ * history.replaceState dejaría al usuario en la raíz sin pasar por /cuenta.
+ */
+function shouldDeferOauthToCuenta(): boolean {
+  if (typeof window === "undefined") return false;
+  const params = new URLSearchParams(window.location.search);
+  const hash = window.location.hash || "";
+  const isCallback =
+    params.has("code") ||
+    params.has("error") ||
+    params.has("error_description") ||
+    hash.includes("access_token") ||
+    /(?:^|[&#])error(?:_description)?=/.test(hash);
+  if (window.location.pathname === "/cuenta" || !isCallback) return false;
+  window.location.replace(`/cuenta${window.location.search}${window.location.hash}`);
+  return true;
+}
+
+const deferOauth = shouldDeferOauthToCuenta();
+
+export const supabase: SupabaseClient | null =
+  !deferOauth && supabaseConfigured
+    ? createClient(url!, key!, {
+        auth: {
+          flowType: "pkce",
+          detectSessionInUrl: true,
+          persistSession: true,
+        },
+      })
+    : null;
 
 export type ProductRow = {
   id: string;

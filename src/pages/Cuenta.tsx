@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { Seo } from "@/components/Seo";
-import { useAuth } from "@/context/AuthContext";
+import { OAUTH_PENDING_KEY, useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useSiteContent } from "@/context/SiteContentContext";
 import { LOGIN_ERROR_KEY, readPendingCheckout } from "@/lib/pendingCheckout";
@@ -16,13 +16,17 @@ export function Cuenta() {
   const { business } = useSiteContent();
   const { clear } = useCart();
   const pendingOnLogin = Boolean(user && !isStaff && readPendingCheckout());
+  const params = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+  const hasCodeInUrl = params.has("code") || hash.has("access_token");
 
   useEffect(() => {
     if (!pendingOnLogin) return;
     clear();
   }, [clear, pendingOnLogin]);
 
-  if (loading) {
+  // Esperar INITIAL_SESSION / exchange PKCE. Si aún hay ?code= en la URL, no salir a /login.
+  if (loading || (hasCodeInUrl && !user)) {
     return (
       <>
         <Seo title={`Cuenta · ${business.name}`} description="Redirigiendo…" noindex />
@@ -35,9 +39,8 @@ export function Cuenta() {
 
   if (!user) {
     const stored = sessionStorage.getItem("vargas_post_login");
-    const params = new URLSearchParams(window.location.search);
-    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     const oauthError = params.get("error_description") || hash.get("error_description") || params.get("error");
+    sessionStorage.removeItem(OAUTH_PENDING_KEY);
     if (stored === "/mis-pedidos" || stored === "/pedido" || oauthError) {
       sessionStorage.removeItem("vargas_post_login");
       sessionStorage.setItem(
@@ -50,6 +53,8 @@ export function Cuenta() {
     }
     return <Navigate to="/login" replace />;
   }
+
+  sessionStorage.removeItem(OAUTH_PENDING_KEY);
 
   if (isStaff) {
     sessionStorage.removeItem("vargas_post_login");

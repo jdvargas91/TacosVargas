@@ -7,6 +7,7 @@ import { SiteContentProvider } from "@/context/SiteContentContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { CookieNotice } from "@/components/CookieNotice";
 import { HashScroll } from "@/components/HashScroll";
+import { OAuthCallbackRedirect } from "@/components/OAuthCallbackRedirect";
 import { ConsentProvider } from "@/context/ConsentContext";
 import { Home } from "@/pages/Home";
 import { Pedido } from "@/pages/Pedido";
@@ -30,6 +31,7 @@ export default function App() {
                 <BrowserRouter>
                   <ConsentProvider>
                   <HashScroll />
+                  <OAuthCallbackRedirect />
                   <CookieNotice />
                   <Routes>
                     <Route path="/" element={<Home />} />

@@ -145,7 +145,8 @@ export default {
     const isLocal = host === "localhost" || host === "127.0.0.1";
 
     // En local, no reescribimos respuestas (rompe el HTML transform de Vite).
-    // Redirects sí; deep links SPA caen a index.html sin clonar el Response.
+    // Ojo: ASSETS.fetch("/login") etc. suele devolver 307 → "/" (rompe OAuth y el SPA).
+    // Para rutas conocidas de la app, servir siempre el shell index.html.
     if (isLocal) {
       if (looksLikeStaticAsset(path) || !isDocumentNavigation(request)) {
         return serveStaticAsset(env, request, path);
@@ -153,11 +154,17 @@ export default {
       const localRedirect = PERMANENT_REDIRECTS[path];
       if (localRedirect) return withEdgeHeader(redirect(localRedirect, request, 301));
 
-      const asset = await env.ASSETS.fetch(request);
-      if (asset.status !== 404) return asset;
+      // En el plugin de Vite, /index.html responde 307 → "/". Hay que pedir "/"
+      // y devolver ese HTML con 200 para que la URL del navegador siga siendo /login, etc.
+      if (isKnownSpaRoute(path)) {
+        return env.ASSETS.fetch(new Request(new URL("/", request.url), request));
+      }
 
-      // Hard refresh en /pedido, /producto/…, etc.
-      return env.ASSETS.fetch(new Request(new URL("/index.html", request.url), request));
+      const asset = await env.ASSETS.fetch(request);
+      // No reenviar 3xx de ASSETS al navegador (mandan todo a /).
+      if (asset.ok) return asset;
+
+      return env.ASSETS.fetch(new Request(new URL("/", request.url), request));
     }
 
     // Módulos / assets / fetch: nunca pasar por la lógica HTML 200/404.
